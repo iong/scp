@@ -95,7 +95,7 @@ static void newtrial(double step_radius)
 	double	polar[3], move[3];
 	int	i;
 	
-	for (i=0; i<N; i++) {
+	for (i=1; i<N; i++) {
 		polar[0] = gaussran(step_radius, 0);
 		polar[1] = acos(2.0*gsl_rng_uniform(rng) - 1.0);
 		polar[2] = 2.0*M_PI*gsl_rng_uniform(rng);
@@ -215,7 +215,7 @@ void mc_one_by_one(int burnin_len)
 		if (U0 < Ulmin) {
 			Ulmin = U0;
 		}
-		j = i%N;
+		j = i%(N-1) + 1;
 		new_single_trial(j, xsteps);
 		
 		DOTVP(rsq, rnew[j], rnew[j]);
@@ -357,21 +357,21 @@ static void leapfrog(double trun)
 	directsum();
 	confinement();
 	for (i=0; i<nrun; i++) {
-		cblas_daxpy(3*N, 0.5*dt/mass, a[0], 1, v[0], 1);
-		cblas_daxpy(3*N, dt, v[0], 1, r[0], 1);
+		cblas_daxpy(3*(N-1), 0.5*dt/mass, a[1], 1, v[1], 1);
+		cblas_daxpy(3*(N-1), dt, v[1], 1, r[1], 1);
 		/*
 		memset(a[0], 0, 3*N*sizeof(double));
 		confinement();
 		for (j=0; j<nfine; j++) {
-			cblas_daxpy(3*N, 0.5*ddt/mass, a[0], 1, v[0], 1);
-			cblas_daxpy(3*N, ddt, v[0], 1, r[0], 1);
+			cblas_daxpy(3*(N-1), 0.5*ddt/mass, a[0], 1, v[0], 1);
+			cblas_daxpy(3*(N-1), ddt, v[0], 1, r[0], 1);
 			memset(a[0], 0, 3*N*sizeof(double));
 			confinement();
-			cblas_daxpy(3*N, 0.5*ddt/mass, a[0], 1, v[0], 1);
+			cblas_daxpy(3*(N-1), 0.5*ddt/mass, a[0], 1, v[0], 1);
 		}*/
 		directsum();
 		confinement();
-		cblas_daxpy(3*N, 0.5*dt/mass, a[0], 1, v[0], 1);/*
+		cblas_daxpy(3*(N-1), 0.5*dt/mass, a[1], 1, v[1], 1);/*
 		memcpy(rnew[0], a[0], 3*N*sizeof(double));
 		confinement();*/
 		//dump_particles(i);
