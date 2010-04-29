@@ -1,0 +1,10 @@
+N 147
+LJ  1.1642e-04 6.2238
+mass 28
+dt 10
+tanneal 1000
+tstop 400000
+NMC 1000
+T 1.0e-4
+R0 25
+Omega 50
