@@ -58,6 +58,19 @@ static void dump_particles(double tnow)
 	fclose(fout);
 }
 
+static void dump_Umin()
+{
+	FILE	*fout;
+	int	i;
+	
+	fout = fopen("Umin_cfg.dat", "w");
+	for (i=0; i<N; i++) {
+		fprintf(fout, "%lg %lg %g\n",
+			rmin[i][0], rmin[i][1], rmin[i][2]);
+	}
+	fclose(fout);
+}
+
 
 static double ljUtot()
 {
@@ -118,15 +131,19 @@ static double energy()
 
 void mc_metropolis(int burnin_len)
 {
-	double U0, Unew, p,rsq;
+	double U0, Unew, p,rsq, Ulmin;
 	int acceptance_trials = 1000, i, j, naccepted = 0;
 	
 	memcpy(rnew, r, 3*N*sizeof(double));
 	U0 = ljUtot();
+	Ulmin = 1e6;
 	for (i = 1; i <= burnin_len; i++) {
 		if (U0 < Umin) {
 			Umin = U0;
 			memcpy(rmin, r, 3*N*sizeof(double));
+		}
+		if (U0 < Ulmin) {
+			Ulmin = U0;
 		}
 		newtrial(xstep);
 		for (j=0; j<N; j++) {
@@ -144,7 +161,7 @@ void mc_metropolis(int burnin_len)
 			naccepted++;
 		}
 		if ((i % acceptance_trials) == 0) {
-			printf("%lg %d\n", Umin, naccepted);
+			printf("%lg %lg %d\n", Ulmin, xstep, naccepted);
 			if (naccepted < 0.5 * (double) acceptance_trials) {
 				xstep = xstep / 1.10779652734191;
 			} else {
@@ -217,6 +234,7 @@ static double single_dt(double dr2, double vsq, double ldt)
 {
 	double	y6, y12, f_, df2, Uij, dU, dUrel_, dx;
 	
+	dr2min = 1e6;
 	if (dr2<dr2min) {
 		dr2min = dr2;
 	}
@@ -350,7 +368,6 @@ static void initial_config()
 				}
 			}
 		} while ((rsq > R0sq) || (dr2min < 0.25*sigma2) );
-		printf("%lg\n", sqrt(dr2min));
 	}
 }
 
@@ -442,16 +459,14 @@ int main (int argc, const char * argv[])
 	//_mm_setcsr( _MM_MASK_MASK &~ (_MM_MASK_OVERFLOW|_MM_MASK_INVALID|_MM_MASK_DIV_ZERO) );
 	kTanneal = 100*epsilon;
 	anneal(kTanneal, sigma/sqrt(kTanneal/mass));
-	mc_metropolis(NMC);
 	dump_particles(0);
-	tanneal = sigma/sqrt(kTanneal/mass);
 	for (t=0; t<tstop; t+= tanneal) {
-		anneal(kTanneal, sigma/sqrt(kTanneal/mass));
-		//dump_particles(t);
 		mc_metropolis(NMC);
-		//dump_particles(t+1);
-		printf("t = %lg, Umin = %lg\n", t+tanneal, Umin);
+		dump_Umin();
+		anneal(kT, tanneal);
+		printf("t = %lg, Umin = %lg\n", t, Umin);
 	}
+	
 	fclose(eout);
 
     return 0;
