@@ -14,7 +14,7 @@ double	kT, beta;
 double	dt, ddt, tanneal, tstop, R0, R0sq, Omega, OmegaSq, dUrel;
 double	t;
 
-static double xstep;
+static double xstep, xsteps;
 FILE	*eout;
 
 gsl_rng *rng;
@@ -105,6 +105,19 @@ static void newtrial(double step_radius)
 }
 
 
+static void new_single_trial(int i, double step_radius)
+{
+	double	polar[3], move[3];
+	
+	polar[0] = gaussran(step_radius, 0);
+	polar[1] = acos(2.0*gsl_rng_uniform(rng) - 1.0);
+	polar[2] = 2.0*M_PI*gsl_rng_uniform(rng);
+	pol2cart(polar, move);
+	ADDV(rnew[i], r[i], move);
+}
+
+
+
 static void accept_trial()
 {
 	memcpy(r, rnew, 3*N*sizeof(double));
@@ -129,7 +142,64 @@ static double energy()
 }
 
 
-void mc_metropolis(int burnin_len)
+void mc_all(int burnin_len)
+{
+	double U0, Unew, p,rsq, Ulmin;
+	int acceptance_trials = 1000, i, j, naccepted = 0;
+	
+	memcpy(rnew, r, 3*N*sizeof(double));
+	U0 = ljUtot();
+	Ulmin = 1e6;
+	for (i = 1; i <= burnin_len; i++) {
+		for (j=0; j<N; j++) {
+			DOTVP(rsq, r[j], r[j]);
+			if (rsq > R0sq) {
+				printf("Aaaaa");
+				continue;
+			}
+		}
+		newtrial(xstep);
+		for (j=0; j<N; j++) {
+			DOTVP(rsq, rnew[j], rnew[j]);
+			if (rsq > R0sq) {
+				j=2*N;
+			}
+		}
+		if ((i % acceptance_trials) == 0) {
+			printf("%lg %lg %d\n", Ulmin, xstep, naccepted);
+			if (naccepted < 0.5 * (double) acceptance_trials) {
+				xstep = xstep / 1.10779652734191;
+			} else {
+				xstep = xstep * 1.12799165273419;
+			}
+			
+			naccepted = 0;
+		}
+		if (j>N) {
+			continue;
+		}
+	
+		if (U0 < Umin) {
+			Umin = U0;
+			memcpy(rmin, r, 3*N*sizeof(double));
+		}
+		if (U0 < Ulmin) {
+			Ulmin = U0;
+		}
+		Unew = ljUtot();
+		p = exp(-(Unew - U0) * beta);
+		
+		if (p > gsl_rng_uniform(rng)) {
+			accept_trial();
+			U0 = Unew;
+			naccepted++;
+		}
+
+	}
+}
+
+
+void mc_one_by_one(int burnin_len)
 {
 	double U0, Unew, p,rsq, Ulmin;
 	int acceptance_trials = 1000, i, j, naccepted = 0;
@@ -145,27 +215,36 @@ void mc_metropolis(int burnin_len)
 		if (U0 < Ulmin) {
 			Ulmin = U0;
 		}
-		newtrial(xstep);
-		for (j=0; j<N; j++) {
-			DOTVP(rsq, rnew[j], rnew[j]);
-			if (rsq > R0sq) {
-				continue;
-			}
+		j = i%N;
+		new_single_trial(j, xsteps);
+		
+		DOTVP(rsq, rnew[j], rnew[j]);
+		if (rsq > R0sq) {
+			SETV(rnew[j], r[j]); 
+			continue;
 		}
+		DOTVP(rsq, r[j], r[j]);
+		if (rsq > R0sq) {
+			printf("Aaaaaaaaaaaarrrrrrrrrrrrrr\n");
+			exit(EXIT_FAILURE);
+			SETV(rnew[j], r[j]); 
+			continue;
+		}
+		
 		Unew = ljUtot();
 		p = exp(-(Unew - U0) * beta);
 		
 		if (p > gsl_rng_uniform(rng)) {
-			accept_trial();
+			SETV(r[j], rnew[j]);
 			U0 = Unew;
 			naccepted++;
 		}
 		if ((i % acceptance_trials) == 0) {
-			printf("%lg %lg %d\n", Ulmin, xstep, naccepted);
+			printf("%lg s%lg %d\n", Ulmin, xsteps, naccepted);
 			if (naccepted < 0.5 * (double) acceptance_trials) {
-				xstep = xstep / 1.10779652734191;
+				xsteps = xsteps / 1.10779652734191;
 			} else {
-				xstep = xstep * 1.12799165273419;
+				xsteps = xsteps * 1.12799165273419;
 			}
 			
 			naccepted = 0;
@@ -224,10 +303,6 @@ static void directsum()
 }
 
 
-static double d3nrm2(const double r[])
-{
-	return sqrt(r[0]*r[0] + r[1]*r[1] + r[2]*r[2]);
-}
 
 static double dr2min = 1e6;
 static double single_dt(double dr2, double vsq, double ldt)
@@ -252,24 +327,6 @@ static double single_dt(double dr2, double vsq, double ldt)
 	return 2.0*ldt;
 }
 
-static double single_dt_c(double ldt, int i)
-{
-	double	f_, df2, Uij, dU, dUrel_, dx, rsq, vsq;
-	
-	DOTVP(rsq, r[i], r[i]);
-	DOTVP(vsq, v[i], v[i]);
-	
-	for (dUrel_ = 1; dUrel_ > dUrel; ldt = ldt/2) {
-		f_ = -mass*OmegaSq*(1 - sqrt(R0sq/rsq));
-		Uij =  0.5*mass*OmegaSq*(R0sq + rsq - 2.0*sqrt(rsq) * R0);
-		dx = 0.5*sqrt(vsq)*ldt + 0.125*fabs(f_)/mass*ldt*ldt;
-		df2 = 2.0 * f_ * mass * OmegaSq;
-		
-		dU = 0.125*df2 * dx * ldt * ldt/mass;
-		dUrel_ = fabs(dU/Uij);
-	}
-	return 2.0*ldt;
-}
 
 static double estimate_dt(double vmaxsq)
 {
@@ -290,9 +347,13 @@ static double estimate_dt(double vmaxsq)
 
 static void leapfrog(double trun)
 {
+	double lastUtot, locUmin;
 	int	i, j, nrun;
 	
+	
 	nrun = round(trun/dt);
+	lastUtot = 2e6;
+	locUmin = 1e6;
 	directsum();
 	confinement();
 	for (i=0; i<nrun; i++) {
@@ -315,6 +376,13 @@ static void leapfrog(double trun)
 		confinement();*/
 		//dump_particles(i);
 		fprintf(eout, "%lg %lg %lg %lg\n", t+i*dt, energy(), Utot, Ekin);
+		if (Utot < locUmin) {
+			locUmin = Utot;
+		}
+		if (Utot > lastUtot && lastUtot == locUmin) {
+			memcpy(rnew[0], r[0], 3*N*sizeof(double));
+		}
+		lastUtot = Utot;
 		//memcpy(a[0], rnew[0], 3*N*sizeof(double));
 	}
 }
@@ -322,17 +390,12 @@ static void leapfrog(double trun)
 
 static void anneal(double kBT, double trun)
 {
-	int	i, imax, rsq, rsqmax=0.0;
+	int	i, imax, rsq;
 	
 	for (i=0; i<N; i++) {
 		v[i][0] = gaussran(sqrt(kBT / mass), 0);
 		v[i][1] = gaussran(sqrt(kBT / mass), 0);
 		v[i][2] = gaussran(sqrt(kBT / mass), 0);
-		DOTVP(rsq, r[i], r[i]);
-		if (rsq > rsqmax) {
-			rsqmax = rsq;
-			imax = i;
-		}
 	}
 
 	dt = estimate_dt(kBT/mass);
@@ -344,7 +407,13 @@ static void anneal(double kBT, double trun)
 	ddt = dt/(double) nfine;
 	
 	leapfrog(trun);
-	//memcpy(r, rnew, 3*N*sizeof(double));
+	
+	for (i=0; i<N; i++) {
+		DOTVP(rsq, r[i], r[i]);
+		if (rsq >= R0sq) {
+			MULVS(r[i], r[i], 0.98*R0/sqrt(rsq));
+		}
+	}
 }
 
 
@@ -354,7 +423,8 @@ static void initial_config()
 	int	i, j;
 	
 	sigma2 = sigma*sigma;
-	for (i=0; i<N; i++) {
+	CLRV(r[0]);
+	for (i=1; i<N; i++) {
 		do {
 			r[i][0] = R0*(gsl_rng_uniform(rng) - 0.5);
 			r[i][1] = R0*(gsl_rng_uniform(rng) - 0.5);
@@ -434,14 +504,16 @@ static void read_options(const char fname[])
 
 int main (int argc, const char * argv[])
 {
-	double	kTanneal;
-	dUrel = 1e-3;
+	double	kTanneal, lastUmin, rsq;
+	int	n, i;
+	
+	dUrel = 1e-6;
 	read_options(argv[1]);
 	eout = fopen("eout.dat", "w");
 
 
-	xstep = 0.2*sigma;
-	dUrel = 0.5*dUrel/(double)(N*N);
+	xsteps = xstep = 0.2*sigma;
+	//dUrel = 0.5*dUrel/(double)(N*N);
 	
 	r = (double (*)[3])calloc(3*N, sizeof(double));
 	rnew = (double (*)[3])calloc(3*N, sizeof(double));
@@ -453,18 +525,30 @@ int main (int argc, const char * argv[])
 	rng = gsl_rng_alloc(gsl_rng_mt19937);
 
 	initial_config();
+	lastUmin = 2e100;
 	Umin = 1e100;
 	
 	
 	//_mm_setcsr( _MM_MASK_MASK &~ (_MM_MASK_OVERFLOW|_MM_MASK_INVALID|_MM_MASK_DIV_ZERO) );
 	kTanneal = 100*epsilon;
 	anneal(kTanneal, sigma/sqrt(kTanneal/mass));
+
 	dump_particles(0);
-	for (t=0; t<tstop; t+= tanneal) {
-		mc_metropolis(NMC);
+	for (n=0; n<NMC; n += 20000) {
+		mc_all(10000);
+		mc_one_by_one(10000);
 		dump_Umin();
-		anneal(kT, tanneal);
-		printf("t = %lg, Umin = %lg\n", t, Umin);
+		if (fabs(Umin - lastUmin) < epsilon) {
+			kTanneal = 0.8/1.5*fabs(Umin)/(double)N;
+			memcpy(r[0], rmin[0], 3*N*sizeof(double));
+			anneal(kTanneal, sigma/sqrt(kTanneal/mass));
+			//memcpy(r[0], rnew[0], 3*N*sizeof(double));
+			lastUmin = 0;
+			Umin = 0.1;
+		}
+		lastUmin = Umin;
+		
+		printf("n = %d, Umin = %lg\n", n, Umin);
 	}
 	
 	fclose(eout);

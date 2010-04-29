@@ -272,8 +272,8 @@
 							<key>PBXSmartGroupTreeModuleOutlineStateSelectionKey</key>
 							<array>
 								<array>
-									<integer>9</integer>
-									<integer>8</integer>
+									<integer>11</integer>
+									<integer>10</integer>
 								</array>
 							</array>
 							<key>PBXSmartGroupTreeModuleOutlineStateVisibleRectKey</key>
@@ -326,12 +326,12 @@
 										<key>_historyCapacity</key>
 										<integer>0</integer>
 										<key>bookmark</key>
-										<string>C6982BA911890B59008906B5</string>
+										<string>C6982C2611893810008906B5</string>
 										<key>history</key>
 										<array>
 											<string>C6C48BD111872D560089E563</string>
 											<string>C69D779A1187AB49002D5B76</string>
-											<string>C6982BA11189083F008906B5</string>
+											<string>C6982C2511893810008906B5</string>
 										</array>
 									</dict>
 									<key>SplitCount</key>
@@ -529,11 +529,12 @@
 	<integer>5</integer>
 	<key>WindowOrderList</key>
 	<array>
+		<string>C6982C2711893810008906B5</string>
+		<string>C6982AD21188CBB4008906B5</string>
 		<string>C6982AD11188CBB4008906B5</string>
 		<string>1CD10A99069EF8BA00B06720</string>
 		<string>C6D9948B1186B2B900175B5D</string>
 		<string>C6982ACE1188CBB4008906B5</string>
-		<string>C6982AD21188CBB4008906B5</string>
 		<string>1C78EAAD065D492600B07095</string>
 		<string>/Users/ionut/Dropbox/src/ljmc/ljmc.xcodeproj</string>
 	</array>
@@ -886,7 +887,7 @@
 								<key>Frame</key>
 								<string>{{0, 0}, {659, 289}}</string>
 								<key>RubberWindowFrame</key>
-								<string>91 760 659 330 0 0 1600 1178 </string>
+								<string>50 733 659 330 0 0 1600 1178 </string>
 							</dict>
 							<key>Module</key>
 							<string>PBXDebugCLIModule</string>
@@ -915,7 +916,7 @@
 			<key>ToolbarConfiguration</key>
 			<string>xcode.toolbar.config.consoleV3</string>
 			<key>WindowString</key>
-			<string>91 760 659 330 0 0 1600 1178 </string>
+			<string>50 733 659 330 0 0 1600 1178 </string>
 			<key>WindowToolGUID</key>
 			<string>1C78EAAD065D492600B07095</string>
 			<key>WindowToolIsVisible</key>
