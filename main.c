@@ -21,7 +21,7 @@ double	Uminall;
 
 static double *xstep, *xsteps;
 FILE	*eout;
-char *Uminfout;
+char *inputf=NULL, *outputf;
 
 gsl_rng *rng;
 
@@ -90,7 +90,7 @@ static void dump_Umin(int MCiter)
 	FILE	*fout;
 	int	i, imin;
 	
-	fout = fopen(Uminfout, "w");
+	fout = fopen(outputf, "w");
 	lUmin = 1e100;
 	printf("n = %d, Umin =", MCiter);
 	for (i=0; i<nstreams; i++) {
@@ -387,7 +387,7 @@ void load_data(char *coords)
         
         for (i=0; i<N; i++) {
                 fscanf(fin, "%lg %lg %lg", &(r[i][0]), &(r[i][1]), &(r[i][2]));
-                MULVS(r[i], r[i], sigma);
+                //MULVS(r[i], r[i], sigma);
         }
         fclose(fin);
 }
@@ -433,8 +433,11 @@ static void read_options(const char fname[])
 			Omega = atof(valstring);
 			OmegaSq = Omega*Omega;
 			required++;
-		} else if (strcmp(valname, "out") == 0) {
-			Uminfout = strdup(valstring);
+		} else if (strcmp(valname, "input") == 0) {
+			inputf = strdup(valstring);
+			required++;
+		} else if (strcmp(valname, "output") == 0) {
+			outputf = strdup(valstring);
 			required++;
 		} 
 	}
@@ -475,9 +478,14 @@ int main (int argc, const char * argv[])
 	gettimeofday(&tv, NULL);
         rng = gsl_rng_alloc(gsl_rng_mt19937);
         gsl_rng_set(rng, tv.tv_usec);
-	initial_config();
-	//load_data("/Users/ionut/mpipks/data/lj/147");
-	
+
+	if (inputf==NULL) {
+		initial_config();
+	}
+	else {
+		load_data(inputf);
+	}
+
 	for (i=0; i<nstreams; i++) {
 		xsteps[i] = xstep[i] = 0.2*sigma;
 		kT[i] = Tmin*pow(Tmax/Tmin, (double)i/(double)(nstreams-1));
@@ -496,10 +504,10 @@ int main (int argc, const char * argv[])
 		for (i=0; i<nstreams; i++) {
 			//mc_all(100, i);
 			mc_one_by_one(100, i);
-		}
+		}/*
 		if (converged(n)) {
 			break;
-		}
+		}*/
 		swap_streams();
 	}
 	dump_Umin(n);
