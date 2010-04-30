@@ -1,10 +1,16 @@
 N 147
 LJ  1.0e-3 10.0
+NMC 50000000
+R0 35
+out argon.xyz
+#parallel tempering
+Tmin 1e-5
+Tmax 4e-2
+nstreams 16
+# "annealing"
 mass 28
 dt 10.0
 tanneal 1000
 tstop 2000
-NMC 1000000
 T 1.0e-4
-R0 35
 Omega .1

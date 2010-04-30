@@ -1,21 +1,27 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include <sys/time.h>
 #include <vecLib/vecLib.h>
 #include <gsl/gsl_rng.h>
 #include <xmmintrin.h>
 
 #include "vectmath.h"
 
-int	N, NMC, nfine;
-double	(*r)[3], (*rnew)[3], (*rmin)[3], (*a)[3], (*v)[3], *U, Utot, Umin, Ekin;
+int	N, NMC, nfine, nstreams;
+double	(*r)[3], (*rnew)[3], (*rmin)[3], (*a)[3], (*v)[3];
+double	*U, *Ucache, *Ucacheline, *Umin, *U0;
+int	*naccepted, nswap=100;
 double	epsilon, sigma, sigma6, mass;
-double	kT, beta;
+double	*kT, *beta, Tmin, Tmax;
 double	dt, ddt, tanneal, tstop, R0, R0sq, Omega, OmegaSq, dUrel;
 double	t;
+int	minidx, Uminiter;
+double	Uminall;
 
-static double xstep, xsteps;
+static double *xstep, *xsteps;
 FILE	*eout;
+char *Uminfout;
 
 gsl_rng *rng;
 
@@ -41,48 +47,91 @@ static inline double gaussran(double sigma, double x0)
 }
 
 
-static void dump_particles(double tnow)
+static void dump_particles(int nrep)
 {
 	char	fname[128];
 	FILE	*fout;
 	int	i;
 	
-	snprintf(fname, 128, "%06.0lf.dat", tnow);
+	snprintf(fname, 128, "%02d.dat", nrep);
 	fout = fopen(fname, "w");
 	for (i=0; i<N; i++) {
-		fprintf(fout, "%lg %lg %g %lg %lg %g %lg %lg %g %lg\n",
-			r[i][0], r[i][1], r[i][2],
-			v[i][0], v[i][1], v[i][2],
-			a[i][0], a[i][1], a[i][2], U[i]);
+		fprintf(fout, "%lg %lg %g\n",
+			r[i][0], r[i][1], r[i][2]);
 	}
 	fclose(fout);
 }
 
-static void dump_Umin()
+
+static int converged(int mciter)
 {
-	FILE	*fout;
 	int	i;
 	
-	fout = fopen("Umin_cfg.dat", "w");
-	for (i=0; i<N; i++) {
-		fprintf(fout, "%lg %lg %g\n",
-			rmin[i][0], rmin[i][1], rmin[i][2]);
+	minidx = 0;
+	for (i=1; i<nstreams; i++) {
+		if (Umin[i] < Umin[minidx]) {
+			minidx = i;
+		}
 	}
+	if (Umin[minidx] < Uminall) {
+		Uminall = Umin[minidx];
+		Uminiter = mciter;
+	} else if (mciter - Uminiter > 1000000) {
+		return 1;
+	}
+	return	0;
+		
+}
+
+
+static void dump_Umin(int MCiter)
+{
+	double	lUmin;
+	FILE	*fout;
+	int	i, imin;
+	
+	fout = fopen(Uminfout, "w");
+	lUmin = 1e100;
+	printf("n = %d, Umin =", MCiter);
+	for (i=0; i<nstreams; i++) {
+		printf(" %lg,", Umin[i]);
+		if (Umin[i] <= lUmin) {
+			lUmin = Umin[i];
+			imin = i;
+		}
+	}
+	
+	fprintf(fout, "%d\nLJ_%d\n", N, N);
+	fputs("\n", stdout);
+	for (i=0; i<N; i++) {
+		fprintf(fout, "LJ %lg %lg %g\n",
+			rmin[i+imin*N][0], rmin[i+imin*N][1], rmin[i+imin*N][2]);
+	}
+	
 	fclose(fout);
 }
 
 
-static double ljUtot()
+static inline double ULJ(int i, int j, int nrep)
 {
 	double	dr[3], dr2, y6;
+	int	repoff;
+	repoff = nrep*N;
+
+	DOTPSUBV(dr2, dr, rnew[j+repoff], rnew[i+repoff]);
+	y6 = sigma6/(dr2*dr2*dr2);
+	return 4.0*epsilon*(y6*y6 - y6);
+}
+
+static double ljUtot(int nrep)
+{
+	double	Utot;
 	int	i, j;
 	
-	Utot=0;
+	Utot;
 	for (i=0; i<N; i++) {
 		for (j=i+1; j<N; j++) {
-			DOTPSUBV(dr2, dr, rnew[j], rnew[i]);
-			y6 = sigma6/(dr2*dr2*dr2);
-			Utot += 4.0*epsilon*(y6*y6 - y6);
+			Utot += ULJ(i, j, nrep);
 		}
 	}
 	
@@ -90,17 +139,62 @@ static double ljUtot()
 }
 
 
-static void newtrial(double step_radius)
+static double ljUtot_single_jump(int nrep, int j)
+{
+	double	Uij, dE;
+	int	i;
+	
+	dE = 0;
+	for (i=0; i<N; i++) {
+		if (i==j) {
+			continue;
+		}
+		Uij = ULJ(i, j, nrep);
+		dE += Uij - Ucache[j*N+i];
+		Ucacheline[i] = Uij;
+	}
+	return U0[nrep] + dE;
+}
+
+
+
+static double ljUtot_cache(int nrep)
+{
+	double	Uij, Utot;
+	int	i, j;
+	
+	Utot=0;
+	for (i=0; i<N; i++) {
+		for (j=i+1; j<N; j++) {
+			Uij = ULJ(i, j, nrep);
+			Ucache[i*N+j] = Uij;
+			Ucache[j*N+i] = Uij;
+			Utot += Uij;
+		}
+	}
+	
+	return Utot;
+}
+
+
+static void accept_trial(int nrep, double Unew)
+{
+	U0[nrep] = Unew;
+	memcpy(r[nrep*N], rnew[nrep*N], 3*N*sizeof(double));
+}
+
+
+static void newtrial(int nrep)
 {
 	double	polar[3], move[3];
 	int	i;
 	
 	for (i=1; i<N; i++) {
-		polar[0] = gaussran(step_radius, 0);
+		polar[0] = gaussran(xstep[nrep], 0);
 		polar[1] = acos(2.0*gsl_rng_uniform(rng) - 1.0);
 		polar[2] = 2.0*M_PI*gsl_rng_uniform(rng);
 		pol2cart(polar, move);
-		ADDV(rnew[i], r[i], move);
+		ADDV(rnew[i+nrep*N], r[i+nrep*N], move);
 	}
 }
 
@@ -118,300 +212,138 @@ static void new_single_trial(int i, double step_radius)
 
 
 
-static void accept_trial()
+static void swap_ptrs(double *p1, double *p2, int len)
 {
-	memcpy(r, rnew, 3*N*sizeof(double));
+	memcpy(Ucache, p2, len*sizeof(double));
+	memcpy(p2, p1, len*sizeof(double));
+	memcpy(p1, Ucache, len*sizeof(double));
 }
 
 
-static double energy()
+
+static void swap_streams()
 {
-	double	E;
-	int	i;
+	double	p;
+	int	i, j;
+	i = gsl_rng_uniform_int(rng, nstreams-1);
+	j = i+1;
 	
-	//Ekin = cblas_dnrm2(3*N, v[0], 1);
-	Ekin = 0;
-	for (i=0; i<N; i++) {
-		Ekin += v[i][0]*v[i][0] + v[i][1]*v[i][1] + v[i][2]*v[i][2];
+	p = exp((beta[i] - beta[j]) * (U0[i] - U0[j]));
+	if (p > gsl_rng_uniform(rng)) {
+		swap_ptrs(r[i*N], r[j*N], 3*N);
+		swap_ptrs(U0+i, U0+j, 1);
 	}
-	Ekin = 0.5*mass*Ekin;
-	
-	E = Ekin + Utot;
-	
-	return E;
 }
 
 
-void mc_all(int burnin_len)
+
+void mc_all(int burnin_len, int nrep)
 {
-	double U0, Unew, p,rsq, Ulmin;
-	int acceptance_trials = 1000, i, j, naccepted = 0;
+	double Unew, p,rsq, Ulmin;
+	int acceptance_trials = 1000, i, j;
 	
-	memcpy(rnew, r, 3*N*sizeof(double));
-	U0 = ljUtot();
+	memcpy(rnew[nrep*N], r[nrep*N], 3*N*sizeof(double));
+	U0[nrep] = ljUtot(nrep);
 	Ulmin = 1e6;
 	for (i = 1; i <= burnin_len; i++) {
 		for (j=0; j<N; j++) {
-			DOTVP(rsq, r[j], r[j]);
+			DOTVP(rsq, r[j+nrep*N], r[j+nrep*N]);
 			if (rsq > R0sq) {
 				printf("Aaaaa");
 				continue;
 			}
 		}
-		newtrial(xstep);
+		newtrial(nrep);
 		for (j=0; j<N; j++) {
-			DOTVP(rsq, rnew[j], rnew[j]);
+			DOTVP(rsq, rnew[j+nrep*N], rnew[j+nrep*N]);
 			if (rsq > R0sq) {
 				j=2*N;
 			}
 		}
-		if ((i % acceptance_trials) == 0) {
-			printf("%lg %lg %d\n", Ulmin, xstep, naccepted);
-			if (naccepted < 0.5 * (double) acceptance_trials) {
-				xstep = xstep / 1.10779652734191;
-			} else {
-				xstep = xstep * 1.12799165273419;
-			}
-			
-			naccepted = 0;
+		
+		if (j<=N) {
+			Unew = ljUtot(nrep);
+			p = exp(-(Unew - U0[nrep]) * beta[nrep]);
 		}
-		if (j>N) {
-			continue;
+		else {
+			p=-1.0;
 		}
-	
-		if (U0 < Umin) {
-			Umin = U0;
-			memcpy(rmin, r, 3*N*sizeof(double));
-		}
-		if (U0 < Ulmin) {
-			Ulmin = U0;
-		}
-		Unew = ljUtot();
-		p = exp(-(Unew - U0) * beta);
 		
 		if (p > gsl_rng_uniform(rng)) {
-			accept_trial();
-			U0 = Unew;
-			naccepted++;
+			accept_trial(nrep, Unew);
+			naccepted[nrep]++;
 		}
-
+		if (U0[nrep] < Umin[nrep]) {
+			Umin[nrep] = U0[nrep];
+			memcpy(rmin[nrep*N], r[nrep*N], 3*N*sizeof(double));
+		}
+		if ((i % acceptance_trials) == 0) {
+			printf("%d: %lg a%lg %d\n", nrep, Umin[nrep], xsteps[nrep], naccepted[nrep]);
+			if (naccepted[nrep] < 0.5 * (double) acceptance_trials) {
+				xstep[nrep] = xstep[nrep] / 1.10779652734191;
+			} else {
+				xstep[nrep] = xstep[nrep] * 1.12799165273419;
+			}
+			
+			naccepted[nrep] = 0;
+		}
 	}
 }
 
 
-void mc_one_by_one(int burnin_len)
+void mc_one_by_one(int burnin_len, int nrep)
 {
-	double U0, Unew, p,rsq, Ulmin;
-	int acceptance_trials = 1000, i, j, naccepted = 0;
+	double Unew, p,rsq, Ulmin;
+	int acceptance_trials = 1000, i;
+	int	j, k;
 	
-	memcpy(rnew, r, 3*N*sizeof(double));
-	U0 = ljUtot();
+	memcpy(rnew[nrep*N], r[nrep*N], 3*N*sizeof(double));
+	U0[nrep] = ljUtot_cache(nrep);
 	Ulmin = 1e6;
 	for (i = 1; i <= burnin_len; i++) {
-		if (U0 < Umin) {
-			Umin = U0;
-			memcpy(rmin, r, 3*N*sizeof(double));
-		}
-		if (U0 < Ulmin) {
-			Ulmin = U0;
-		}
-		j = i%(N-1) + 1;
-		new_single_trial(j, xsteps);
+		//printf("j = ");
+		j = 1 + gsl_rng_uniform_int(rng, N-1);
+		//printf("%d\n", j);
+		new_single_trial(j+N*nrep, xsteps[nrep]);
 		
-		DOTVP(rsq, rnew[j], rnew[j]);
+		DOTVP(rsq, rnew[j+N*nrep], rnew[j+N*nrep]);
 		if (rsq > R0sq) {
-			SETV(rnew[j], r[j]); 
+			SETV(rnew[j+N*nrep], r[j+N*nrep]); 
 			continue;
 		}
-		DOTVP(rsq, r[j], r[j]);
+		DOTVP(rsq, r[j+N*nrep], r[j+N*nrep]);
 		if (rsq > R0sq) {
 			printf("Aaaaaaaaaaaarrrrrrrrrrrrrr\n");
 			exit(EXIT_FAILURE);
-			SETV(rnew[j], r[j]); 
+			SETV(rnew[j+N*nrep], r[j+N*nrep]); 
 			continue;
 		}
 		
-		Unew = ljUtot();
-		p = exp(-(Unew - U0) * beta);
+		Unew = ljUtot_single_jump(nrep, j);
+		p = exp(-(Unew - U0[nrep]) * beta[nrep]);
 		
 		if (p > gsl_rng_uniform(rng)) {
-			SETV(r[j], rnew[j]);
-			U0 = Unew;
-			naccepted++;
+			SETV(r[j+N*nrep], rnew[j+N*nrep]);
+			memcpy(Ucache + j*N, Ucacheline, N*sizeof(double));
+			for (k=0; k<N; k++) {
+				Ucache[k*N+j] = Ucacheline[k];
+			}
+			U0[nrep] = Unew;
+			naccepted[nrep]++;
+		}
+		if (U0[nrep] < Umin[nrep]) {
+			Umin[nrep] = U0[nrep];
+			memcpy(rmin[nrep*N], r[nrep*N], 3*N*sizeof(double));
 		}
 		if ((i % acceptance_trials) == 0) {
-			printf("%lg s%lg %d\n", Ulmin, xsteps, naccepted);
-			if (naccepted < 0.5 * (double) acceptance_trials) {
-				xsteps = xsteps / 1.10779652734191;
+			printf("%d: %lg s%lg %d\n", nrep, Umin[nrep], xsteps[nrep], naccepted[nrep]);
+			if (naccepted[nrep] < 0.5 * (double) acceptance_trials) {
+				xsteps[nrep] = xsteps[nrep] / 1.10779652734191;
 			} else {
-				xsteps = xsteps * 1.12799165273419;
+				xsteps[nrep] = xsteps[nrep] * 1.12799165273419;
 			}
 			
-			naccepted = 0;
-		}
-	}
-}
-
-
-static void confinement()
-{
-	double	rsq, f_, Uij;
-	int i;
-	
-	for (i=0; i<N; i++) {
-		DOTVP(rsq, r[i], r[i]);
-		if (rsq <= R0sq) {
-			continue;
-		}
-		f_ = -mass*OmegaSq*(1 - sqrt(R0sq/rsq));
-		ADDMULVS(a[i], r[i], f_);
-		Uij =  0.5*mass*OmegaSq*(R0sq + rsq - 2.0*sqrt(rsq) * R0);
-		Utot += Uij;
-		U[i] += Uij;
-	}
-}
-
-
-static void directsum()
-{
-	double	dr[3], dr2, y6, y12, ai[3], Ui, Uij, f_, fij[3];
-	int	i, j;
-	
-	memset(a[0], 0, 3*N*sizeof(double));
-	memset(U, 0, N*sizeof(double));
-	Utot=0;
-	for (i=0; i<N; i++) {
-		SETV(ai, a[i]);
-		Ui=U[i];
-
-		for (j=i+1; j<N; j++) {
-			DOTPSUBV(dr2, dr, r[j], r[i]);
-			y6 = sigma6/(dr2*dr2*dr2);
-			y12 = y6*y6;
-			Uij = 4.0 * epsilon * (y12 - y6);
-			f_ = 4.0 * epsilon * (12 * y12 - 6 *y6) / dr2;
-			MULVS(fij, dr, f_);
-			ADDV(a[j], a[j], fij);
-			SUBV(ai, ai, fij);
-			Ui += Uij;
-			U[j] += Uij;
-			Utot += Uij;
-		}
-		SETV(a[i], ai);
-		U[i] = Ui;
-	}	
-}
-
-
-
-static double dr2min = 1e6;
-static double single_dt(double dr2, double vsq, double ldt)
-{
-	double	y6, y12, f_, df2, Uij, dU, dUrel_, dx;
-	
-	dr2min = 1e6;
-	if (dr2<dr2min) {
-		dr2min = dr2;
-	}
-	for (dUrel_ = 1; dUrel_ > dUrel; ldt = ldt/2) {
-		y6 = sigma6/(dr2*dr2*dr2);
-		y12 = y6*y6;
-		Uij = 4.0 * epsilon * (y12 - y6);
-		f_ = 4.0 * epsilon * (6 * y6 - 12 * y12) / sqrt(dr2);
-		dx = 0.5*sqrt(vsq)*ldt + 0.125*fabs(f_)/mass*ldt*ldt;
-		df2 = 8.0 * f_ * epsilon * (42*y6-156*y12) / dr2;
-		
-		dU = 0.125*df2 * dx * ldt * ldt/mass;
-		dUrel_ = fabs(dU/Uij);
-	}
-	return 2.0*ldt;
-}
-
-
-static double estimate_dt(double vmaxsq)
-{
-	double	dr[3], dr2, ldt;
-	int	i, j;
-	
-	ldt = dt;
-	for (i=0; i<N; i++) {
-		for (j=i+1; j<N; j++) {
-			DOTPSUBV(dr2, dr, r[j], r[i]);
-			ldt = single_dt(dr2, vmaxsq, ldt);
-		}
-	}
-	
-	return ldt;
-}
-
-
-static void leapfrog(double trun)
-{
-	double lastUtot, locUmin;
-	int	i, j, nrun;
-	
-	
-	nrun = round(trun/dt);
-	lastUtot = 2e6;
-	locUmin = 1e6;
-	directsum();
-	confinement();
-	for (i=0; i<nrun; i++) {
-		cblas_daxpy(3*(N-1), 0.5*dt/mass, a[1], 1, v[1], 1);
-		cblas_daxpy(3*(N-1), dt, v[1], 1, r[1], 1);
-		/*
-		memset(a[0], 0, 3*N*sizeof(double));
-		confinement();
-		for (j=0; j<nfine; j++) {
-			cblas_daxpy(3*(N-1), 0.5*ddt/mass, a[0], 1, v[0], 1);
-			cblas_daxpy(3*(N-1), ddt, v[0], 1, r[0], 1);
-			memset(a[0], 0, 3*N*sizeof(double));
-			confinement();
-			cblas_daxpy(3*(N-1), 0.5*ddt/mass, a[0], 1, v[0], 1);
-		}*/
-		directsum();
-		confinement();
-		cblas_daxpy(3*(N-1), 0.5*dt/mass, a[1], 1, v[1], 1);/*
-		memcpy(rnew[0], a[0], 3*N*sizeof(double));
-		confinement();*/
-		//dump_particles(i);
-		fprintf(eout, "%lg %lg %lg %lg\n", t+i*dt, energy(), Utot, Ekin);
-		if (Utot < locUmin) {
-			locUmin = Utot;
-		}
-		if (Utot > lastUtot && lastUtot == locUmin) {
-			memcpy(rnew[0], r[0], 3*N*sizeof(double));
-		}
-		lastUtot = Utot;
-		//memcpy(a[0], rnew[0], 3*N*sizeof(double));
-	}
-}
-
-
-static void anneal(double kBT, double trun)
-{
-	int	i, imax, rsq;
-	
-	for (i=0; i<N; i++) {
-		v[i][0] = gaussran(sqrt(kBT / mass), 0);
-		v[i][1] = gaussran(sqrt(kBT / mass), 0);
-		v[i][2] = gaussran(sqrt(kBT / mass), 0);
-	}
-
-	dt = estimate_dt(kBT/mass);
-	ddt = M_PI/Omega/20;
-	nfine = ceil(dt/ddt);
-	if (nfine%2 == 1) {
-		nfine++;
-	}
-	ddt = dt/(double) nfine;
-	
-	leapfrog(trun);
-	
-	for (i=0; i<N; i++) {
-		DOTVP(rsq, r[i], r[i]);
-		if (rsq >= R0sq) {
-			MULVS(r[i], r[i], 0.98*R0/sqrt(rsq));
+			naccepted[nrep] = 0;
 		}
 	}
 }
@@ -419,7 +351,7 @@ static void anneal(double kBT, double trun)
 
 static void initial_config()
 {
-	double	rsq,sigma2, dr2, dr[3];
+	double	rsq,sigma2, dr2, dr2min=1e100, dr[3];
 	int	i, j;
 	
 	sigma2 = sigma*sigma;
@@ -439,6 +371,25 @@ static void initial_config()
 			}
 		} while ((rsq > R0sq) || (dr2min < 0.25*sigma2) );
 	}
+}
+
+
+void load_data(char *coords)
+{
+        FILE    *fin;
+        int  i;
+        
+        fin = fopen(coords, "r");
+        if(!fin) {
+                fprintf(stderr, "load_data()\n");
+                exit(EXIT_FAILURE);
+        }
+        
+        for (i=0; i<N; i++) {
+                fscanf(fin, "%lg %lg %lg", &(r[i][0]), &(r[i][1]), &(r[i][2]));
+                MULVS(r[i], r[i], sigma);
+        }
+        fclose(fin);
 }
 
 
@@ -462,25 +413,17 @@ static void read_options(const char fname[])
 			fscanf(fin, "%lg", &sigma);
 			sigma6 = pow(sigma, 6.0);
 			required++;
-		} else if (strcmp(valname, "mass") == 0) {
-			mass = atof(valstring)*1836;
-			required++;
-			
-		} else if (strcmp(valname, "tanneal") == 0) {
-			tanneal = atof(valstring);
-			required++;
-		} else if (strcmp(valname, "dt") == 0) {
-			dt = atof(valstring);
-			required++;
-		} else if (strcmp(valname, "tstop") == 0) {
-			tstop = atof(valstring);
-			required++;
 		} else if (strcmp(valname, "NMC") == 0) {
 			NMC = atoi(valstring);
 			required++;
-		} else if (strcmp(valname, "T") == 0) {
-			kT = atof(valstring);
-			beta = 1.0/kT;
+		} else if (strcmp(valname, "Tmax") == 0) {
+			Tmax = atof(valstring);
+			required++;
+		} else if (strcmp(valname, "Tmin") == 0) {
+			Tmin = atof(valstring);
+			required++;
+		} else if (strcmp(valname, "nstreams") == 0) {
+			nstreams = atoi(valstring);
 			required++;
 		} else if (strcmp(valname, "R0") == 0) {
 			R0 = atof(valstring);
@@ -490,10 +433,10 @@ static void read_options(const char fname[])
 			Omega = atof(valstring);
 			OmegaSq = Omega*Omega;
 			required++;
-		} else if (strcmp(valname, "dUrel") == 0) {
-			dUrel = atof(valstring);
+		} else if (strcmp(valname, "out") == 0) {
+			Uminfout = strdup(valstring);
 			required++;
-		}
+		} 
 	}
 	
 	fclose(fin);
@@ -504,7 +447,7 @@ static void read_options(const char fname[])
 
 int main (int argc, const char * argv[])
 {
-	double	kTanneal, lastUmin, rsq;
+	struct timeval tv;
 	int	n, i;
 	
 	dUrel = 1e-6;
@@ -512,44 +455,54 @@ int main (int argc, const char * argv[])
 	eout = fopen("eout.dat", "w");
 
 
-	xsteps = xstep = 0.2*sigma;
+
 	//dUrel = 0.5*dUrel/(double)(N*N);
 	
-	r = (double (*)[3])calloc(3*N, sizeof(double));
-	rnew = (double (*)[3])calloc(3*N, sizeof(double));
-	rmin = (double (*)[3])calloc(3*N, sizeof(double));
-	v = (double (*)[3])calloc(3*N, sizeof(double));
-	a = (double (*)[3])calloc(3*N, sizeof(double));
-	U = (double *)calloc(N, sizeof(double));
-	
-	rng = gsl_rng_alloc(gsl_rng_mt19937);
+	r = (double (*)[3])calloc(3*N*nstreams, sizeof(double));
+	rnew = (double (*)[3])calloc(3*N*nstreams, sizeof(double));
+	rmin = (double (*)[3])calloc(3*N*nstreams, sizeof(double));
+	kT = (double *)calloc(nstreams, sizeof(double));
+	beta = (double *)calloc(nstreams, sizeof(double));
+	Umin = (double *)calloc(nstreams, sizeof(double));
+	U0 = (double *)calloc(nstreams, sizeof(double));
+	xstep = (double *)calloc(nstreams, sizeof(double));
+	xsteps = (double *)calloc(nstreams, sizeof(double));
+	naccepted = (int *)calloc(nstreams, sizeof(int));
+	Ucache = (double *)malloc(N*N*sizeof(double));
+	Ucacheline = (double *)malloc(N*sizeof(double));
 
+	
+	gettimeofday(&tv, NULL);
+        rng = gsl_rng_alloc(gsl_rng_mt19937);
+        gsl_rng_set(rng, tv.tv_usec);
 	initial_config();
-	lastUmin = 2e100;
-	Umin = 1e100;
+	//load_data("/Users/ionut/mpipks/data/lj/147");
 	
-	
-	//_mm_setcsr( _MM_MASK_MASK &~ (_MM_MASK_OVERFLOW|_MM_MASK_INVALID|_MM_MASK_DIV_ZERO) );
-	kTanneal = 100*epsilon;
-	anneal(kTanneal, sigma/sqrt(kTanneal/mass));
-
-	dump_particles(0);
-	for (n=0; n<NMC; n += 20000) {
-		mc_all(10000);
-		mc_one_by_one(10000);
-		dump_Umin();
-		if (fabs(Umin - lastUmin) < epsilon) {
-			kTanneal = 0.8/1.5*fabs(Umin)/(double)N;
-			memcpy(r[0], rmin[0], 3*N*sizeof(double));
-			anneal(kTanneal, sigma/sqrt(kTanneal/mass));
-			//memcpy(r[0], rnew[0], 3*N*sizeof(double));
-			lastUmin = 0;
-			Umin = 0.1;
-		}
-		lastUmin = Umin;
-		
-		printf("n = %d, Umin = %lg\n", n, Umin);
+	for (i=0; i<nstreams; i++) {
+		xsteps[i] = xstep[i] = 0.2*sigma;
+		kT[i] = Tmin*pow(Tmax/Tmin, (double)i/(double)(nstreams-1));
+		beta[i] = 1.0/kT[i];
+		Umin[i] = 1e100;
 	}
+	for (i=1; i<nstreams; i++) {
+		memcpy(r[N*i], r[0], 3*N*sizeof(double));
+	}
+
+	for (i=0; i<nstreams; i++) {
+		dump_particles(i);
+	}
+	for (n=0; n<NMC; n += 100) {
+		if(n%50000==0) dump_Umin(n);
+		for (i=0; i<nstreams; i++) {
+			//mc_all(100, i);
+			mc_one_by_one(100, i);
+		}
+		if (converged(n)) {
+			break;
+		}
+		swap_streams();
+	}
+	dump_Umin(n);
 	
 	fclose(eout);
 
