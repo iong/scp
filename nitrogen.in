@@ -1,10 +1,10 @@
-N 147
-LJ  1.1642e-04 6.2238
-mass 28
-dt 10
-tanneal 1000
-tstop 400000
-NMC 1000
-T 1.0e-4
+Nmol 147
+LJ  1.1829e-04 6.2259
+bondlength 2.0594
+reference /Users/ionut/mpipks/data/lj/147
 R0 25
-Omega 50
+output N2_147.xyz
+Tmin 1e-5
+Tmax 3e-3
+nstreams 16
+NMC 50000000
