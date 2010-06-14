@@ -485,10 +485,7 @@ int main (int argc, const char * argv[])
 		memcpy(r[N*i], r[0], 3*N*sizeof(double));
 	}
 
-	for (i=0; i<nstreams; i++) {
-		snprintf(fname, 128, "%02d.dat", i);
-		dumpxyz(fname, r + i*N, "(N2)trial");
-	}
+	dumpxyz("startcfg.xyz", r, "(N2)trial");
 	for (n=0; n<NMC; n += 100) {
 		if(n%50000==0) dump_Umin(n);
 		for (i=0; i<nstreams; i++) {
