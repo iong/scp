@@ -1,0 +1,5 @@
+set(CMAKE_C_COMPILER gcc-mp-4.4)
+set(CMAKE_Fortran_COMPILER gfortran-mp-4.4)
+enable_language(C)
+enable_language(Fortran)
+find_library(LAPACK vecLib)
