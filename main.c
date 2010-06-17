@@ -23,7 +23,7 @@ double	Uminall;
 
 static double *xstep, *xsteps;
 FILE	*eout;
-char *inputf=NULL, *outputf, *reference_file;
+char *inputf=NULL, *outputf;
 
 gsl_rng *rng;
 
@@ -102,11 +102,9 @@ static void dump_Umin(int MCiter)
 	}
 	fputc('\n', stdout);
 	
-	sprintf(label, "(N2)%d Umin = %lg", Nmol, lUmin);
+	sprintf(label, "(N2)%d Umin = %lg", N, lUmin);
 	dumpxyz(outputf, rmin + imin*N, label);
 }
-
-
 
 
 static inline double ULJ(int i, int j, int nrep)
@@ -114,14 +112,29 @@ static inline double ULJ(int i, int j, int nrep)
 	double	dr[3], dr2, y6, Uij;
 	int	ioff, joff;
 	
-	ioff = nrep*Nmol + i;
-	joff = nrep*Nmol + j;
+	ioff = nrep*N + i;
+	joff = nrep*N + j;
 
 	DOTPSUBV(dr2, dr, rnew[joff], rnew[ioff]);
 	y6 = sigma6/(dr2*dr2*dr2);
 	Uij = 4.0*epsilon*(y6*y6-y6);
 		
 	return Uij;
+}
+
+static double ljUtot(int nrep)
+{
+	double	Utot;
+	int	i, j;
+	
+	Utot=0;
+	for (i=0; i<N; i++) {
+		for (j=i+1; j<N; j++) {
+			Utot += ULJ(i, j, nrep);
+		}
+	}
+	
+	return Utot;
 }
 
 
@@ -162,6 +175,27 @@ static double ljUtot_cache(int nrep)
 	return Utot;
 }
 
+
+static void accept_trial(int nrep, double Unew)
+{
+	U0[nrep] = Unew;
+	memcpy(r[nrep*N], rnew[nrep*N], 3*N*sizeof(double));
+}
+
+
+static void newtrial(int nrep)
+{
+	double	polar[3], move[3];
+	int	i;
+	
+	for (i=1; i<N; i++) {
+		polar[0] = gaussran(xstep[nrep], 0);
+		polar[1] = acos(2.0*gsl_rng_uniform(rng) - 1.0);
+		polar[2] = 2.0*M_PI*gsl_rng_uniform(rng);
+		pol2cart(polar, move);
+		ADDV(rnew[i+nrep*N], r[i+nrep*N], move);
+	}
+}
 
 
 static void mc_move_atom(int i, double step_radius)
@@ -214,6 +248,61 @@ static void accept_move(int nrep, int m, double	Unew)
 	U0[nrep] = Unew;
 }
 
+
+void mc_all(int burnin_len, int nrep)
+{
+	double Unew, p,rsq, Ulmin;
+	int acceptance_trials = 1000, i, j;
+	
+	memcpy(rnew[nrep*N], r[nrep*N], 3*N*sizeof(double));
+	U0[nrep] = ljUtot(nrep);
+	Ulmin = 1e6;
+	for (i = 1; i <= burnin_len; i++) {
+		for (j=0; j<N; j++) {
+			DOTVP(rsq, r[j+nrep*N], r[j+nrep*N]);
+			if (rsq > R0sq) {
+				printf("Aaaaa");
+				continue;
+			}
+		}
+		newtrial(nrep);
+		for (j=0; j<N; j++) {
+			DOTVP(rsq, rnew[j+nrep*N], rnew[j+nrep*N]);
+			if (rsq > R0sq) {
+				break;
+			}
+		}
+		
+		if (j==N) {
+			Unew = ljUtot(nrep);
+			p = exp(-(Unew - U0[nrep]) * beta[nrep]);
+		}
+		else {
+			p=-1.0;
+		}
+		
+		if (p > gsl_rng_uniform(rng)) {
+			accept_trial(nrep, Unew);
+			naccepted[nrep]++;
+		}
+		if (U0[nrep] < Umin[nrep]) {
+			Umin[nrep] = U0[nrep];
+			memcpy(rmin[nrep*N], r[nrep*N], 3*N*sizeof(double));
+		}
+		if ((i % acceptance_trials) == 0) {
+			printf("%d: %lg a%lg %d\n", nrep, Umin[nrep], xsteps[nrep], naccepted[nrep]);
+			if (naccepted[nrep] < 0.5 * (double) acceptance_trials) {
+				xstep[nrep] = xstep[nrep] / 1.10779652734191;
+			} else {
+				xstep[nrep] = xstep[nrep] * 1.12799165273419;
+			}
+			
+			naccepted[nrep] = 0;
+		}
+	}
+}
+
+
 void mc_one_by_one(int burnin_len, int nrep)
 {
 	double Unew, p,rsq, Ulmin;
@@ -225,10 +314,10 @@ void mc_one_by_one(int burnin_len, int nrep)
 	Ulmin = 1e6;
 	for (i = 1; i <= burnin_len; i++) {
 		//printf("j = ");
-		j = gsl_rng_uniform_int(rng, N);
+		j = 1 + gsl_rng_uniform_int(rng, N-1);
 		joff = j+N*nrep;
 		//printf("%d\n", j);
-		mc_move_atom(j+N*nrep, xsteps[nrep]);
+		mc_move_atom(joff, xsteps[nrep]);
 		
 		DOTVP(rsq, rnew[joff], rnew[joff]);
 		if (rsq > R0sq) {
@@ -366,7 +455,6 @@ static void read_options(const char fname[])
 
 int main (int argc, const char * argv[])
 {
-	char	fname[128];
 	struct timeval tv;
 	int	n, i;
 	
