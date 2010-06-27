@@ -505,7 +505,7 @@ c     equivalence (Y(1),gamma), (Y(2),Q(1,1))
       parameter(MAXN=5000)
       logical QRC(MAXN*MAXN)
       common /carray/ QRC
-      if(MAXN>N) stop 'initialize_QRC: increase MAXN'
+      if(MAXN<N) stop 'initialize_QRC: increase MAXN'
 
       rc2=rc**2
       bl2=bl/2
