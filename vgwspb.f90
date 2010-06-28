@@ -1,53 +1,32 @@
-module vgwspb
+module vgw
         implicit none
         save
-        integer :: NGAUSS, N_atom
-        real*8 :: LJC(:),LJA(:)
+        integer :: NGAUSS, N_atom, NEQ
+        real*8 , allocatable :: LJC(:),LJA(:)
         real*8 :: MASS, BL
         logical, allocatable :: QRC(:)
 contains
 
-subroutine initialize_QRC(Q, N)
-      implicit none
-      integer :: N,I,J,K
-      real*8 :: Q(3,N),rsq,rc,rc2,bl,bl2,qij
-
-      rc2=rc**2
-      bl2=bl/2
-
-      do I=1,N-1
-        do J=I+1,N
-          rsq=0.0D0
-          do K=1,3
-            qij=Q(K,I)-Q(K,J)
-            if(qij > bl2) qij=qij-bl
-            if(qij < -bl2) qij=qij+bl
-            rsq=rsq+qij**2
-          enddo
-          if(rsq.GE.rc2) then
-            QRC(I+(J-1)*N)=.FALSE.
-          else
-            QRC(I+(J-1)*N)=.TRUE.
-          endif
-          QRC(J+(I-1)*N)=QRC(I+(J-1)*N)
-        enddo
-      enddo
-      return
-end
-      
 SUBROUTINE JAC 
       return
-END
+END SUBROUTINE
       
-SUBROUTINE LNPS(N_atom,NEQ,Y,LOGZ)
+
+real*8 function DET3(A) result(det)
+        real*8 :: A(3,3)
+        det = A(1,1)*A(2,2)*A(3,3) + A(1,2)*A(2,3)*A(3,1) &
+                + A(2,1)*A(3,2)*A(1,3) - A(1,3)*A(2,2)*A(3,1) &
+                - A(1,2)*A(2,1)*A(3,3) - A(2,3)*A(3,2)*A(1,1)
+end function
+
+
+SUBROUTINE lnrho(N_atom,NEQ,Y,LOGZ)
       implicit none
       integer :: I,J,K,N_atom,NEQ,CNT
-      real*8 :: Y(NEQ), C(3,3), M(3,3), LOGZ, GAMMA, DETI, DET
+      real*8 :: Y(NEQ), C(3,3), LOGZ, LOGDET
       
-      GAMMA=Y(1)
       CNT=2+3*N_atom
-      
-      DET=0.0D0
+      LOGDET=0.0D0
       
       DO I=1,N_atom
         DO J=1,3
@@ -59,13 +38,13 @@ SUBROUTINE LNPS(N_atom,NEQ,Y,LOGZ)
             CNT=CNT+1
           ENDDO
         ENDDO
-        CALL INVDET(C,M,DETI)
-        DET = DET + LOG(DETI)
+        LOGDET = LOGDET + LOG(DET3(C))
       ENDDO
       
-      LOGZ = 2.0D0*GAMMA - 0.5D0*DET
+      LOGZ = 2.0D0*Y(1) - 0.5*LOGDET
       return
-END
+END SUBROUTINE
+        
       
 SUBROUTINE INVDET(A, M, DET)
       IMPLICIT NONE
@@ -79,24 +58,23 @@ SUBROUTINE INVDET(A, M, DET)
       M(2,3) = -A(1,1)*A(2,3)+A(1,3)*A(1,2)
       DET = M(1,1)*A(1,1)+M(1,2)*A(1,2)+M(1,3)*A(1,3)
       return
-END 
+END SUBROUTINE
       
 SUBROUTINE RHSS(NEQ,T,Y,YPRIME)
-        use vgw
         IMPLICIT NONE
-        integer :: I,J,K,I1,I2,IG,NEQ,CNT,CNT2,MAXN
-        REAL*8 :: T,AG(3,3),GU(3,3),Y(NEQ+3*N_atom),YPRIME(NEQ),
-     &     DETA,DETAG,GUG,QP,TRUXXGI,FACTOR,U,UX,UXX,QZQ,EXPAV,
-     &     TRMG,DETS,DETI,MASS,LJS,LJE,GUQ,
-     &     BL,BL2,M(3,3),A(3,3), 
-     &     R(3), Z(3,3),Q12(3)
-        REAL*8 Q(3,N_atom),UPV(3,N_atom),BLKC(3,3,N_atom),
-     &     UPM(3,3,N_atom), QNK(3,3,N_atom) 
-      
-
-      BL2=BL/2
+        integer :: I,J,K,I1,I2,IG,NEQ,CNT,CNT2
+        REAL*8 :: T,AG(3,3),GU(3,3),Y(NEQ+3*N_atom),YPRIME(NEQ), INVMASS, &
+                DETA, DETAG, &
+                GUG,QP,TRUXXGI,FACTOR,U,UX,UXX,QZQ,EXPAV, TRMG,DETS,DETI,GUQ, &
+                BL2,M(3,3),A(3,3), R(3), Z(3,3),Q12(3)
+        REAL*8 Q(3,N_atom),UPV(3,N_atom),BLKC(3,3,N_atom), UPM(3,3,N_atom), &
+                QNK(3,3,N_atom) 
      
-        Q(1:3*N_atom) = Y(2:1+3*N_atom)
+
+        BL2=BL/2
+        INVMASS = 1.0/MASS
+     
+        Q = reshape(Y(2:1+3*N_atom), (/3, N_atom/))
         TRMG=0.0D0
       
       CNT=3*N_atom+2
@@ -130,7 +108,7 @@ SUBROUTINE RHSS(NEQ,T,Y,YPRIME)
         ENDDO
       ENDDO
       
-      TRMG = TRMG*MASS
+      TRMG = TRMG*INVMASS
       
         U=0.0D0
         UPV = 0.0
@@ -224,7 +202,7 @@ SUBROUTINE RHSS(NEQ,T,Y,YPRIME)
       
        CNT=1
       
-       YPRIME(CNT)=-0.25D0*TRUXXGI-U
+       YPRIME(CNT) = -0.250*TRUXXGI-U
        CNT=CNT+1
        CNT2=2+9*N_atom
 
@@ -256,7 +234,7 @@ SUBROUTINE RHSS(NEQ,T,Y,YPRIME)
               GUG=GUG-GU(I,K)*BLKC(K,J,I1)
             ENDDO
             IF(I == J) THEN
-              GUG=GUG+MASS
+              GUG=GUG+INVMASS
             ENDIF
             YPRIME(CNT)=GUG
             CNT=CNT+1
@@ -287,7 +265,7 @@ SUBROUTINE RHSS(NEQ,T,Y,YPRIME)
       ENDDO
            
       return
-      END
+END SUBROUTINE
       
       SUBROUTINE CLRADIUS(Q, N, RAD)
       IMPLICIT NONE
@@ -319,7 +297,36 @@ SUBROUTINE RHSS(NEQ,T,Y,YPRIME)
          ENDIF
       ENDDO
       return
-      END
+END SUBROUTINE
+
+
+subroutine initialize_QRC(Q, N, RC)
+      implicit none
+      integer :: N,I,J,K
+      real*8 :: Q(3,N),rsq,rc,rc2,bl,bl2,qij
+
+      rc2=rc**2
+      bl2=bl/2
+
+      do I=1,N-1
+        do J=I+1,N
+          rsq=0.0D0
+          do K=1,3
+            qij=Q(K,I)-Q(K,J)
+            if(qij > bl2) qij=qij-bl
+            if(qij < -bl2) qij=qij+bl
+            rsq=rsq+qij**2
+          enddo
+          if(rsq.GE.rc2) then
+            QRC(I+(J-1)*N)=.FALSE.
+          else
+            QRC(I+(J-1)*N)=.TRUE.
+          endif
+          QRC(J+(I-1)*N)=QRC(I+(J-1)*N)
+        enddo
+      enddo
+      return
+end SUBROUTINE
 
 SUBROUTINE GAUSSENERGYPB(Q,N,BL,U,UX)
         IMPLICIT NONE
@@ -347,7 +354,7 @@ SUBROUTINE GAUSSENERGYPB(Q,N,BL,U,UX)
          ENDDO
       ENDDO
 
-        Ux(1:3*N) = 0.0
+        Ux = 0.0
           
       DO I=1,N-1
         DO J=I+1,N
@@ -370,13 +377,12 @@ SUBROUTINE GAUSSENERGYPB(Q,N,BL,U,UX)
         ENDDO
       ENDDO
       return
-END
+END SUBROUTINE
       
 SUBROUTINE FORCES(N_atom,NEQ,Y,FX,Q,TAU)
       IMPLICIT NONE
       INTEGER :: I,J,K,IND,N_atom,NEQ
-      REAL*8  :: TAU,Y(NEQ),FX(3,N_atom),Q(3,N_atom),QX(3,N_atom),
-     &     BLK(3,3),INV(3,3)
+      REAL*8  :: TAU,Y(NEQ),FX(3,N_atom),Q(3,N_atom),QX(3,N_atom), BLK(3,3),INV(3,3)
       
       
         BLK=0.0
@@ -407,14 +413,14 @@ SUBROUTINE FORCES(N_atom,NEQ,Y,FX,Q,TAU)
          ENDDO
       ENDDO
       return
-END
+END SUBROUTINE
 
 SUBROUTINE INVS(M,MI)
       IMPLICIT NONE
       REAL*8 :: DET,M(3,3),MI(3,3)
       
-      DET=M(1,1)*(M(2,2)*M(3,3)-M(3,2)*M(2,3))-M(1,2)*(M(2,1)*M(3,3)-
-     &     M(3,1)*M(2,3))+M(1,3)*(M(1,2)*M(3,2)-M(3,1)*M(2,2))
+      DET=M(1,1)*(M(2,2)*M(3,3)-M(3,2)*M(2,3))-M(1,2)*(M(2,1)*M(3,3)- &
+          M(3,1)*M(2,3))+M(1,3)*(M(1,2)*M(3,2)-M(3,1)*M(2,2))
       
       MI(1,1) = M(2,2)*M(3,3)-M(2,3)*M(2,3)
       MI(2,2) = M(1,1)*M(3,3)-M(1,3)*M(1,3)
@@ -426,15 +432,15 @@ SUBROUTINE INVS(M,MI)
       MI(2,3) = -M(1,1)*M(2,3)+M(1,3)*M(1,2)
       MI(3,2) = MI(2,3)
 
-        MI = MI*(1.0/DET)
+        MI = MI/DET
       return
-END
+END SUBROUTINE
       
 SUBROUTINE LJGRADPB(Q,GR,N,LJS,LJE,BL)
       IMPLICIT NONE
       INTEGER  :: I, J, K, N
-      real*8 ::  Q(3,N), GR(3,N),  QIJ(3), LJS,  LJE,  RSQ, LJS6,
-     &     GRIJ, BL, BL2
+      real*8 ::  Q(3,N), GR(3,N),  QIJ(3), LJS,  LJE,  RSQ, LJS6, &
+          GRIJ, BL, BL2
       
       LJS6=LJS**6
         GR = 0.0
@@ -450,61 +456,62 @@ SUBROUTINE LJGRADPB(Q,GR,N,LJS,LJE,BL)
                RSQ=RSQ+QIJ(K)**2
             ENDDO
             DO K=1,3
-               GRIJ=4*LJE*LJS6*((12*LJS6*QIJ(K)/RSQ**7)-
-     &              (6*QIJ(K)/RSQ**4))
+               GRIJ=4*LJE*LJS6*((12*LJS6*QIJ(K)/RSQ**7)-(6*QIJ(K)/RSQ**4))
                GR(K,I)=GR(K,I)+GRIJ
                GR(K,J)=GR(K,J)-GRIJ
             ENDDO
          ENDDO
       ENDDO
       return
-END
-end module
-
+END SUBROUTINE
+end module vgw
 
 ! LJC = (/96609.488289873d0, 14584.62075507514d0, -365.460614956589d0, -19.5534697800036d0/)
 ! LJA = (/1.038252215127D0, 0.5974039109464D0, 0.196476572277834D0, 0.06668611771781D0/)
-subroutine vgwinit(N_atom_, ngauss_, lja_, ljc_)
+subroutine vgwinit(N_atom_, ngauss_, mass_, lja_, ljc_, bl_)
         use vgw
         implicit none
         integer, intent(in) :: N_atom_, ngauss_
+        real*8, intent(in) :: mass_, bl_
         real*8, intent(in), dimension(ngauss_) :: lja_, ljc_
 
         N_atom = N_atom_
         NGAUSS = ngauss_
+        MASS = mass_
+        BL = bl_
         allocate (LJA(NGAUSS), LJC(NGAUSS), QRC(N_atom*N_atom))
         LJA(1:NGAUSS) = lja_(1:ngauss)
         LJC(1:NGAUSS) = ljc_(1:ngauss)
+        
+        neq = 1+21*N_atom
 end subroutine
 
 
-subroutine vgwquenchspb(MASS,QCNFG,FX,LNP,W, ENRG,TAUMAX,TAUI,BL,ATOL,RC,Y, InvMeff,SqrtMeff)
+subroutine vgwquenchspb(QCNFG,FX, W, ENRG,TAUMAX,TAUI,ATOL,RC,Y)
         use vgw
         IMPLICIT NONE
-        integer ::LIW,MF,IERR
-        real*8 :: ATOL,RC
-        integer :: IW=20,MF=10
-	real :: RTOL=0.0D0
-      INTEGER :: NEQ,LRW,N_STEP,ITASK,ISTATE,IOPT,ITOL,I,J,l,K,CNT,UF,IWORK(LIW)
-      REAL*8 :: QCNFG(3,N_atom),ENRG,FX(3,N_atom),QFINAL(3,N_atom),
-     &     MASS,IMASS,W,LNZ(2),TAU(2),LOGZ,T,C0,UX(3,N_atom),
-     &     TOUT,ULJ,LNP,LJS,LJE,BL,BL2,
-     &     TAUMAX,TSTEP,TAUI,dummy,A(3,3),Z(3,3),F1(3),F2(3),eig(3),
-     &     Fscaled(3,N_atom),Fc(3)
+        integer, parameter :: LIW=20, MF=10
+        real*8 ::  ATOL,RC
+        INTEGER :: LRW,ITASK,ISTATE,IOPT,ITOL,I,CNT
+        REAL*8 :: QCNFG(3,N_atom),ENRG,FX(3,N_atom), W,LNZ(2),TAU(2),LOGZ,T,&
+                        TOUT,ULJ,BL2, TAUMAX,TSTEP,TAUI
+        REAL*8 :: Y(NEQ), RWORK(36+336*N_atom)
+        integer :: IWORK(LIW)
+        integer :: ANEQ(2)
+        real*8 :: RTOL(2)
 
-      REAL*8 :: Y(1+21*N_atom), RWORK(36+336*N_atom),SqrtMeff(3,3,N_ATOM),
-     &     InvMeff(3,3,N_atom),meff,SqrtMeffInv(3,3,N_atom)
-      EXTERNAL RHSS
-      EXTERNAL JAC
-      
-      NEQ=1+21*N_atom
+    
+
       LRW=36+336*N_atom
       TSTEP=0.1D0
       BL2=BL/2
-     
-        call initialize_QRC(QCNFG) !Determine which particles interact having folded particles into a box of side bl
+      
+             !Determine which particles interact having folded particles into a box of side bl
+        call initialize_QRC(QCNFG, N_atom, RC)
  
+        ANEQ = NEQ
         ITOL=1
+        RTOL=0.0
         ITASK=1
         IOPT=1
         ISTATE=1
@@ -512,7 +519,7 @@ subroutine vgwquenchspb(MASS,QCNFG,FX,LNP,W, ENRG,TAUMAX,TAUI,BL,ATOL,RC,Y, InvM
         RWORK(5:10)=0.0D0
 
         ! INITIALIZE Y VECTOR WITH INITITIAL CONDITIONS
-        Y(2:1+3*N_atom) = QCNFG(1:3*N_atom)
+        Y(2:1+3*N_atom) = reshape(QCNFG, (/3*N_atom/))
         CNT=2+3*N_atom
         DO I=1,N_atom             
                 Y(CNT:CNT+5)=(/1.0, 0.0, 0.0, 1.0, 0.0, 1.0/)*TAUI/MASS
@@ -532,34 +539,51 @@ subroutine vgwquenchspb(MASS,QCNFG,FX,LNP,W, ENRG,TAUMAX,TAUI,BL,ATOL,RC,Y, InvM
         IF(TAUMAX < 1) TSTEP = 0.001D0
         IF((TAUMAX/2)-TAUI < TSTEP) TSTEP = ((TAUMAX/2)-TAUI)/2.0D0
      
-        TAU(1:2) = TAUMAX/2.0D0 - (/TSTEP, 0.0/)
+        TAU(1) = TAUMAX/2.0D0 - TSTEP
+        TAU(2) = TAUMAX/2.0D0
+
      
         DO I=1,2
                 TOUT=TAU(I)
-                CALL DLSODE(RHSS,NEQ,Y,T,TOUT,ITOL,RTOL,ATOL,ITASK,ISTATE,
-     &           IOPT,RWORK,LRW,IWORK,LIW,JAC,MF)
-                CALL LNPS(N_atom,NEQ,Y,LOGZ)
+                CALL DLSODE(RHSS,ANEQ,Y,T,TOUT,ITOL,RTOL,ATOL,ITASK,ISTATE, &
+                        IOPT,RWORK,LRW,IWORK,LIW,JAC,MF)
+                CALL lnrho(N_atom,NEQ,Y,LOGZ)
                 LNZ(I) = LOGZ+1.5D0*LOG(TOUT)
         ENDDO
   
         ENRG=-(LNZ(2)-LNZ(1))/(2*TSTEP)
-        LNP=LOGZ
-        W=-(LNP - 1.5D0 * LOG(N_atom*2*3.1415926*TAUMAX/MASS) ) / TAUMAX
+        W=-(LOGZ - 1.5D0 * N_atom * LOG(2*3.1415926*TAUMAX/MASS) ) / TAUMAX
     
-        fx(1:3*N_atom) = y(2+18*N_atom : 1 + 21*N_atom)/TAU(2)
+        fx = reshape(y(2+18*N_atom : 1 + 21*N_atom), (/3, N_atom/)) / TAU(2)
+
+ 
+      return
+END SUBROUTINE
+
+subroutine effective_mass(beta, y, InvMeff, SqrtMeff)
+        use vgw
+        implicit none
+        real*8, intent(in) :: beta, y(neq)
+        real*8, intent(out) :: InvMeff(3,3,N_atom), SqrtMeff(3,3,N_ATOM)
+        real*8 :: meff, SqrtMeffInv(3,3,N_atom), msqkbt,A(3,3),Z(3,3),F1(3),F2(3),eig(3)
+        integer :: CNT, i, j, k, l, IERR
               
 ! effective mass
-      msqkbt=2*MASS**2/taumax
+      msqkbt=2*MASS**2/beta
       meff=0d0
-      goffset=2+3*N_atom
+      CNT=2+3*N_atom
 
-        Fc = 0.0
         SqrtMeffInv = 0.0
         SqrtMeff = 0.0
         InvMeff = 0.0
-
       DO l=1,N_atom            
-                A = reshape(y(cnt:cnt+8)*msqkbT, (/3, 3/))
+         DO i=1,3
+            DO j=i,3
+               A(i,j)=Y(CNT)*msqkbt
+               A(j,i)=A(i,j)
+               CNT=CNT+1
+            ENDDO
+         ENDDO
                 call RS(3,3,A,eig,1,Z,F1,F2,IERR)
                 if(IERR.ne.0) stop 'IERR ne 0'
          do j=1,3
@@ -570,10 +594,8 @@ subroutine vgwquenchspb(MASS,QCNFG,FX,LNP,W, ENRG,TAUMAX,TAUI,BL,ATOL,RC,Y, InvM
                enddo
             enddo
          enddo
-c         write(6,*) 'l=',l
-c         write(6,*) ((InvMeff(i,j,l), i=1,3),j=1,3)
          do k=1,3
-            eig(k)=dsqrt(eig(k))/sqrt(IMASS)
+            eig(k)=dsqrt(eig(k))
          enddo
          do j=1,3
             do i=1,3
@@ -586,7 +608,5 @@ c         write(6,*) ((InvMeff(i,j,l), i=1,3),j=1,3)
       enddo
 
       meff=meff/(N_atom*3)
-      
+end subroutine
  
-      return
-END
