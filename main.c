@@ -4,14 +4,22 @@
 #include <math.h>
 #include <sys/time.h>
 #include <signal.h>
-#include <vecLib/vecLib.h>
 #include <gsl/gsl_rng.h>
 #include <xmmintrin.h>
+
+#ifdef __ICC
+#include <mkl_cblas.h>
+#elif __APPLE__
+#include <vecLib/vecLib.h>
+#else
+#include <cblas.h>
+#endif
+
 
 #include "vectmath.h"
 
 int	N, NMC, nfine, nstreams;
-double	(*r)[3], (*rnew)[3], (*rmin)[3], (*a)[3], (*v)[3];
+double	(*r)[3], (*rnew)[3], (*rmin)[3], (*f)[3], *y, *invmeff, *sqrtmeff;
 double	*U, *Ucache, *Ucacheline, *Umin, *U0;
 int	*naccepted, nswap=100;
 double	epsilon, sigma, sigma6, mass;
@@ -21,11 +29,43 @@ double	t;
 int	minidx, Uminiter;
 double	Uminall;
 
+double	bl;
 static double *xstep, *xsteps;
 FILE	*eout;
 char *inputf=NULL, *outputf;
 
 gsl_rng *rng;
+
+
+
+double pH2_a[4] = {-0.103314092309615,  0.229719283576919, -0.000763605273110, -0.000016944307199};
+double pH2_c[4] = { 2.234851423403074,  2.234851335125304,  4.743541516873200,  9.260782019090774};
+int pH2_ngauss = 4;
+
+double LJC[3] = {10998.6151589526, -0.165282225586247, -6.46198166728172};
+double LJA[3] = {8.81337773201576,  0.36684190090077,   1.43757007579231};
+int LJ_ngauss = 3;
+
+extern void vgwinit_(int *, int *, double *, double *, double *, double *);
+/*
+extern void vgwquenchspb_(double *q, double *f, double *W, double *enrg,
+			double *taumax, double *taui, double *atol,
+			double *rc, double *y);
+*/
+extern void vgwquenchspb_(int *, double *, double *, double *, double *, double *, double *, double *, double *, double *, double *, double *, double *, double *, double *);
+static double vgwUtot(int nrep)
+{
+	double	lnp, Ueff, enrg, atoler, rc, taumin, imass=2.0;
+
+	atoler = 1e-4;
+	taumin = 1e-6;
+	rc = 4.0*sigma;
+	//vgwquenchspb_(r[0], f[0], &Ueff, &enrg, beta+nrep, &taumin, &atoler, &rc, y);
+	
+	//printf("%lg\n", Ueff);
+	vgwquenchspb_(&N, &imass, r[0], f[0], &lnp, &Ueff, &enrg, beta+nrep, &taumin, &bl, &atoler, &rc, y, invmeff, sqrtmeff);
+	return Ueff;
+}
 
 static inline void pol2cart(double *src, double *dest)
 {
@@ -210,14 +250,12 @@ static void mc_move_atom(int i, double step_radius)
 }
 
 
-
 static void swap_ptrs(double *p1, double *p2, int len)
 {
 	memcpy(Ucache, p2, len*sizeof(double));
 	memcpy(p2, p1, len*sizeof(double));
 	memcpy(p1, Ucache, len*sizeof(double));
 }
-
 
 
 static void swap_streams()
@@ -255,7 +293,7 @@ void mc_all(int burnin_len, int nrep)
 	int acceptance_trials = 1000, i, j;
 	
 	memcpy(rnew[nrep*N], r[nrep*N], 3*N*sizeof(double));
-	U0[nrep] = ljUtot(nrep);
+	U0[nrep] = vgwUtot(nrep);
 	Ulmin = 1e6;
 	for (i = 1; i <= burnin_len; i++) {
 		for (j=0; j<N; j++) {
@@ -274,7 +312,7 @@ void mc_all(int burnin_len, int nrep)
 		}
 		
 		if (j==N) {
-			Unew = ljUtot(nrep);
+			Unew = vgwUtot(nrep);
 			p = exp(-(Unew - U0[nrep]) * beta[nrep]);
 		}
 		else {
@@ -375,7 +413,7 @@ static void initial_config()
 					dr2min = dr2;
 				}
 			}
-		} while ((rsq > R0sq) || (dr2min < 0.25*sigma2) );
+		} while ((rsq > R0sq) || (dr2min < 0.5*sigma2) );
 	}
 }
 
@@ -418,6 +456,9 @@ static void read_options(const char fname[])
 			fscanf(fin, "%lg", &sigma);
 			sigma6 = pow(sigma, 6.0);
 			required++;
+		} else if (strcmp(valname, "mass") == 0) {
+			mass = 48.5086*atof(valstring);
+			required++;
 		} else if (strcmp(valname, "NMC") == 0) {
 			NMC = atoi(valstring);
 			required++;
@@ -451,8 +492,6 @@ static void read_options(const char fname[])
 }
 
 
-
-
 int main (int argc, const char * argv[])
 {
 	struct timeval tv;
@@ -469,6 +508,11 @@ int main (int argc, const char * argv[])
 	r = (double (*)[3])calloc(3*N*nstreams, sizeof(double));
 	rnew = (double (*)[3])calloc(3*N*nstreams, sizeof(double));
 	rmin = (double (*)[3])calloc(3*N*nstreams, sizeof(double));
+	f = (double (*)[3])calloc(3*N, sizeof(double));
+	y = (double *)calloc(1+21*N, sizeof(double));
+	invmeff = (double *)calloc(9*N, sizeof(double));
+	sqrtmeff = (double *)calloc(9*N, sizeof(double));
+
 	kT = (double *)calloc(nstreams, sizeof(double));
 	beta = (double *)calloc(nstreams, sizeof(double));
 	Umin = (double *)calloc(nstreams, sizeof(double));
@@ -500,13 +544,19 @@ int main (int argc, const char * argv[])
 	for (i=1; i<nstreams; i++) {
 		memcpy(r[N*i], r[0], 3*N*sizeof(double));
 	}
+	
+	bl = 10*R0;
+	cblas_dscal(LJ_ngauss, epsilon, LJC, 1);
+	cblas_dscal(LJ_ngauss, 1.0/(sigma*sigma), LJA, 1);
+	//vgwinit_(&N, &LJ_ngauss, &mass, LJA, LJC, &bl);
 
 	dumpxyz("startcfg.xyz", r, "X trial");
 	for (n=0; n<NMC; n += 100) {
 		if(n%50000==0) dump_Umin(n);
 		for (i=0; i<nstreams; i++) {
-			mc_one_by_one(100, i);
+			mc_all(100, i);
 		}
+		dump_Umin(n);
 		swap_streams();
 	}
 	dump_Umin(n);
