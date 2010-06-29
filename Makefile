@@ -1,6 +1,6 @@
 DBG=1
 VPATH=$(dir $(shell readlink $(CURDIR)/$(firstword $(MAKEFILE_LIST))))
-#CC=gcc
+CC=icc
 #FC=gfortran-mp-4.4
 FC=ifort
 
@@ -57,7 +57,7 @@ all: ljmc
 	$(FC) $(FFLAGS) -c $^
 
 #ljmc: main.o dlsode.o vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03.o
-ljmc: ljmc.o dlsode.o vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03.o
+ljmc: ljmc.o dlsode.o vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03.o vgwspb.o
 	$(FC)  $(LDFLAGS) -o $@ $^ $(LIBS)
 
 clean:

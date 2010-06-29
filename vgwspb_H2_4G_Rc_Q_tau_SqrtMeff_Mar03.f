@@ -79,7 +79,9 @@ c      ENDDO
 
       TAU(1) = TAUMAX/2.0D0 - TSTEP
       TAU(2) = TAUMAX/2.0D0
-     
+      write (*,*) y(1)
+      write(*,*) y(2+3*N_atom:7+3*N_atom),  y(2+9*N_atom:10+9*N_atom)
+      write (*,*) y(2+18*N_atom:4+18*N_atom)
       DO I=1,2
         TOUT=TAU(I)
         CALL DLSODE(RHSS,NEQ,Y,T,TOUT,ITOL,RTOL,ATOL,ITASK,ISTATE,

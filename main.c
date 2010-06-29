@@ -63,7 +63,7 @@ static double vgwUtot(int nrep)
 	//vgwquenchspb_(r[0], f[0], &Ueff, &enrg, beta+nrep, &taumin, &atoler, &rc, y);
 	
 	//printf("%lg\n", Ueff);
-	vgwquenchspb_(&N, &imass, r[0], f[0], &lnp, &Ueff, &enrg, beta+nrep, &taumin, &bl, &atoler, &rc, y, invmeff, sqrtmeff);
+	vgwquenchspb_(&N, &imass, rnew[0], f[0], &lnp, &Ueff, &enrg, beta+nrep, &taumin, &bl, &atoler, &rc, y, invmeff, sqrtmeff);
 	return Ueff;
 }
 
@@ -101,27 +101,6 @@ static void dumpxyz(char *fname, double (*rr)[3], char *label)
 		fprintf(fout, "N %lg %lg %g\n", rr[i][0], rr[i][1], rr[i][2]);
 	}
 	fclose(fout);
-}
-
-
-static int converged(int mciter)
-{
-	int	i;
-	
-	minidx = 0;
-	for (i=1; i<nstreams; i++) {
-		if (Umin[i] < Umin[minidx]) {
-			minidx = i;
-		}
-	}
-	if (Umin[minidx] < Uminall) {
-		Uminall = Umin[minidx];
-		Uminiter = mciter;
-	} else if (mciter - Uminiter > 1000000) {
-		return 1;
-	}
-	return	0;
-		
 }
 
 
@@ -457,7 +436,7 @@ static void read_options(const char fname[])
 			sigma6 = pow(sigma, 6.0);
 			required++;
 		} else if (strcmp(valname, "mass") == 0) {
-			mass = 48.5086*atof(valstring);
+			mass = atof(valstring)/48.5086;
 			required++;
 		} else if (strcmp(valname, "NMC") == 0) {
 			NMC = atoi(valstring);

@@ -1,7 +1,7 @@
 module vgw
         implicit none
         save
-        integer :: NGAUSS, N_atom, NEQ
+        integer :: NGAUSS, N_atom, NEQ0, NEQ
         real*8 , allocatable :: LJC(:),LJA(:)
         real*8 :: MASS, BL
         logical, allocatable :: QRC(:)
@@ -59,25 +59,24 @@ SUBROUTINE INVDET(A, M, DET)
       DET = M(1,1)*A(1,1)+M(1,2)*A(1,2)+M(1,3)*A(1,3)
       return
 END SUBROUTINE
-      
+
+
 SUBROUTINE RHSS(NEQ,T,Y,YPRIME)
         IMPLICIT NONE
         integer :: I,J,K,I1,I2,IG,NEQ,CNT,CNT2
         REAL*8 :: T,AG(3,3),GU(3,3),Y(NEQ+3*N_atom),YPRIME(NEQ), INVMASS, &
                 DETA, DETAG, &
-                GUG,QP,TRUXXGI,FACTOR,U,UX,UXX,QZQ,EXPAV, TRMG,DETS,DETI,GUQ, &
+                GUG,QP,TRUXXGI,FACTOR,U,UX,UXX,QZQ,EXPAV, DETS,DETI,GUQ, &
                 BL2,M(3,3),A(3,3), R(3), Z(3,3),Q12(3)
-        REAL*8 Q(3,N_atom),UPV(3,N_atom),BLKC(3,3,N_atom), UPM(3,3,N_atom), &
-                QNK(3,3,N_atom) 
+        REAL*8 Q(3,N_atom),UPV(3,N_atom),BLKC(3,3,N_atom), UPM(3,3,N_atom)
      
 
         BL2=BL/2
         INVMASS = 1.0/MASS
      
         Q = reshape(Y(2:1+3*N_atom), (/3, N_atom/))
-        TRMG=0.0D0
       
-      CNT=3*N_atom+2
+      CNT=3*N_atom+1
 
       DO I=1,N_atom
         DO J=1,3
@@ -89,27 +88,6 @@ SUBROUTINE RHSS(NEQ,T,Y,YPRIME)
         ENDDO
       ENDDO
 
-      DO I=1,N_atom
-        DO J=1,3
-          DO K=1,3
-            QNK(J,K,I)=Y(CNT)
-            CNT=CNT+1
-          ENDDO
-        ENDDO
-      ENDDO
-
-      DO I=1,N_atom
-        A = BLKC(1:3,1:3,I)
-        CALL INVDET(A,M,DETS)
-        DETS=1.0D0/DETS
-         
-        DO J=1,3
-          TRMG=TRMG + M(J,J)*DETS
-        ENDDO
-      ENDDO
-      
-      TRMG = TRMG*INVMASS
-      
         U=0.0D0
         UPV = 0.0
         UPM = 0.0
@@ -241,16 +219,170 @@ SUBROUTINE RHSS(NEQ,T,Y,YPRIME)
           ENDDO
         ENDDO
 
-        DO I=1,3
-          DO J=1,3
-            GUQ=0.0D0
-            DO K=1,3
-              GUQ=GUQ-GU(I,K)*QNK(K,J,I1)
-            ENDDO
-            YPRIME(CNT2)=GUQ
-            CNT2=CNT2+1
+      ENDDO
+
+      return
+END SUBROUTINE
+       
+SUBROUTINE RHSSGAMMAQ(NEQ,T,Y,YPRIME)
+        IMPLICIT NONE
+        integer :: I,J,K,I1,I2,IG,NEQ,CNT,CNT2
+        REAL*8 :: T,AG(3,3),GU(3,3),Y(NEQ+3*N_atom),YPRIME(NEQ), INVMASS, &
+                DETA, DETAG, &
+                GUG,QP,TRUXXGI,FACTOR,U,UX,UXX,QZQ,EXPAV, DETS,DETI,GUQ, &
+                BL2,M(3,3),A(3,3), R(3), Z(3,3),Q12(3)
+        REAL*8 Q(3,N_atom),UPV(3,N_atom),BLKC(3,3,N_atom), UPM(3,3,N_atom), &
+                QNK(3,3,N_atom) 
+     
+
+        BL2=BL/2
+        INVMASS = 1.0/MASS
+     
+        Q = reshape(Y(2:1+3*N_atom), (/3, N_atom/))
+      
+      CNT=3*N_atom+2
+
+      DO I=1,N_atom
+        DO J=1,3
+          DO K=J,3
+            BLKC(J,K,I)=Y(CNT)
+            BLKC(K,J,I)=Y(CNT)
+            CNT=CNT+1
           ENDDO
         ENDDO
+      ENDDO
+
+        U=0.0D0
+        UPV = 0.0
+        UPM = 0.0
+      
+      DO I1=1,N_atom-1
+        DO I2=I1+1,N_atom
+          IF(QRC(I2+(I1-1)*N_atom)) THEN
+            DO I=1,3
+              Q12(I)=Q(I,I1)-Q(I,I2)
+              IF(Q12(I) > BL2) Q12(I)=Q12(I)-BL      !  fix this later
+              IF(Q12(I) < -BL2) Q12(I)=Q12(I)+BL
+            ENDDO
+            DO J=1,3
+              DO K=J,3
+                A(J,K)=BLKC(J,K,I1)+BLKC(J,K,I2)
+              ENDDO
+            ENDDO
+            
+            CALL INVDET(A,M,DETI)
+            DETA=1.0D0/DETI
+            
+            DO J=1,3
+              DO K=J,3
+                A(J,K)=M(J,K)*DETA
+              ENDDO
+            ENDDO
+            
+            DO IG=1,NGAUSS      ! BEGIN SUMMATION OVER GAUSSIANS
+              DO J=1,3
+                AG(J,J)=LJA(IG)+A(J,J)
+                DO K=J+1,3
+                  AG(J,K)=A(J,K)
+                ENDDO
+              ENDDO
+               
+              CALL INVDET(AG,M,DETAG)
+              FACTOR=LJA(IG)**2/DETAG
+               
+              DO I=1,3
+                Z(I,I)=LJA(IG)-FACTOR*M(I,I)
+                DO J=I+1,3
+                  Z(I,J)=-FACTOR*M(I,J)
+                  Z(J,I)=Z(I,J)
+                ENDDO
+              ENDDO
+               
+              QZQ=0.0D0
+              
+              DO I=1,3
+                R(I)=0.0D0
+                DO J=1,3
+                  R(I)=R(I)+Z(I,J)*Q12(J)
+                ENDDO
+                QZQ=QZQ+R(I)*Q12(I)
+                R(I)=-2.0D0*R(I)
+              ENDDO
+               
+              EXPAV=SQRT(DETA/DETAG)*EXP(-QZQ)
+              U=U+EXPAV*LJC(IG)
+               
+              DO I=1,3
+                UX=EXPAV*R(I)*LJC(IG)
+                UPV(I,I1)=UPV(I,I1)+UX ! COMPUTE  GRADIENT (UPV = GRADIENT VECTOR)
+                UPV(I,I2)=UPV(I,I2)-UX
+              DO J=I,3
+                UXX=(R(I)*R(J)-2*Z(I,J))*EXPAV*LJC(IG) ! HESSIAN  MATRIX (BLOCK OF I,JTH PARTICLE)
+                UPM(I,J,I1)=UPM(I,J,I1)+UXX ! UPM  = BLOCK  DIAGONAL OF 3Nx3N HESSIAN
+                UPM(I,J,I2)=UPM(I,J,I2)+UXX
+                IF(I.NE.J) THEN ! FILL LOWER HALF OF MATRIX
+                  UPM(J,I,I1)=UPM(J,I,I1)+UXX
+                  UPM(J,I,I2)=UPM(J,I,I2)+UXX
+                ENDIF
+              ENDDO
+            ENDDO
+         ENDDO               ! END SUMMATION OVER GUASSIANS
+       ENDIF
+      ENDDO                  ! END OF I1 LOOP (ITH PARTICLE)
+      ENDDO                     ! END OF I2 LOOP (JTH PARTICLE)
+      
+      TRUXXGI=0.0D0
+      
+      DO I1=1,N_atom
+        DO I=1,3
+          TRUXXGI=TRUXXGI+UPM(I,I,I1)*BLKC(I,I,I1)
+          DO J=I+1,3
+            TRUXXGI=TRUXXGI+2.0D0*UPM(I,J,I1)*BLKC(I,J,I1)
+          ENDDO
+        ENDDO
+      ENDDO
+      
+       CNT=1
+      
+       YPRIME(CNT) = -0.250*TRUXXGI-U
+       CNT=CNT+1
+       CNT2=2+9*N_atom
+
+       DO I1=1,N_atom
+         DO I=1,3
+           QP=0.0D0
+           DO J=1,3
+             QP = QP-BLKC(I,J,I1)*UPV(J,I1)
+           ENDDO
+           YPRIME(CNT)=QP
+           CNT=CNT+1
+         ENDDO
+       ENDDO
+      
+       DO I1=1,N_atom
+         DO I=1,3
+           DO J=1,3
+             GU(I,J)=0.0D0
+             DO K=1,3
+               GU(I,J)=GU(I,J)+BLKC(I,K,I1)*UPM(K,J,I1)
+             ENDDO
+           ENDDO
+        ENDDO
+         
+        DO I=1,3
+          DO J=I,3
+            GUG=0.0D0
+            DO K=1,3
+              GUG=GUG-GU(I,K)*BLKC(K,J,I1)
+            ENDDO
+            IF(I == J) THEN
+              GUG=GUG+INVMASS
+            ENDIF
+            YPRIME(CNT)=GUG
+            CNT=CNT+1
+          ENDDO
+        ENDDO
+
       ENDDO
 
       DO I=1,N_atom
@@ -303,7 +435,7 @@ END SUBROUTINE
 subroutine initialize_QRC(Q, N, RC)
       implicit none
       integer :: N,I,J,K
-      real*8 :: Q(3,N),rsq,rc,rc2,bl,bl2,qij
+      real*8 :: Q(3,N),rsq,rc,rc2,bl2,qij
 
       rc2=rc**2
       bl2=bl/2
@@ -468,7 +600,7 @@ end module vgw
 
 ! LJC = (/96609.488289873d0, 14584.62075507514d0, -365.460614956589d0, -19.5534697800036d0/)
 ! LJA = (/1.038252215127D0, 0.5974039109464D0, 0.196476572277834D0, 0.06668611771781D0/)
-subroutine vgwinit(N_atom_, ngauss_, mass_, lja_, ljc_, bl_)
+subroutine vgwinit(N_atom_, mass_, ngauss_, lja_, ljc_, bl_)
         use vgw
         implicit none
         integer, intent(in) :: N_atom_, ngauss_
@@ -483,11 +615,61 @@ subroutine vgwinit(N_atom_, ngauss_, mass_, lja_, ljc_, bl_)
         LJA(1:NGAUSS) = lja_(1:ngauss)
         LJC(1:NGAUSS) = ljc_(1:ngauss)
         
+        neq0 = 1+9*N_atom
         neq = 1+21*N_atom
 end subroutine
 
 
-subroutine vgwquenchspb(QCNFG,FX, W, ENRG,TAUMAX,TAUI,ATOL,RC,Y)
+subroutine vgwrho(QCNFG, W, TAUMAX,TAUI,ATOL,RC,Y)
+        use vgw
+        IMPLICIT NONE
+        integer, parameter :: LIW=20, MF=10
+        real*8 ::  ATOL,RC
+        INTEGER :: LRW,ITASK,ISTATE,IOPT,ITOL,I,CNT
+        REAL*8 :: QCNFG(3,N_atom),W,LOGZ,ULJ,BL2, TAUMAX,TAUI
+        REAL*8 :: Y(NEQ), RWORK(36+336*N_atom)
+        integer :: IWORK(LIW)
+        integer :: ANEQ(2)
+        real*8 :: RTOL(2)
+
+      LRW=36+336*N_atom
+      
+             !Determine which particles interact having folded particles into a box of side bl
+        call initialize_QRC(QCNFG, N_atom, RC)
+ 
+        ANEQ = NEQ0
+        ITOL=1
+        ITASK=1
+        IOPT=1
+        ISTATE=1
+        IWORK(5:10)=(/4, 100000, 0, 0, 0, 0/)
+        RWORK(5:10)=0.0D0
+        RTOL=0.0
+
+        ! INITIALIZE Y VECTOR WITH INITITIAL CONDITIONS
+        Y(2:1+3*N_atom) = reshape(QCNFG, (/3*N_atom/))
+        CNT=2+3*N_atom
+        DO I=1,N_atom             
+                Y(CNT:CNT+5)=(/1.0, 0.0, 0.0, 1.0, 0.0, 1.0/)*TAUI/MASS
+                cnt = cnt + 6
+        ENDDO
+      
+        CALL GAUSSENERGYPB(QCNFG,N_atom,BL,ULJ,Y(CNT))      
+        y(cnt:cnt+3*N_atom-1)=y(cnt:cnt+3*N_atom-1)*taui
+        Y(1)=-TAUI*ULJ
+
+        !write (*,*) y(1)
+        !write(*,*) y(2+3*N_atom:7+3*N_atom),  y(2+9*N_atom:10+9*N_atom)
+        !write (*,*) y(2+18*N_atom:4+18*N_atom)
+     
+        CALL DLSODE(RHSS,ANEQ,Y,TAUI,TAUMAX,ITOL,RTOL,ATOL,ITASK,ISTATE, &
+                        IOPT,RWORK,LRW,IWORK,LIW,JAC,MF)
+        W=-(LOGZ + 1.5D0 * LOG(N_atom*2.0*3.1415926*TAUMAX*MASS) ) / TAUMAX
+    
+      return
+END SUBROUTINE
+
+subroutine vgwfx(QCNFG,FX, W, ENRG,TAUMAX,TAUI,ATOL,RC,Y)
         use vgw
         IMPLICIT NONE
         integer, parameter :: LIW=20, MF=10
@@ -500,8 +682,6 @@ subroutine vgwquenchspb(QCNFG,FX, W, ENRG,TAUMAX,TAUI,ATOL,RC,Y)
         integer :: ANEQ(2)
         real*8 :: RTOL(2)
 
-    
-
       LRW=36+336*N_atom
       TSTEP=0.1D0
       BL2=BL/2
@@ -511,12 +691,12 @@ subroutine vgwquenchspb(QCNFG,FX, W, ENRG,TAUMAX,TAUI,ATOL,RC,Y)
  
         ANEQ = NEQ
         ITOL=1
-        RTOL=0.0
         ITASK=1
         IOPT=1
         ISTATE=1
         IWORK(5:10)=(/4, 100000, 0, 0, 0, 0/)
         RWORK(5:10)=0.0D0
+        RTOL=0.0
 
         ! INITIALIZE Y VECTOR WITH INITITIAL CONDITIONS
         Y(2:1+3*N_atom) = reshape(QCNFG, (/3*N_atom/))
@@ -542,23 +722,27 @@ subroutine vgwquenchspb(QCNFG,FX, W, ENRG,TAUMAX,TAUI,ATOL,RC,Y)
         TAU(1) = TAUMAX/2.0D0 - TSTEP
         TAU(2) = TAUMAX/2.0D0
 
+      write (*,*) y(1)
+      write(*,*) y(2+3*N_atom:7+3*N_atom),  y(2+9*N_atom:10+9*N_atom)
+      write (*,*) y(2+18*N_atom:4+18*N_atom)
      
         DO I=1,2
                 TOUT=TAU(I)
-                CALL DLSODE(RHSS,ANEQ,Y,T,TOUT,ITOL,RTOL,ATOL,ITASK,ISTATE, &
+                CALL DLSODE(RHSSGAMMAQ,ANEQ,Y,T,TOUT,ITOL,RTOL,ATOL,ITASK,ISTATE, &
                         IOPT,RWORK,LRW,IWORK,LIW,JAC,MF)
                 CALL lnrho(N_atom,NEQ,Y,LOGZ)
                 LNZ(I) = LOGZ+1.5D0*LOG(TOUT)
         ENDDO
   
         ENRG=-(LNZ(2)-LNZ(1))/(2*TSTEP)
-        W=-(LOGZ - 1.5D0 * N_atom * LOG(2*3.1415926*TAUMAX/MASS) ) / TAUMAX
+        W=-(LOGZ + 1.5D0 * LOG(N_atom*2.0*3.1415926*TAUMAX*MASS) ) / TAUMAX
     
         fx = reshape(y(2+18*N_atom : 1 + 21*N_atom), (/3, N_atom/)) / TAU(2)
 
  
       return
 END SUBROUTINE
+
 
 subroutine effective_mass(beta, y, InvMeff, SqrtMeff)
         use vgw
