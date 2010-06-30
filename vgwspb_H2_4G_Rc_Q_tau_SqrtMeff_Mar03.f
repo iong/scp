@@ -79,9 +79,9 @@ c      ENDDO
 
       TAU(1) = TAUMAX/2.0D0 - TSTEP
       TAU(2) = TAUMAX/2.0D0
-      write (*,*) y(1)
-      write(*,*) y(2+3*N_atom:7+3*N_atom),  y(2+9*N_atom:10+9*N_atom)
-      write (*,*) y(2+18*N_atom:4+18*N_atom)
+c      write (*,*) y(1:4)
+c      write(*,*) y(2+3*N_atom:7+3*N_atom),  y(2+9*N_atom:10+9*N_atom)
+c      write (*,*) y(2+18*N_atom:4+18*N_atom)
       DO I=1,2
         TOUT=TAU(I)
         CALL DLSODE(RHSS,NEQ,Y,T,TOUT,ITOL,RTOL,ATOL,ITASK,ISTATE,
@@ -92,6 +92,7 @@ c      ENDDO
   
       ENRG=-(LNZ(2)-LNZ(1))/(2*TSTEP)
       LNP=LOGZ
+c        write (*,*) LOGZ, TAUMAX
       W=-(1/TAUMAX)*LNP-((1.5D0/TAUMAX)*
      &        LOG(N_atom*2*3.1415926*TAUMAX/MASS))
     
@@ -246,6 +247,7 @@ c         write(6,*) ((InvMeff(i,j,l), i=1,3),j=1,3)
       common /carray/ QRC
 c     equivalence (Y(1),gamma), (Y(2),Q(1,1))
 
+c	write (*,*) T
       if(N_atom.ne.(NEQ-1)/21) stop 'RHSS: Oops!'
       BL2=BL/2
      
