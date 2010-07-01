@@ -38,21 +38,24 @@ gsl_rng *rng;
 
 
 
-double pH2_a[4] = {-0.103314092309615,  0.229719283576919, -0.000763605273110, -0.000016944307199};
-double pH2_c[4] = { 2.234851423403074,  2.234851335125304,  4.743541516873200,  9.260782019090774};
-int pH2_ngauss = 4;
+double sg_c[4] = {96609.488289873, 14584.62075507514, -365.460614956589, -19.5534697800036};
+double sg_a[4] = {1.038252215127, 0.5974039109464, 0.196476572277834, 0.06668611771781};
+int sg_n = 4;
+
 
 double LJC[3] = {10998.6151589526, -0.165282225586247, -6.46198166728172};
 double LJA[3] = {8.81337773201576,  0.36684190090077,   1.43757007579231};
 int LJ_ngauss = 3;
 
-extern void vgwinit_(int *, int *, double *, double *, double *, double *);
+extern void vgwinit_(double *, int *, double *, double *);
 /*
 extern void vgwquenchspb_(double *q, double *f, double *W, double *enrg,
 			double *taumax, double *taui, double *atol,
 			double *rc, double *y);
 */
 extern void vgwquenchspb_(int *, double *, double *, double *, double *, double *, double *, double *, double *, double *, double *, double *, double *, double *, double *);
+//extern void vgw0_(int *, double *, double *, double *, double *, double *, double *, double *, double *, double *);
+extern void vgw0_(int *, double *, double *, double *, double *, double *, double *, double *, double *);
 static double vgwUtot(int nrep)
 {
 	double	lnp, Ueff, enrg, atoler, rc, taumin, imass=2.0;
@@ -63,7 +66,7 @@ static double vgwUtot(int nrep)
 	//vgwquenchspb_(r[0], f[0], &Ueff, &enrg, beta+nrep, &taumin, &atoler, &rc, y);
 	
 	//printf("%lg\n", Ueff);
-	vgwquenchspb_(&N, &imass, rnew[0], f[0], &lnp, &Ueff, &enrg, beta+nrep, &taumin, &bl, &atoler, &rc, y, invmeff, sqrtmeff);
+	vgw0_(&N, &imass, rnew[0], &Ueff, beta+nrep, &taumin, &atoler, &rc, y);
 	return Ueff;
 }
 
@@ -527,7 +530,7 @@ int main (int argc, const char * argv[])
 	bl = 10*R0;
 	cblas_dscal(LJ_ngauss, epsilon, LJC, 1);
 	cblas_dscal(LJ_ngauss, 1.0/(sigma*sigma), LJA, 1);
-	//vgwinit_(&N, &LJ_ngauss, &mass, LJA, LJC, &bl);
+	vgwinit_(&bl, &sg_n, sg_c, sg_a);
 
 	dumpxyz("startcfg.xyz", r, "X trial");
 	for (n=0; n<NMC; n += 100) {

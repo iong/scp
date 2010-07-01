@@ -14,13 +14,15 @@ program ljmc
         close(20)
 
         taumax = 1.0
-	qtau = q0
-        call vgwquenchspb(natom,IMASS,qtau,FX,LNP,W, ENRG,TAUMAX,TAUI,BL,ATOL,RC,Y, InvMeff,SqrtMeff)
-	write (*,*) 'Ueff =', W
 
-	call  vgwinit(natom, IMASS/48.5086, 4, LJA, LJC, bl)
-	qtau = q0
-	call vgwrho(qtau, W, taumax, taui, atol, rc, y)
-	!call vgwfx(qtau, fx, W, enrg, taumax, taui, atol, rc, y)
-	write (*,*) 'Ueff =', W
+        call  vgwinit(bl, 4, LJC, LJA)
+        qtau = q0
+        call vgw0(natom,IMASS,qtau,W, TAUMAX,TAUI,ATOL,RC,Y)
+        write (*,*) 'Ueff =', W
+        qtau = q0
+        call vgwquenchspb(natom,IMASS,qtau,FX,LNP,W, ENRG,TAUMAX,TAUI,BL,ATOL,RC,Y, InvMeff,SqrtMeff)
+        write (*,*) 'Ueff =', W
+        qtau = q0
+        write (*,*) 'Ueff =', W
 end program ljmc
+! vim:et

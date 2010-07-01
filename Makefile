@@ -59,8 +59,8 @@ all: ljmc
 %.o : %.f
 	$(FC) $(FFLAGS) -c $^
 
-#ljmc: main.o dlsode.o vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03.o
-ljmc: f77i.o dlsode.o $(VGW) ljmc.o vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03.o
+#ljmc: main.o dlsode.o vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03.o vgw.o interaction_lists.o potential_energy.o rhss0.o vgw0.o
+ljmc: ljmc.o dlsode.o vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03.o vgw.o interaction_lists.o potential_energy.o rhss0.o vgw0.o
 	$(FC)  $(LDFLAGS) -o $@ $^ $(LIBS)
 
 clean:
