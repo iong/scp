@@ -7,9 +7,17 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		8DD76FAC0486AB0100D96B5E /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 08FB7796FE84155DC02AAC07 /* main.c */; settings = {ATTRIBUTES = (); }; };
-		C6C48BBA11872C470089E563 /* libgsl.0.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = C6C48BB911872C470089E563 /* libgsl.0.dylib */; };
-		C6C48BBC11872C500089E563 /* vecLib.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C6C48BBB11872C500089E563 /* vecLib.framework */; };
+		C6163A8D11DC099100571CBA /* dlsode.f in Sources */ = {isa = PBXBuildFile; fileRef = C6163A8A11DC099100571CBA /* dlsode.f */; };
+		C6163A8E11DC099100571CBA /* ljmc.f90 in Sources */ = {isa = PBXBuildFile; fileRef = C6163A8B11DC099100571CBA /* ljmc.f90 */; };
+		C6163A8F11DC099100571CBA /* vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03.f in Sources */ = {isa = PBXBuildFile; fileRef = C6163A8C11DC099100571CBA /* vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03.f */; };
+		C6163A9C11DC0E4D00571CBA /* libmkl_core.a in Frameworks */ = {isa = PBXBuildFile; fileRef = C6163A9B11DC0E4D00571CBA /* libmkl_core.a */; };
+		C6163A9E11DC0E4D00571CBA /* libmkl_intel_lp64.a in Frameworks */ = {isa = PBXBuildFile; fileRef = C6163A9D11DC0E4D00571CBA /* libmkl_intel_lp64.a */; };
+		C6163AA011DC0E4D00571CBA /* libmkl_sequential.a in Frameworks */ = {isa = PBXBuildFile; fileRef = C6163A9F11DC0E4D00571CBA /* libmkl_sequential.a */; };
+		C6163ACC11DC343200571CBA /* interaction_lists.f90 in Sources */ = {isa = PBXBuildFile; fileRef = C6163AC811DC343200571CBA /* interaction_lists.f90 */; };
+		C6163ACD11DC343200571CBA /* potential_energy.f90 in Sources */ = {isa = PBXBuildFile; fileRef = C6163AC911DC343200571CBA /* potential_energy.f90 */; };
+		C6163ACE11DC343200571CBA /* vgw.f90 in Sources */ = {isa = PBXBuildFile; fileRef = C6163ACA11DC343200571CBA /* vgw.f90 */; };
+		C6163ACF11DC343200571CBA /* vgw0.f90 in Sources */ = {isa = PBXBuildFile; fileRef = C6163ACB11DC343200571CBA /* vgw0.f90 */; };
+		C6163ADC11DC346A00571CBA /* rhss0.f90 in Sources */ = {isa = PBXBuildFile; fileRef = C6163ADB11DC346A00571CBA /* rhss0.f90 */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -25,11 +33,18 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		08FB7796FE84155DC02AAC07 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
 		8DD76FB20486AB0100D96B5E /* ljmc */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = ljmc; sourceTree = BUILT_PRODUCTS_DIR; };
-		C6C48BB811872BE20089E563 /* vectmath.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = vectmath.h; sourceTree = "<group>"; };
-		C6C48BB911872C470089E563 /* libgsl.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libgsl.0.dylib; path = /opt/local/lib/libgsl.0.dylib; sourceTree = "<absolute>"; };
-		C6C48BBB11872C500089E563 /* vecLib.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = vecLib.framework; path = System/Library/Frameworks/vecLib.framework; sourceTree = SDKROOT; };
+		C6163A8A11DC099100571CBA /* dlsode.f */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.fortran; path = dlsode.f; sourceTree = "<group>"; };
+		C6163A8B11DC099100571CBA /* ljmc.f90 */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.fortran.f90; path = ljmc.f90; sourceTree = "<group>"; };
+		C6163A8C11DC099100571CBA /* vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03.f */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.fortran; path = vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03.f; sourceTree = "<group>"; };
+		C6163A9B11DC0E4D00571CBA /* libmkl_core.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libmkl_core.a; path = /Developer/opt/intel/Compiler/11.1/084/Frameworks/mkl/lib/em64t/libmkl_core.a; sourceTree = "<absolute>"; };
+		C6163A9D11DC0E4D00571CBA /* libmkl_intel_lp64.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libmkl_intel_lp64.a; path = /Developer/opt/intel/Compiler/11.1/084/Frameworks/mkl/lib/em64t/libmkl_intel_lp64.a; sourceTree = "<absolute>"; };
+		C6163A9F11DC0E4D00571CBA /* libmkl_sequential.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libmkl_sequential.a; path = /Developer/opt/intel/Compiler/11.1/084/Frameworks/mkl/lib/em64t/libmkl_sequential.a; sourceTree = "<absolute>"; };
+		C6163AC811DC343200571CBA /* interaction_lists.f90 */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.fortran.f90; path = interaction_lists.f90; sourceTree = "<group>"; };
+		C6163AC911DC343200571CBA /* potential_energy.f90 */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.fortran.f90; path = potential_energy.f90; sourceTree = "<group>"; };
+		C6163ACA11DC343200571CBA /* vgw.f90 */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.fortran.f90; path = vgw.f90; sourceTree = "<group>"; };
+		C6163ACB11DC343200571CBA /* vgw0.f90 */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.fortran.f90; path = vgw0.f90; sourceTree = "<group>"; };
+		C6163ADB11DC346A00571CBA /* rhss0.f90 */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.fortran.f90; path = rhss0.f90; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -37,8 +52,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C6C48BBA11872C470089E563 /* libgsl.0.dylib in Frameworks */,
-				C6C48BBC11872C500089E563 /* vecLib.framework in Frameworks */,
+				C6163A9C11DC0E4D00571CBA /* libmkl_core.a in Frameworks */,
+				C6163A9E11DC0E4D00571CBA /* libmkl_intel_lp64.a in Frameworks */,
+				C6163AA011DC0E4D00571CBA /* libmkl_sequential.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -48,12 +64,20 @@
 		08FB7794FE84155DC02AAC07 /* ljmc */ = {
 			isa = PBXGroup;
 			children = (
-				C6C48BB811872BE20089E563 /* vectmath.h */,
+				C6163ADB11DC346A00571CBA /* rhss0.f90 */,
+				C6163AC811DC343200571CBA /* interaction_lists.f90 */,
+				C6163AC911DC343200571CBA /* potential_energy.f90 */,
+				C6163ACA11DC343200571CBA /* vgw.f90 */,
+				C6163ACB11DC343200571CBA /* vgw0.f90 */,
+				C6163A8A11DC099100571CBA /* dlsode.f */,
+				C6163A8B11DC099100571CBA /* ljmc.f90 */,
+				C6163A8C11DC099100571CBA /* vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03.f */,
 				08FB7795FE84155DC02AAC07 /* Source */,
 				C6A0FF2B0290797F04C91782 /* Documentation */,
 				1AB674ADFE9D54B511CA2CBB /* Products */,
-				C6C48BB911872C470089E563 /* libgsl.0.dylib */,
-				C6C48BBB11872C500089E563 /* vecLib.framework */,
+				C6163A9B11DC0E4D00571CBA /* libmkl_core.a */,
+				C6163A9D11DC0E4D00571CBA /* libmkl_intel_lp64.a */,
+				C6163A9F11DC0E4D00571CBA /* libmkl_sequential.a */,
 			);
 			name = ljmc;
 			sourceTree = "<group>";
@@ -61,7 +85,6 @@
 		08FB7795FE84155DC02AAC07 /* Source */ = {
 			isa = PBXGroup;
 			children = (
-				08FB7796FE84155DC02AAC07 /* main.c */,
 			);
 			name = Source;
 			sourceTree = "<group>";
@@ -124,7 +147,14 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				8DD76FAC0486AB0100D96B5E /* main.c in Sources */,
+				C6163A8D11DC099100571CBA /* dlsode.f in Sources */,
+				C6163A8E11DC099100571CBA /* ljmc.f90 in Sources */,
+				C6163A8F11DC099100571CBA /* vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03.f in Sources */,
+				C6163ACC11DC343200571CBA /* interaction_lists.f90 in Sources */,
+				C6163ACD11DC343200571CBA /* potential_energy.f90 in Sources */,
+				C6163ACE11DC343200571CBA /* vgw.f90 in Sources */,
+				C6163ACF11DC343200571CBA /* vgw0.f90 in Sources */,
+				C6163ADC11DC346A00571CBA /* rhss0.f90 in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -140,9 +170,11 @@
 				GCC_ENABLE_FIX_AND_CONTINUE = YES;
 				GCC_MODEL_TUNING = G5;
 				GCC_OPTIMIZATION_LEVEL = 0;
-				HEADER_SEARCH_PATHS = /opt/local/include;
 				INSTALL_PATH = /usr/local/bin;
-				LIBRARY_SEARCH_PATHS = /opt/local/lib;
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(DEVELOPER_DIR)/opt/intel/Compiler/11.1/084/Frameworks/mkl/lib/em64t\"",
+				);
 				PRODUCT_NAME = ljmc;
 			};
 			name = Debug;
@@ -151,13 +183,13 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(NATIVE_ARCH_ACTUAL)";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				GCC_MODEL_TUNING = G5;
-				HEADER_SEARCH_PATHS = /opt/local/include;
 				INSTALL_PATH = /usr/local/bin;
-				LIBRARY_SEARCH_PATHS = /opt/local/lib;
-				ONLY_ACTIVE_ARCH = YES;
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(DEVELOPER_DIR)/opt/intel/Compiler/11.1/084/Frameworks/mkl/lib/em64t\"",
+				);
 				PRODUCT_NAME = ljmc;
 			};
 			name = Release;
