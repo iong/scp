@@ -5,9 +5,12 @@ R0 4
 input Ne13.dat
 output Ne13.xyz
 #parallel tempering
-Tmin 1
-Tmax 40
-nstreams 16
+refTmin 12
+refTmax 60
+nstreams 8
+Tmin 2
+Tmax 14
+nT 97
 NMC 50000000
 # "annealing"
 dt 10.0

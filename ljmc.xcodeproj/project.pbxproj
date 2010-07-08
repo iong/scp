@@ -7,18 +7,50 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		C6163A8D11DC099100571CBA /* dlsode.f in Sources */ = {isa = PBXBuildFile; fileRef = C6163A8A11DC099100571CBA /* dlsode.f */; };
 		C6163A8E11DC099100571CBA /* ljmc.f90 in Sources */ = {isa = PBXBuildFile; fileRef = C6163A8B11DC099100571CBA /* ljmc.f90 */; };
-		C6163A8F11DC099100571CBA /* vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03.f in Sources */ = {isa = PBXBuildFile; fileRef = C6163A8C11DC099100571CBA /* vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03.f */; };
 		C6163A9C11DC0E4D00571CBA /* libmkl_core.a in Frameworks */ = {isa = PBXBuildFile; fileRef = C6163A9B11DC0E4D00571CBA /* libmkl_core.a */; };
 		C6163A9E11DC0E4D00571CBA /* libmkl_intel_lp64.a in Frameworks */ = {isa = PBXBuildFile; fileRef = C6163A9D11DC0E4D00571CBA /* libmkl_intel_lp64.a */; };
 		C6163AA011DC0E4D00571CBA /* libmkl_sequential.a in Frameworks */ = {isa = PBXBuildFile; fileRef = C6163A9F11DC0E4D00571CBA /* libmkl_sequential.a */; };
-		C6163ACC11DC343200571CBA /* interaction_lists.f90 in Sources */ = {isa = PBXBuildFile; fileRef = C6163AC811DC343200571CBA /* interaction_lists.f90 */; };
-		C6163ACD11DC343200571CBA /* potential_energy.f90 in Sources */ = {isa = PBXBuildFile; fileRef = C6163AC911DC343200571CBA /* potential_energy.f90 */; };
-		C6163ACE11DC343200571CBA /* vgw.f90 in Sources */ = {isa = PBXBuildFile; fileRef = C6163ACA11DC343200571CBA /* vgw.f90 */; };
-		C6163ACF11DC343200571CBA /* vgw0.f90 in Sources */ = {isa = PBXBuildFile; fileRef = C6163ACB11DC343200571CBA /* vgw0.f90 */; };
-		C6163ADC11DC346A00571CBA /* rhss0.f90 in Sources */ = {isa = PBXBuildFile; fileRef = C6163ADB11DC346A00571CBA /* rhss0.f90 */; };
+		C6C4556C11DD073A0066406B /* rhss0.f90 in Sources */ = {isa = PBXBuildFile; fileRef = C6163ADB11DC346A00571CBA /* rhss0.f90 */; };
+		C6C4556D11DD073A0066406B /* interaction_lists.f90 in Sources */ = {isa = PBXBuildFile; fileRef = C6163AC811DC343200571CBA /* interaction_lists.f90 */; };
+		C6C4556E11DD073A0066406B /* potential_energy.f90 in Sources */ = {isa = PBXBuildFile; fileRef = C6163AC911DC343200571CBA /* potential_energy.f90 */; };
+		C6C4556F11DD073A0066406B /* vgw.f90 in Sources */ = {isa = PBXBuildFile; fileRef = C6163ACA11DC343200571CBA /* vgw.f90 */; };
+		C6C4557011DD073A0066406B /* vgw0.f90 in Sources */ = {isa = PBXBuildFile; fileRef = C6163ACB11DC343200571CBA /* vgw0.f90 */; };
+		C6C4557111DD073A0066406B /* dlsode.f in Sources */ = {isa = PBXBuildFile; fileRef = C6163A8A11DC099100571CBA /* dlsode.f */; };
+		C6C4557211DD073A0066406B /* vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03.f in Sources */ = {isa = PBXBuildFile; fileRef = C6163A8C11DC099100571CBA /* vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03.f */; };
+		C6C4558411DD07BC0066406B /* libvgw.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = C6C4556911DD072B0066406B /* libvgw.dylib */; };
+		C6D5497D11DEC857009ACAD4 /* libvgw.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = C6C4556911DD072B0066406B /* libvgw.dylib */; };
+		C6D5498111DEC86C009ACAD4 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = C6D5498011DEC86C009ACAD4 /* main.c */; };
+		C6D5498F11DEC8A6009ACAD4 /* libgsl.0.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = C6D5498E11DEC8A6009ACAD4 /* libgsl.0.dylib */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXBuildRule section */
+		C6D54A3911DEDE20009ACAD4 /* PBXBuildRule */ = {
+			isa = PBXBuildRule;
+			compilerSpec = com.intel.compilers.icc.11_1_0;
+			fileType = sourcecode.c;
+			isEditable = 1;
+			outputFiles = (
+			);
+		};
+/* End PBXBuildRule section */
+
+/* Begin PBXContainerItemProxy section */
+		C6080E0911E579B0000F1AB6 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 08FB7793FE84155DC02AAC07 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = C6C4556811DD072B0066406B;
+			remoteInfo = vgw;
+		};
+		C6C4558011DD07870066406B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 08FB7793FE84155DC02AAC07 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = C6C4556811DD072B0066406B;
+			remoteInfo = vgw;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
 		8DD76FAF0486AB0100D96B5E /* CopyFiles */ = {
@@ -33,18 +65,23 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		8DD76FB20486AB0100D96B5E /* ljmc */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = ljmc; sourceTree = BUILT_PRODUCTS_DIR; };
+		8DD76FB20486AB0100D96B5E /* ljmctest */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = ljmctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		C6163A8A11DC099100571CBA /* dlsode.f */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.fortran; path = dlsode.f; sourceTree = "<group>"; };
 		C6163A8B11DC099100571CBA /* ljmc.f90 */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.fortran.f90; path = ljmc.f90; sourceTree = "<group>"; };
 		C6163A8C11DC099100571CBA /* vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03.f */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.fortran; path = vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03.f; sourceTree = "<group>"; };
-		C6163A9B11DC0E4D00571CBA /* libmkl_core.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libmkl_core.a; path = /Developer/opt/intel/Compiler/11.1/084/Frameworks/mkl/lib/em64t/libmkl_core.a; sourceTree = "<absolute>"; };
-		C6163A9D11DC0E4D00571CBA /* libmkl_intel_lp64.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libmkl_intel_lp64.a; path = /Developer/opt/intel/Compiler/11.1/084/Frameworks/mkl/lib/em64t/libmkl_intel_lp64.a; sourceTree = "<absolute>"; };
-		C6163A9F11DC0E4D00571CBA /* libmkl_sequential.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libmkl_sequential.a; path = /Developer/opt/intel/Compiler/11.1/084/Frameworks/mkl/lib/em64t/libmkl_sequential.a; sourceTree = "<absolute>"; };
+		C6163A9B11DC0E4D00571CBA /* libmkl_core.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libmkl_core.a; path = /Developer/opt/intel/Compiler/11.1/088/Frameworks/mkl/lib/em64t/libmkl_core.a; sourceTree = "<absolute>"; };
+		C6163A9D11DC0E4D00571CBA /* libmkl_intel_lp64.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libmkl_intel_lp64.a; path = /Developer/opt/intel/Compiler/11.1/088/Frameworks/mkl/lib/em64t/libmkl_intel_lp64.a; sourceTree = "<absolute>"; };
+		C6163A9F11DC0E4D00571CBA /* libmkl_sequential.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libmkl_sequential.a; path = /Developer/opt/intel/Compiler/11.1/088/Frameworks/mkl/lib/em64t/libmkl_sequential.a; sourceTree = "<absolute>"; };
 		C6163AC811DC343200571CBA /* interaction_lists.f90 */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.fortran.f90; path = interaction_lists.f90; sourceTree = "<group>"; };
 		C6163AC911DC343200571CBA /* potential_energy.f90 */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.fortran.f90; path = potential_energy.f90; sourceTree = "<group>"; };
 		C6163ACA11DC343200571CBA /* vgw.f90 */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.fortran.f90; path = vgw.f90; sourceTree = "<group>"; };
 		C6163ACB11DC343200571CBA /* vgw0.f90 */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.fortran.f90; path = vgw0.f90; sourceTree = "<group>"; };
 		C6163ADB11DC346A00571CBA /* rhss0.f90 */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.fortran.f90; path = rhss0.f90; sourceTree = "<group>"; };
+		C6C4556911DD072B0066406B /* libvgw.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = libvgw.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
+		C6D5497511DEC836009ACAD4 /* ljmc */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = ljmc; sourceTree = BUILT_PRODUCTS_DIR; };
+		C6D5498011DEC86C009ACAD4 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
+		C6D5498E11DEC8A6009ACAD4 /* libgsl.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libgsl.0.dylib; path = /opt/local/lib/libgsl.0.dylib; sourceTree = "<absolute>"; };
+		C6D54A3C11DEDE3C009ACAD4 /* vectmath.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = vectmath.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -55,6 +92,23 @@
 				C6163A9C11DC0E4D00571CBA /* libmkl_core.a in Frameworks */,
 				C6163A9E11DC0E4D00571CBA /* libmkl_intel_lp64.a in Frameworks */,
 				C6163AA011DC0E4D00571CBA /* libmkl_sequential.a in Frameworks */,
+				C6C4558411DD07BC0066406B /* libvgw.dylib in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C6C4556711DD072B0066406B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C6D5497311DEC836009ACAD4 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C6D5497D11DEC857009ACAD4 /* libvgw.dylib in Frameworks */,
+				C6D5498F11DEC8A6009ACAD4 /* libgsl.0.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -64,6 +118,8 @@
 		08FB7794FE84155DC02AAC07 /* ljmc */ = {
 			isa = PBXGroup;
 			children = (
+				C6D54A3C11DEDE3C009ACAD4 /* vectmath.h */,
+				C6D5498011DEC86C009ACAD4 /* main.c */,
 				C6163ADB11DC346A00571CBA /* rhss0.f90 */,
 				C6163AC811DC343200571CBA /* interaction_lists.f90 */,
 				C6163AC911DC343200571CBA /* potential_energy.f90 */,
@@ -78,6 +134,7 @@
 				C6163A9B11DC0E4D00571CBA /* libmkl_core.a */,
 				C6163A9D11DC0E4D00571CBA /* libmkl_intel_lp64.a */,
 				C6163A9F11DC0E4D00571CBA /* libmkl_sequential.a */,
+				C6D5498E11DEC8A6009ACAD4 /* libgsl.0.dylib */,
 			);
 			name = ljmc;
 			sourceTree = "<group>";
@@ -92,7 +149,9 @@
 		1AB674ADFE9D54B511CA2CBB /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				8DD76FB20486AB0100D96B5E /* ljmc */,
+				8DD76FB20486AB0100D96B5E /* ljmctest */,
+				C6C4556911DD072B0066406B /* libvgw.dylib */,
+				C6D5497511DEC836009ACAD4 /* ljmc */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -106,10 +165,20 @@
 		};
 /* End PBXGroup section */
 
+/* Begin PBXHeadersBuildPhase section */
+		C6C4556511DD072B0066406B /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
+
 /* Begin PBXNativeTarget section */
-		8DD76FA90486AB0100D96B5E /* ljmc */ = {
+		8DD76FA90486AB0100D96B5E /* ljmctest */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 1DEB928508733DD80010E9CD /* Build configuration list for PBXNativeTarget "ljmc" */;
+			buildConfigurationList = 1DEB928508733DD80010E9CD /* Build configuration list for PBXNativeTarget "ljmctest" */;
 			buildPhases = (
 				8DD76FAB0486AB0100D96B5E /* Sources */,
 				8DD76FAD0486AB0100D96B5E /* Frameworks */,
@@ -118,11 +187,47 @@
 			buildRules = (
 			);
 			dependencies = (
+				C6C4558111DD07870066406B /* PBXTargetDependency */,
 			);
-			name = ljmc;
+			name = ljmctest;
 			productInstallPath = "$(HOME)/bin";
 			productName = ljmc;
-			productReference = 8DD76FB20486AB0100D96B5E /* ljmc */;
+			productReference = 8DD76FB20486AB0100D96B5E /* ljmctest */;
+			productType = "com.apple.product-type.tool";
+		};
+		C6C4556811DD072B0066406B /* vgw */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C6C4557F11DD074E0066406B /* Build configuration list for PBXNativeTarget "vgw" */;
+			buildPhases = (
+				C6C4556511DD072B0066406B /* Headers */,
+				C6C4556611DD072B0066406B /* Sources */,
+				C6C4556711DD072B0066406B /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = vgw;
+			productName = vgw;
+			productReference = C6C4556911DD072B0066406B /* libvgw.dylib */;
+			productType = "com.apple.product-type.library.dynamic";
+		};
+		C6D5497411DEC836009ACAD4 /* ljmc */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C6D5497911DEC855009ACAD4 /* Build configuration list for PBXNativeTarget "ljmc" */;
+			buildPhases = (
+				C6D5497211DEC836009ACAD4 /* Sources */,
+				C6D5497311DEC836009ACAD4 /* Frameworks */,
+			);
+			buildRules = (
+				C6D54A3911DEDE20009ACAD4 /* PBXBuildRule */,
+			);
+			dependencies = (
+				C6080E0A11E579B0000F1AB6 /* PBXTargetDependency */,
+			);
+			name = ljmc;
+			productName = ljmc;
+			productReference = C6D5497511DEC836009ACAD4 /* ljmc */;
 			productType = "com.apple.product-type.tool";
 		};
 /* End PBXNativeTarget section */
@@ -137,7 +242,9 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				8DD76FA90486AB0100D96B5E /* ljmc */,
+				8DD76FA90486AB0100D96B5E /* ljmctest */,
+				C6C4556811DD072B0066406B /* vgw */,
+				C6D5497411DEC836009ACAD4 /* ljmc */,
 			);
 		};
 /* End PBXProject section */
@@ -147,18 +254,46 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C6163A8D11DC099100571CBA /* dlsode.f in Sources */,
 				C6163A8E11DC099100571CBA /* ljmc.f90 in Sources */,
-				C6163A8F11DC099100571CBA /* vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03.f in Sources */,
-				C6163ACC11DC343200571CBA /* interaction_lists.f90 in Sources */,
-				C6163ACD11DC343200571CBA /* potential_energy.f90 in Sources */,
-				C6163ACE11DC343200571CBA /* vgw.f90 in Sources */,
-				C6163ACF11DC343200571CBA /* vgw0.f90 in Sources */,
-				C6163ADC11DC346A00571CBA /* rhss0.f90 in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C6C4556611DD072B0066406B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C6C4556C11DD073A0066406B /* rhss0.f90 in Sources */,
+				C6C4556D11DD073A0066406B /* interaction_lists.f90 in Sources */,
+				C6C4556E11DD073A0066406B /* potential_energy.f90 in Sources */,
+				C6C4556F11DD073A0066406B /* vgw.f90 in Sources */,
+				C6C4557011DD073A0066406B /* vgw0.f90 in Sources */,
+				C6C4557111DD073A0066406B /* dlsode.f in Sources */,
+				C6C4557211DD073A0066406B /* vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03.f in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C6D5497211DEC836009ACAD4 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C6D5498111DEC86C009ACAD4 /* main.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		C6080E0A11E579B0000F1AB6 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = C6C4556811DD072B0066406B /* vgw */;
+			targetProxy = C6080E0911E579B0000F1AB6 /* PBXContainerItemProxy */;
+		};
+		C6C4558111DD07870066406B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = C6C4556811DD072B0066406B /* vgw */;
+			targetProxy = C6C4558011DD07870066406B /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		1DEB928608733DD80010E9CD /* Debug */ = {
@@ -170,12 +305,13 @@
 				GCC_ENABLE_FIX_AND_CONTINUE = YES;
 				GCC_MODEL_TUNING = G5;
 				GCC_OPTIMIZATION_LEVEL = 0;
-				INSTALL_PATH = /usr/local/bin;
+				INSTALL_PATH = "";
+				LD_RUNPATH_SEARCH_PATHS = "\"$(DEVELOPER_DIR)/opt/intel/Compiler/11.1/088/Frameworks/mkl/lib/em64t\"";
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
-					"\"$(DEVELOPER_DIR)/opt/intel/Compiler/11.1/084/Frameworks/mkl/lib/em64t\"",
+					"\"$(DEVELOPER_DIR)/opt/intel/Compiler/11.1/088/Frameworks/mkl/lib/em64t\"",
 				);
-				PRODUCT_NAME = ljmc;
+				PRODUCT_NAME = ljmctest;
 			};
 			name = Debug;
 		};
@@ -185,12 +321,13 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				GCC_MODEL_TUNING = G5;
-				INSTALL_PATH = /usr/local/bin;
+				INSTALL_PATH = "";
+				LD_RUNPATH_SEARCH_PATHS = "\"$(DEVELOPER_DIR)/opt/intel/Compiler/11.1/088/Frameworks/mkl/lib/em64t\"";
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
-					"\"$(DEVELOPER_DIR)/opt/intel/Compiler/11.1/084/Frameworks/mkl/lib/em64t\"",
+					"\"$(DEVELOPER_DIR)/opt/intel/Compiler/11.1/088/Frameworks/mkl/lib/em64t\"",
 				);
-				PRODUCT_NAME = ljmc;
+				PRODUCT_NAME = ljmctest;
 			};
 			name = Release;
 		};
@@ -220,10 +357,104 @@
 			};
 			name = Release;
 		};
+		C6C4556A11DD072C0066406B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				COPY_PHASE_STRIP = NO;
+				EXECUTABLE_PREFIX = lib;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_FIX_AND_CONTINUE = YES;
+				GCC_MODEL_TUNING = G5;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				IFORT_MKL = nonthreaded;
+				IFORT_RT_LIBRARY = dynamic;
+				INSTALL_PATH = "@executable_path";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(DEVELOPER_DIR)/opt/intel/Compiler/11.1/088/Frameworks/mkl/lib/em64t\"",
+				);
+				ONLY_ACTIVE_ARCH = YES;
+				PREBINDING = YES;
+				PRODUCT_NAME = vgw;
+			};
+			name = Debug;
+		};
+		C6C4556B11DD072C0066406B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				EXECUTABLE_PREFIX = lib;
+				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				GCC_MODEL_TUNING = G5;
+				IFORT_MKL = nonthreaded;
+				INSTALL_PATH = "@executable_path";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(DEVELOPER_DIR)/opt/intel/Compiler/11.1/088/Frameworks/mkl/lib/em64t\"",
+				);
+				ONLY_ACTIVE_ARCH = YES;
+				PREBINDING = YES;
+				PRODUCT_NAME = vgw;
+				ZERO_LINK = NO;
+			};
+			name = Release;
+		};
+		C6D5497711DEC837009ACAD4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				COPY_PHASE_STRIP = NO;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_FIX_AND_CONTINUE = YES;
+				GCC_MODEL_TUNING = G5;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				HEADER_SEARCH_PATHS = /opt/local/include;
+				ICC_LANG_ANSI = c99;
+				ICC_MKL = nonthreaded;
+				ICC_RT_LIBRARY = dynamic;
+				INSTALL_PATH = /usr/local/bin;
+				LD_RUNPATH_SEARCH_PATHS = "";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(DEVELOPER_DIR)/opt/intel/Compiler/11.1/088/Frameworks/mkl/lib/em64t\"",
+					/opt/local/lib,
+				);
+				PREBINDING = NO;
+				PRODUCT_NAME = ljmc;
+			};
+			name = Debug;
+		};
+		C6D5497811DEC837009ACAD4 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				GCC_MODEL_TUNING = G5;
+				HEADER_SEARCH_PATHS = /opt/local/include;
+				ICC_MKL = nonthreaded;
+				INSTALL_PATH = /usr/local/bin;
+				LD_RUNPATH_SEARCH_PATHS = "";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(DEVELOPER_DIR)/opt/intel/Compiler/11.1/088/Frameworks/mkl/lib/em64t\"",
+					/opt/local/lib,
+				);
+				ONLY_ACTIVE_ARCH = YES;
+				PREBINDING = NO;
+				PRODUCT_NAME = ljmc;
+				ZERO_LINK = NO;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		1DEB928508733DD80010E9CD /* Build configuration list for PBXNativeTarget "ljmc" */ = {
+		1DEB928508733DD80010E9CD /* Build configuration list for PBXNativeTarget "ljmctest" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				1DEB928608733DD80010E9CD /* Debug */,
@@ -237,6 +468,24 @@
 			buildConfigurations = (
 				1DEB928A08733DD80010E9CD /* Debug */,
 				1DEB928B08733DD80010E9CD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C6C4557F11DD074E0066406B /* Build configuration list for PBXNativeTarget "vgw" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C6C4556A11DD072C0066406B /* Debug */,
+				C6C4556B11DD072C0066406B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C6D5497911DEC855009ACAD4 /* Build configuration list for PBXNativeTarget "ljmc" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C6D5497711DEC837009ACAD4 /* Debug */,
+				C6D5497811DEC837009ACAD4 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
