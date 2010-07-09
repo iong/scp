@@ -547,16 +547,14 @@ int main (int argc,  char * argv[])
 		swap_streams();
 				
 		if(n%10000==0) {
-			if(myrank==0) {
-				dump_Umin(ncpu*n);
-			}
-			
-			memset(Ztotal, 0, nT*sizeof(double));
-			MPI_Barrier(MPI_COMM_WORLD);
-			printf("%d: Z[0] = %lg, Ztotal[0] = %lg\n", myrank, Z[0], Ztotal[0]);
 			MPI_Allreduce(Z, Ztotal, nT, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-			printf("%d: Z[0] = %lg, Ztotal[0] = %lg\n", myrank, Z[0], Ztotal[0]);
-			Zout = fopen(fname, "w");
+		}
+
+		if(n%10000==0 && myrank==0) {
+			dump_Umin(ncpu*n);
+			
+
+			Zout = fopen("Z.dat", "w");
 			/*
 			rewind(Zout);
 			ftruncate(fileno(Zout), 0);
