@@ -54,19 +54,6 @@ SUBROUTINE vgw0(N_ATOM_,QCNFG, W, TAUMAX,TAUI,Y)
 			ENDDO
 		ENDDO
 
-		DO I=1,N_atom             ! INITIALIZE Q MATRIX
-			DO J=1,3
-				DO K=1,3
-					IF(K.EQ.J) THEN
-						Y(CNT)=1.0D0
-					ELSE
-						Y(CNT)=0.0D0
-					ENDIF
-					CNT=CNT+1
-				ENDDO
-			ENDDO
-		ENDDO
-
 		CALL potential_energy(QCNFG,N_atom,ULJ)
 		Y(1)=-T*ULJ
 	else
