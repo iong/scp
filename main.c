@@ -48,9 +48,9 @@ double sg_a[4] = {1.038252215127, 0.5974039109464, 0.196476572277834, 0.06668611
 int sg_n = 4;
 
 
-double LJC[3] = {10998.6151589526, -0.165282225586247, -6.46198166728172};
-double LJA[3] = {8.81337773201576,  0.36684190090077,   1.43757007579231};
-int LJ_ngauss = 3;
+double lj_c[3] = {10998.6151589526, -0.165282225586247, -6.46198166728172};
+double lj_a[3] = {8.81337773201576,  0.36684190090077,   1.43757007579231};
+int lj_n = 3;
 
 
 /*
@@ -139,6 +139,7 @@ static inline double ULJ(int i, int j, int nrep)
 		
 	return Uij;
 }
+
 
 static double ljUtot(int nrep)
 {
@@ -517,14 +518,14 @@ int main (int argc,  char * argv[])
 	beta[nT] = 0.0;
 	
 	bl = 10*R0;
-	cblas_dscal(LJ_ngauss, epsilon, LJC, 1);
-	cblas_dscal(LJ_ngauss, 1.0/(sigma*sigma), LJA, 1);
+	cblas_dscal(lj_n, epsilon, lj_c, 1);
+	cblas_dscal(lj_n, 1.0/(sigma*sigma), lj_a, 1);
 	
 	atoler = 1e-4;
 	taumin=1e-4;
-	imass = 2.0;
+	imass = 20.1797;
 	rc = 4.0*sigma;
-	vgwinit_(&imass, &sg_n, sg_c, sg_a, &bl, &rc, &taumin, &atoler);
+	vgwinit_(&imass, &lj_n, lj_c, lj_a, &bl, &rc, &taumin, &atoler);
 	
 	if (myrank==0) {
 		eout = fopen("eout.dat", "w");
