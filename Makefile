@@ -1,8 +1,8 @@
 DBG=1
 VPATH=$(dir $(shell readlink $(CURDIR)/$(firstword $(MAKEFILE_LIST))))
-CC=icc
+CC=mpicc
 #FC=gfortran-mp-4.4
-FC=ifort
+FC=mpif90
 VGW=$(addsuffix .o,vgw rhss0 vgwrho vgw0)
 
 CPPFLAGS=-I/opt/local/include
@@ -20,23 +20,25 @@ LAPACK:=-framework vecLib
 ARCH=x86_64
 OS=$(shell uname -s)
 
-ifeq ($(FC),ifort)
+#ifeq ($(FC),ifort)
 	OPTFLAGS=-O3 -mdynamic-no-pic -no-prec-div
 	DBGFLAGS=-O0 -g
 	FDBG:=-check all -ftrapuv -traceback
 	FDBG:=-traceback
 	FFLAGS:=-r8 -heap-arrays
-	LDFLAGS:=-nofor-main -r8  $(LDFLAGS) -heap-arrays -static-intel
+	#LDFLAGS:=-nofor-main -r8  $(LDFLAGS) -heap-arrays -static-intel
+	LDFLAGS:=$(LDFLAGS) -static-intel
 
 	MKLLIBS:=mkl_sequential mkl_core
 	MKLLIBS:= mkl_intel_lp64 $(MKLLIBS)
 ifeq ($(OS),Linux)
 	OPTFLAGS=-O3 -no-prec-div
 	MKLLIBS:= mkl_intel_lp64 $(MKLLIBS)
-	LDFLAGS:=-nofor-main  $(LDFLAGS) -heap-arrays -static-intel
+	#LDFLAGS:=-nofor-main  $(LDFLAGS) -heap-arrays -static-intel
+	LDFLAGS:=$(LDFLAGS) -static-intel
 endif
 	LAPACK:=$(addprefix $(MKLROOT)/lib/em64t/lib,$(addsuffix .a,$(MKLLIBS)))
-endif
+#endif
 
 ifdef DBG
 CFLAGS:=$(CFLAGS) $(CPPFLAGS) $(DBGFLAGS)
@@ -59,9 +61,12 @@ all: ljmc
 %.o : %.f
 	$(FC) $(FFLAGS) -c $^
 
-#ljmc: main.o dlsode.o vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03.o vgw.o interaction_lists.o potential_energy.o rhss0.o vgw0.o
-ljmc: ljmc.o dlsode.o vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03.o vgw.o interaction_lists.o potential_energy.o rhss0.o vgw0.o
-	$(FC)  $(LDFLAGS) -o $@ $^ $(LIBS)
+libvgw.dylib:  dlsode.o vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03.o vgw.o interaction_lists.o potential_energy.o rhss0.o vgw0.o
+	$(FC) $(FFLAGS) -dynamiclib $^ -o $@ $(LAPACK)
+
+ljmc: main.o libvgw.dylib
+#ljmc: ljmc.o dlsode.o vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03.o vgw.o interaction_lists.o potential_energy.o rhss0.o vgw0.o
+	$(CC)  $(LDFLAGS) -o $@ $^ $(LIBS)
 
 clean:
 	$(RM) *.o *.mod

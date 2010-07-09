@@ -7,6 +7,8 @@
 #include <gsl/gsl_rng.h>
 #include <xmmintrin.h>
 
+#include <mpi.h>
+
 #ifdef __ICC
 #include <mkl_cblas.h>
 #elif __APPLE__
@@ -18,12 +20,13 @@
 
 #include "vectmath.h"
 
+int	myrank, ncpu;
 int	N, NMC, nfine, nstreams, nT;
 double	(*r)[3], (*rnew)[3], (*rmin)[3], (*f)[3], *y, *invmeff, *sqrtmeff;
 double	*U, *Ucache, *Ucacheline, *Umin, *U0;
 int	*naccepted, nswap=100;
 double	epsilon, sigma, sigma6, mass;
-double	*refkT, *refbeta, refTmin, refTmax, *kT, *beta, *Z, Tmin, Tmax;
+double	*refkT, *refbeta, refTmin, refTmax, *kT, *beta, *Z, *Ztotal, Tmin, Tmax;
 double	dt, ddt, tanneal, tstop, R0, R0sq, Omega, OmegaSq, dUrel;
 double	t;
 int	minidx, Uminiter;
@@ -439,19 +442,22 @@ static double heat_capacity2(const int j, const double Z[], const double beta[])
 	return Cv;
 }
 
-int main (int argc, const char * argv[])
+int main (int argc,  char * argv[])
 {
 	struct timeval tv;
 	int	n, i;
 	double	atoler, rc, taumin, imass;
 	FILE	*Zout;
+	char	fname[200];
 	
+	
+	MPI_Init(&argc, &argv);
+	MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
+	MPI_Comm_size(MPI_COMM_WORLD, &ncpu);
 	
 	dUrel = 1e-6;
 	read_options(argv[1]);
-	eout = fopen("eout.dat", "w");
-
-
+	
 
 	//dUrel = 0.5*dUrel/(double)(N*N);
 	
@@ -468,6 +474,7 @@ int main (int argc, const char * argv[])
 	kT = (double *)calloc(nT, sizeof(double));
 	beta = (double *)calloc((nT+1), sizeof(double));
 	Z = (double *)calloc((nT+1), sizeof(double));
+	Ztotal = (double *)calloc((nT+1), sizeof(double));
 	Umin = (double *)calloc(nstreams, sizeof(double));
 	U0 = (double *)calloc(nstreams, sizeof(double));
 	xstep = (double *)calloc(nstreams, sizeof(double));
@@ -479,7 +486,7 @@ int main (int argc, const char * argv[])
 	
 	gettimeofday(&tv, NULL);
         rng = gsl_rng_alloc(gsl_rng_mt19937);
-        gsl_rng_set(rng, tv.tv_usec);
+        gsl_rng_set(rng, tv.tv_usec+myrank);
 
 	if (inputf==NULL) {
 		initial_config();
@@ -518,10 +525,14 @@ int main (int argc, const char * argv[])
 	imass = 2.0;
 	rc = 4.0*sigma;
 	vgwinit_(&imass, &sg_n, sg_c, sg_a, &bl, &rc, &taumin, &atoler);
-
-	dumpxyz("startcfg.xyz", r, "X trial");
-	memset(Z, 0, nT*sizeof(double));
-	Zout = fopen("Z.dat", "w");
+	
+	if (myrank==0) {
+		eout = fopen("eout.dat", "w");
+		dumpxyz("startcfg.xyz", r, "X trial");
+	}
+		
+	sprintf(fname, "Z%02d.dat", myrank);
+			
 	for (n=0; n<NMC; n += 100) {
 
 		for (i=0; i<nstreams; i++) {
@@ -530,27 +541,41 @@ int main (int argc, const char * argv[])
 		
 		for (i=nT-1; i>=0; i--) {
 			double	Ueff;
-			vgw0_(&N, rnew[0], &Ueff, beta+i, beta+(i+1), y);
-			Z[i] += exp(-beta[i+1]*Ueff + refbeta[0]*U0[0]);
+			vgw0_(&N, r[0], &Ueff, beta+i, beta+(i+1), y);
+			Z[i] += exp(-beta[i]*Ueff + refbeta[0]*U0[0]);
 		}
 		swap_streams();
+				
 		if(n%10000==0) {
-			dump_Umin(n);
+			if(myrank==0) {
+				dump_Umin(ncpu*n);
+			}
+			
+			memset(Ztotal, 0, nT*sizeof(double));
+			MPI_Barrier(MPI_COMM_WORLD);
+			printf("%d: Z[0] = %lg, Ztotal[0] = %lg\n", myrank, Z[0], Ztotal[0]);
+			MPI_Allreduce(Z, Ztotal, nT, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+			printf("%d: Z[0] = %lg, Ztotal[0] = %lg\n", myrank, Z[0], Ztotal[0]);
+			Zout = fopen(fname, "w");
+			/*
 			rewind(Zout);
 			ftruncate(fileno(Zout), 0);
+			 */
 			for (i=1; i<(nT-2); i++) {
-				fprintf(Zout, "%lg %lg %lg %lg %lg\n", kT[i],
-					heat_capacity(i, Z, kT),
-					heat_capacity2(i, Z, beta),
-					beta[i], Z[i]);
+				fprintf(Zout, "%lg %lg %lg %lg %lg %lg\n", kT[i],
+					heat_capacity(i, Ztotal, kT),
+					heat_capacity2(i, Ztotal, beta),
+					beta[i], Z[i], Ztotal[i]);
 			}
 			fflush(Zout);
+			fclose(Zout);
 		}
 	}
-	dump_Umin(n);
-	
-	
-	fclose(eout);
-	fclose(Zout);
-    return 0;
+	if (myrank==0) {
+		dump_Umin(n);
+		fclose(eout);
+	}
+
+	MPI_Finalize();
+	return 0;
 }

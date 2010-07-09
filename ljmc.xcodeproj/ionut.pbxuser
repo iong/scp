@@ -78,18 +78,18 @@
 					PBXFileDataSource_Warnings_ColumnID,
 				);
 			};
-			PBXPerProjectTemplateStateSaveDate = 300252234;
-			PBXWorkspaceStateSaveDate = 300252234;
+			PBXPerProjectTemplateStateSaveDate = 300311419;
+			PBXWorkspaceStateSaveDate = 300311419;
 		};
 		perUserProjectItems = {
 			C6080E1D11E57B48000F1AB6 /* PBXTextBookmark */ = C6080E1D11E57B48000F1AB6 /* PBXTextBookmark */;
 			C6080E1E11E57B48000F1AB6 /* PBXTextBookmark */ = C6080E1E11E57B48000F1AB6 /* PBXTextBookmark */;
 			C6080E1F11E57B48000F1AB6 /* PBXTextBookmark */ = C6080E1F11E57B48000F1AB6 /* PBXTextBookmark */;
 			C6080E2011E57B48000F1AB6 /* PBXTextBookmark */ = C6080E2011E57B48000F1AB6 /* PBXTextBookmark */;
-			C61F717611E58D3100B60B88 /* XCBuildMessageTextBookmark */ = C61F717611E58D3100B60B88 /* XCBuildMessageTextBookmark */;
 			C61F717E11E58D4E00B60B88 /* PBXTextBookmark */ = C61F717E11E58D4E00B60B88 /* PBXTextBookmark */;
-			C61F718111E58E5A00B60B88 /* PBXTextBookmark */ = C61F718111E58E5A00B60B88 /* PBXTextBookmark */;
 			C6C4558C11DD07E00066406B /* PBXTextBookmark */ = C6C4558C11DD07E00066406B /* PBXTextBookmark */;
+			C6C49CEB11E66B5700CF614A /* XCBuildMessageTextBookmark */ = C6C49CEB11E66B5700CF614A /* XCBuildMessageTextBookmark */;
+			C6C49D3811E6B1B500CF614A /* PBXTextBookmark */ = C6C49D3811E6B1B500CF614A /* PBXTextBookmark */;
 			C6D5499011DEC8E0009ACAD4 /* PBXTextBookmark */ = C6D5499011DEC8E0009ACAD4 /* PBXTextBookmark */;
 			C6D54A5B11DEE648009ACAD4 /* PBXTextBookmark */ = C6D54A5B11DEE648009ACAD4 /* PBXTextBookmark */;
 		};
@@ -278,18 +278,9 @@
 		hitCount = 0;
 		ignoreCount = 0;
 		lineNumber = 2;
-		modificationTime = 300256401.597021;
+		modificationTime = 300326295.600582;
 		originalNumberOfMultipleMatches = 1;
 		state = 1;
-	};
-	C61F717611E58D3100B60B88 /* XCBuildMessageTextBookmark */ = {
-		isa = PBXTextBookmark;
-		comments = "Xmmintrin.h: No such file or directory";
-		fRef = C6D5498011DEC86C009ACAD4 /* main.c */;
-		fallbackIsa = XCBuildMessageTextBookmark;
-		rLen = 1;
-		rLoc = 7;
-		rType = 1;
 	};
 	C61F717E11E58D4E00B60B88 /* PBXTextBookmark */ = {
 		isa = PBXTextBookmark;
@@ -300,16 +291,6 @@
 		rType = 0;
 		vrLen = 782;
 		vrLoc = 1218;
-	};
-	C61F718111E58E5A00B60B88 /* PBXTextBookmark */ = {
-		isa = PBXTextBookmark;
-		fRef = C6D5498011DEC86C009ACAD4 /* main.c */;
-		name = "main.c: 430";
-		rLen = 0;
-		rLoc = 9336;
-		rType = 0;
-		vrLen = 672;
-		vrLoc = 11873;
 	};
 	C6C4556811DD072B0066406B /* vgw */ = {
 		activeExec = 0;
@@ -323,6 +304,25 @@
 		rType = 0;
 		vrLen = 1485;
 		vrLoc = 0;
+	};
+	C6C49CEB11E66B5700CF614A /* XCBuildMessageTextBookmark */ = {
+		isa = PBXTextBookmark;
+		comments = "warning #167: argument of type \"const char ***\" is incompatible with parameter of type \"char ***\"";
+		fRef = C6D5498011DEC86C009ACAD4 /* main.c */;
+		fallbackIsa = XCBuildMessageTextBookmark;
+		rLen = 0;
+		rLoc = 458;
+		rType = 1;
+	};
+	C6C49D3811E6B1B500CF614A /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = C6D5498011DEC86C009ACAD4 /* main.c */;
+		name = "main.c: 16";
+		rLen = 0;
+		rLoc = 270;
+		rType = 0;
+		vrLen = 1143;
+		vrLoc = 77;
 	};
 	C6D5497411DEC836009ACAD4 /* ljmc */ = {
 		activeExec = 0;
@@ -387,9 +387,9 @@
 	};
 	C6D5498011DEC86C009ACAD4 /* main.c */ = {
 		uiCtxt = {
-			sepNavIntBoundsRect = "{{0, 0}, {765, 7124}}";
-			sepNavSelRange = "{144, 0}";
-			sepNavVisRange = "{0, 656}";
+			sepNavIntBoundsRect = "{{0, 0}, {725, 7449}}";
+			sepNavSelRange = "{270, 0}";
+			sepNavVisRange = "{77, 1143}";
 			sepNavWindowFrame = "{{15, 85}, {1109, 1088}}";
 		};
 	};

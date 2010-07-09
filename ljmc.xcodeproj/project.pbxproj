@@ -19,6 +19,10 @@
 		C6C4557111DD073A0066406B /* dlsode.f in Sources */ = {isa = PBXBuildFile; fileRef = C6163A8A11DC099100571CBA /* dlsode.f */; };
 		C6C4557211DD073A0066406B /* vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03.f in Sources */ = {isa = PBXBuildFile; fileRef = C6163A8C11DC099100571CBA /* vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03.f */; };
 		C6C4558411DD07BC0066406B /* libvgw.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = C6C4556911DD072B0066406B /* libvgw.dylib */; };
+		C6C49CD511E665C700CF614A /* libmpi.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = C6C49CD411E665C700CF614A /* libmpi.dylib */; };
+		C6C49CD711E665C700CF614A /* libopen-pal.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = C6C49CD611E665C700CF614A /* libopen-pal.dylib */; };
+		C6C49CD911E665C700CF614A /* libopen-rte.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = C6C49CD811E665C700CF614A /* libopen-rte.dylib */; };
+		C6C49CDB11E665F000CF614A /* libutil.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = C6C49CDA11E665F000CF614A /* libutil.dylib */; };
 		C6D5497D11DEC857009ACAD4 /* libvgw.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = C6C4556911DD072B0066406B /* libvgw.dylib */; };
 		C6D5498111DEC86C009ACAD4 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = C6D5498011DEC86C009ACAD4 /* main.c */; };
 		C6D5498F11DEC8A6009ACAD4 /* libgsl.0.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = C6D5498E11DEC8A6009ACAD4 /* libgsl.0.dylib */; };
@@ -78,6 +82,10 @@
 		C6163ACB11DC343200571CBA /* vgw0.f90 */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.fortran.f90; path = vgw0.f90; sourceTree = "<group>"; };
 		C6163ADB11DC346A00571CBA /* rhss0.f90 */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.fortran.f90; path = rhss0.f90; sourceTree = "<group>"; };
 		C6C4556911DD072B0066406B /* libvgw.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = libvgw.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
+		C6C49CD411E665C700CF614A /* libmpi.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libmpi.dylib; path = "/opt/mpi/openmpi-1.4.1-intel/lib/libmpi.dylib"; sourceTree = "<absolute>"; };
+		C6C49CD611E665C700CF614A /* libopen-pal.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = "libopen-pal.dylib"; path = "/opt/mpi/openmpi-1.4.1-intel/lib/libopen-pal.dylib"; sourceTree = "<absolute>"; };
+		C6C49CD811E665C700CF614A /* libopen-rte.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = "libopen-rte.dylib"; path = "/opt/mpi/openmpi-1.4.1-intel/lib/libopen-rte.dylib"; sourceTree = "<absolute>"; };
+		C6C49CDA11E665F000CF614A /* libutil.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libutil.dylib; path = usr/lib/libutil.dylib; sourceTree = SDKROOT; };
 		C6D5497511DEC836009ACAD4 /* ljmc */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = ljmc; sourceTree = BUILT_PRODUCTS_DIR; };
 		C6D5498011DEC86C009ACAD4 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
 		C6D5498E11DEC8A6009ACAD4 /* libgsl.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libgsl.0.dylib; path = /opt/local/lib/libgsl.0.dylib; sourceTree = "<absolute>"; };
@@ -109,6 +117,10 @@
 			files = (
 				C6D5497D11DEC857009ACAD4 /* libvgw.dylib in Frameworks */,
 				C6D5498F11DEC8A6009ACAD4 /* libgsl.0.dylib in Frameworks */,
+				C6C49CD511E665C700CF614A /* libmpi.dylib in Frameworks */,
+				C6C49CD711E665C700CF614A /* libopen-pal.dylib in Frameworks */,
+				C6C49CD911E665C700CF614A /* libopen-rte.dylib in Frameworks */,
+				C6C49CDB11E665F000CF614A /* libutil.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -135,6 +147,10 @@
 				C6163A9D11DC0E4D00571CBA /* libmkl_intel_lp64.a */,
 				C6163A9F11DC0E4D00571CBA /* libmkl_sequential.a */,
 				C6D5498E11DEC8A6009ACAD4 /* libgsl.0.dylib */,
+				C6C49CD411E665C700CF614A /* libmpi.dylib */,
+				C6C49CD611E665C700CF614A /* libopen-pal.dylib */,
+				C6C49CD811E665C700CF614A /* libopen-rte.dylib */,
+				C6C49CDA11E665F000CF614A /* libutil.dylib */,
 			);
 			name = ljmc;
 			sourceTree = "<group>";
@@ -411,13 +427,18 @@
 				GCC_ENABLE_FIX_AND_CONTINUE = YES;
 				GCC_MODEL_TUNING = G5;
 				GCC_OPTIMIZATION_LEVEL = 0;
-				HEADER_SEARCH_PATHS = /opt/local/include;
+				HEADER_SEARCH_PATHS = (
+					"/opt/mpi/openmpi-1.4.1-intel/include",
+					/opt/local/include,
+				);
+				ICC_DEFINES = "_REENTRANT $(GCC_PREPROCESSOR_DEFINITIONS)";
 				ICC_LANG_ANSI = c99;
 				ICC_MKL = nonthreaded;
 				ICC_RT_LIBRARY = dynamic;
 				INSTALL_PATH = /usr/local/bin;
 				LD_RUNPATH_SEARCH_PATHS = "";
 				LIBRARY_SEARCH_PATHS = (
+					"/opt/mpi/openmpi-1.4.1-intel/lib",
 					"$(inherited)",
 					"\"$(DEVELOPER_DIR)/opt/intel/Compiler/11.1/088/Frameworks/mkl/lib/em64t\"",
 					/opt/local/lib,
@@ -435,11 +456,16 @@
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
 				GCC_MODEL_TUNING = G5;
-				HEADER_SEARCH_PATHS = /opt/local/include;
+				HEADER_SEARCH_PATHS = (
+					"/opt/mpi/openmpi-1.4.1-intel/include",
+					/opt/local/include,
+				);
+				ICC_DEFINES = "_REENTRANT $(GCC_PREPROCESSOR_DEFINITIONS)";
 				ICC_MKL = nonthreaded;
 				INSTALL_PATH = /usr/local/bin;
 				LD_RUNPATH_SEARCH_PATHS = "";
 				LIBRARY_SEARCH_PATHS = (
+					"/opt/mpi/openmpi-1.4.1-intel/lib",
 					"$(inherited)",
 					"\"$(DEVELOPER_DIR)/opt/intel/Compiler/11.1/088/Frameworks/mkl/lib/em64t\"",
 					/opt/local/lib,

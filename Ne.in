@@ -1,12 +1,12 @@
 N 13
 LJ  35.6 2.749
 mass 20
-R0 4
+R0 5
 input Ne13.dat
 output Ne13.xyz
 #parallel tempering
 refTmin 12
-refTmax 60
+refTmax 40
 nstreams 8
 Tmin 2
 Tmax 14
