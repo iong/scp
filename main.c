@@ -42,10 +42,12 @@ gsl_rng *rng;
 
 
 
+double gexp_c[10], gexp_a[10];
+int	gexp_n;
 
-double sg_c[4] = {96609.488289873, 14584.62075507514, -365.460614956589, -19.5534697800036};
-double sg_a[4] = {1.038252215127, 0.5974039109464, 0.196476572277834, 0.06668611771781};
-int sg_n = 4;
+double sg_c[3] = {31319, -282.51, -9.2781};
+double sg_a[3] = {0.68069, 0.17253, 0.050958};
+int sg_n = 3;
 
 
 double lj_c[3] = {10998.6151589526, -0.165282225586247, -6.46198166728172};
@@ -377,6 +379,18 @@ static void read_options(const char fname[])
 			epsilon = atof(valstring);
 			fscanf(fin, "%lg", &sigma);
 			sigma6 = pow(sigma, 6.0);
+
+			for (i=0; i<lj_n; i++) {
+				gexp_c[i] = epsilon*lj_c[i];
+				gexp_a[i] = lj_a[i]/(sigma*sigma);
+			}
+			gexp_n = lj_n;
+	
+			required++;
+		} else if (strcmp(valname, "SG") == 0) {
+			memcpy(gexp_c, sg_c, sg_n*sizeof(double));
+			memcpy(gexp_a, sg_a, sg_n*sizeof(double));
+			gexp_n = lj_n;
 			required++;
 		} else if (strcmp(valname, "mass") == 0) {
 			mass = atof(valstring)/48.5086;
@@ -518,14 +532,11 @@ int main (int argc,  char * argv[])
 	beta[nT] = 0.0;
 	
 	bl = 10*R0;
-	cblas_dscal(lj_n, epsilon, lj_c, 1);
-	cblas_dscal(lj_n, 1.0/(sigma*sigma), lj_a, 1);
-	
 	atoler = 1e-4;
 	taumin=1e-4;
 	imass = 20.1797;
 	rc = 4.0*sigma;
-	vgwinit_(&imass, &lj_n, lj_c, lj_a, &bl, &rc, &taumin, &atoler);
+	vgwinit_(&imass, &gexp_n, gexp_c, gexp_a, &bl, &rc, &taumin, &atoler);
 	
 	if (myrank==0) {
 		eout = fopen("eout.dat", "w");
