@@ -3,8 +3,8 @@ VPATH=$(dir $(shell readlink $(shell pwd)/$(firstword $(MAKEFILE_LIST))))
 
 CC=mpicc
 FC=mpif90
-CPPFLAGS=-I/opt/local/include
-LDFLAGS=-L/opt/local/lib
+CPPFLAGS=$(shell pkg-config --cflags gsl)
+LDFLAGS=$(shell pkg-config --libs-only-L gsl)
 LIBS=-lgsl
 
 OS=$(shell uname -s)
@@ -33,12 +33,8 @@ all: ljmc
 %.o : %.f
 	$(FC) $(FFLAGS) -c $^
 
-libvgw.dylib:  dlsode.o vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03.o vgw.o interaction_lists.o potential_energy.o rhss0.o vgw0.o
-	$(FC) $(FFLAGS) -dynamiclib $^ -o $@ $(LAPACK)
-
-ljmc: main.o libvgw.dylib
-#ljmc: ljmc.o dlsode.o vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03.o vgw.o interaction_lists.o potential_energy.o rhss0.o vgw0.o
-	$(CC)  $(LDFLAGS) -o $@ $^ $(LIBS)
+ljmc: main.o dlsode.o vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03.o vgw.o interaction_lists.o potential_energy.o rhss0.o vgw0.o
+	$(FC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 clean:
 	$(RM) *.o *.mod
