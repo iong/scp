@@ -20,19 +20,24 @@
 
 #include "vectmath.h"
 
+
+struct silvera_goldman {
+	double alpha, beta, gamma, C6, C8, C9, C10, rc, rc2;
+};
+
 int	myrank, ncpu;
-int	N, NMC, nfine, nstreams, nT;
+int	N, nline, NMC, nstreams, nT;
 double	(*r)[3], (*rnew)[3], (*rmin)[3], (*f)[3], *y, *invmeff, *sqrtmeff;
 double	*U, *Ucache, *Ucacheline, *Umin, *U0;
 int	*naccepted, nswap=100;
-double	epsilon, sigma, sigma6, mass;
+double	epsilon, sigma, sigma6, imass, mass;
 double	*refkT, *refbeta, refTmin, refTmax, *kT, *beta, *Z, *Ztotal, Tmin, Tmax;
-double	dt, ddt, tanneal, tstop, R0, R0sq, Omega, OmegaSq, dUrel;
+double	dt, ddt, tanneal, tstop, Omega, OmegaSq, dUrel;
 double	t;
 int	minidx, Uminiter;
 double	Uminall;
 
-double	bl;
+double	bl, bl2, Rc;
 static double *xstep, *xsteps;
 FILE	*eout;
 char *inputf=NULL, *outputf;
@@ -42,9 +47,11 @@ gsl_rng *rng;
 
 
 
+
 double gexp_c[10], gexp_a[10];
 int	gexp_n;
 
+struct silvera_goldman sg = {14.375784, 2.961819, 0.035471, 84105.640272, 417373.713331, 146845.504557, 2613703.276242, 4.402116, 19.37862};
 double sg_c[3] = {31319, -282.51, -9.2781};
 double sg_a[3] = {0.68069, 0.17253, 0.050958};
 int sg_n = 3;
@@ -135,7 +142,10 @@ static inline double ULJ(int i, int j, int nrep)
 	ioff = nrep*N + i;
 	joff = nrep*N + j;
 
-	DOTPSUBV(dr2, dr, rnew[joff], rnew[ioff]);
+	SUBV(dr, rnew[joff], rnew[ioff]);
+	if (dr[i] > bl2) dr[i] = bl - dr[i];
+	if (dr[i] <-bl2) dr[i] = bl + dr[i];
+	DOTVP(dr2, dr, dr);
 	y6 = sigma6/(dr2*dr2*dr2);
 	Uij = 4.0*epsilon*(y6*y6-y6);
 		
@@ -143,7 +153,39 @@ static inline double ULJ(int i, int j, int nrep)
 }
 
 
-static double ljUtot(int nrep)
+static inline double USG(int i, int j, int nrep)
+{
+	double	dr[3], dr2, dr4, dr8, drabs, fc, __f, Uij;
+	int	ioff, joff;
+	
+	ioff = nrep*N + i;
+	joff = nrep*N + j;
+
+	SUBV(dr, rnew[joff], rnew[ioff]);
+	if (dr[i] > bl2) dr[i] = bl - dr[i];
+	if (dr[i] <-bl2) dr[i] = bl + dr[i];
+	DOTVP(dr2, dr, dr);
+	drabs = sqrt(dr2);
+
+	dr4 = dr2*dr2;
+	dr8 = dr4*dr4;
+
+	if (dr2>sg.rc2) {
+		fc = 1.0;
+	} else {
+		double __f = sg.rc/drabs - 1.0;
+		fc = exp(-__f*__f);
+	}
+
+	Uij = exp(sg.alpha - sg.beta*drabs - sg.gamma*dr2);
+	Uij = Uij - fc * ( sg.C6/(dr2*dr4) + sg.C8/dr8 + sg.C9/(dr8*drabs)
+		+ sg.C10/(dr8*dr2) );
+
+	return Uij;
+}
+
+
+static double sgUtot(int nrep)
 {
 	double	Utot;
 	int	i, j;
@@ -151,7 +193,7 @@ static double ljUtot(int nrep)
 	Utot=0;
 	for (i=0; i<N; i++) {
 		for (j=i+1; j<N; j++) {
-			Utot += ULJ(i, j, nrep);
+			Utot += USG(i, j, nrep);
 		}
 	}
 	
@@ -159,7 +201,7 @@ static double ljUtot(int nrep)
 }
 
 
-static double ljUtot_single_jump(int nrep, int j)
+static double sgUtot_single_jump(int nrep, int j)
 {
 	double	Uij, dE;
 	int	i;
@@ -169,7 +211,7 @@ static double ljUtot_single_jump(int nrep, int j)
 		if (i==j) {
 			continue;
 		}
-		Uij = ULJ(i, j, nrep);
+		Uij = USG(i, j, nrep);
 		dE += Uij - Ucache[j*N+i];
 		Ucacheline[i] = Uij;
 	}
@@ -178,7 +220,7 @@ static double ljUtot_single_jump(int nrep, int j)
 
 
 
-static double ljUtot_cache(int nrep)
+static double sgUtot_cache(int nrep)
 {
 	double	Uij, Utot;
 	int	i, j;
@@ -186,7 +228,7 @@ static double ljUtot_cache(int nrep)
 	Utot=0;
 	for (i=0; i<N; i++) {
 		for (j=i+1; j<N; j++) {
-			Uij = ULJ(i, j, nrep);
+			Uij = USG(i, j, nrep);
 			Ucache[i*N+j] = Uij;
 			Ucache[j*N+i] = Uij;
 			Utot += Uij;
@@ -271,29 +313,27 @@ static void accept_move(int nrep, int m, double	Unew)
 void mc_one_by_one(int burnin_len, int nrep)
 {
 	double Unew, p,rsq, Ulmin;
-	int acceptance_trials = 1000, i;
-	int	j, joff;
+	const int acceptance_trials = 1000;
+	int	i, j, joff, k;
 	
 	memcpy(rnew[nrep*N], r[nrep*N], 3*N*sizeof(double));
-	U0[nrep] = ljUtot_cache(nrep);
+	U0[nrep] = sgUtot_cache(nrep);
 	Ulmin = 1e6;
 	for (i = 1; i <= burnin_len; i++) {
 		j = 1 + gsl_rng_uniform_int(rng, N-1);
 		joff = j+N*nrep;
 		mc_move_atom(joff, xsteps[nrep]);
 		
-		DOTVP(rsq, rnew[joff], rnew[joff]);
-		if (rsq > R0sq) {
-			SETV(rnew[joff], r[joff]);
-			continue;
-		}
-		DOTVP(rsq, r[joff], r[joff]);
-		if (rsq > R0sq) {
-			printf("Aaaaaaaaaaaarrrrrrrrrrrrrr\n");
-			kill(getpid(), SIGSEGV);
+		/* wrap around the box */
+		for (k=0; k<3; k++) {
+			if (rnew[joff][k] > bl2) {
+				rnew[joff][k] = rnew[joff][k] - bl;
+			} else if (rnew[joff][k] < -bl2) {
+				rnew[joff][k] = rnew[joff][k] + bl;
+			} 
 		}
 		
-		Unew = ljUtot_single_jump(nrep, j);
+		Unew = sgUtot_single_jump(nrep, j);
 		p = exp(-(Unew - U0[nrep]) * refbeta[nrep]);
 		
 		if (p > gsl_rng_uniform(rng)) {
@@ -317,27 +357,24 @@ void mc_one_by_one(int burnin_len, int nrep)
 }
 
 
-static void initial_config()
+static void init_unit_cell()
 {
-	double	rsq,sigma2, dr2, dr2min=1e100, dr[3];
-	int	i, j;
-	
-	sigma2 = sigma*sigma;
-	CLRV(r[0]);
-	for (i=1; i<N; i++) {
-		do {
-			r[i][0] = R0*(gsl_rng_uniform(rng) - 0.5);
-			r[i][1] = R0*(gsl_rng_uniform(rng) - 0.5);
-			r[i][2] = R0*(gsl_rng_uniform(rng) - 0.5);
-			DOTVP(rsq, r[i], r[i]);
-			dr2min = 4*R0sq;
-			for (j=0; j<i; j++) {
-				DOTPSUBV(dr2, dr, r[i], r[j]);
-				if (dr2<dr2min) {
-					dr2min = dr2;
-				}
+	double	ulen, x, y, z;
+	int	i, j, k, idx;
+
+	ulen = bl/nline;
+	for (i=0; i<nline; i++) {
+		x = (0.5 + (double)i)*ulen - 0.5*bl;
+		for (j=0; j<nline; j++) {
+			y = (0.5 + (double)j)*ulen - 0.5*bl;
+			for (k=0; k<nline; k++) {
+				z = (0.5 + (double)k)*ulen - 0.5*bl;
+				idx = nline*(j + i*nline) + k;
+				r[idx][0]=x;
+				r[idx][1]=y;
+				r[idx][2]=z;
 			}
-		} while ((rsq > R0sq) || (dr2min < 0.5*sigma2) );
+		}
 	}
 }
 
@@ -363,7 +400,7 @@ void load_data(char *coords)
 static void read_options(const char fname[])
 {
 	char valname[100], valstring[100];
-	int required;
+	int	i, required;
 	FILE *fin;
 	
 	fin = fopen(fname, "r");
@@ -372,8 +409,9 @@ static void read_options(const char fname[])
 		if (strcmp(valname, "include") == 0) {
 			read_options(valstring);
 		}
-		else if (strcmp(valname, "N") == 0) {
-			N = atoi(valstring);
+		else if (strcmp(valname, "nline") == 0) {
+			nline = atoi(valstring);
+			N = nline*nline*nline;
 			required++;
 		} else if (strcmp(valname, "LJ") == 0) {
 			epsilon = atof(valstring);
@@ -385,15 +423,18 @@ static void read_options(const char fname[])
 				gexp_a[i] = lj_a[i]/(sigma*sigma);
 			}
 			gexp_n = lj_n;
+			Rc = 4.0*sigma;
 	
 			required++;
 		} else if (strcmp(valname, "SG") == 0) {
 			memcpy(gexp_c, sg_c, sg_n*sizeof(double));
 			memcpy(gexp_a, sg_a, sg_n*sizeof(double));
 			gexp_n = lj_n;
+			Rc = 4.0*sg.rc;
 			required++;
 		} else if (strcmp(valname, "mass") == 0) {
-			mass = atof(valstring)/48.5086;
+			imass = atof(valstring);
+			mass = imass/48.5086;
 			required++;
 		} else if (strcmp(valname, "NMC") == 0) {
 			NMC = atoi(valstring);
@@ -416,9 +457,9 @@ static void read_options(const char fname[])
 		} else if (strcmp(valname, "nT") == 0) {
 			nT = atoi(valstring);
 			required++;
-		} else if (strcmp(valname, "R0") == 0) {
-			R0 = atof(valstring);
-			R0sq = R0*R0;
+		} else if (strcmp(valname, "bl") == 0) {
+			bl = atof(valstring);
+			bl2 = 0.5*bl;
 			required++;
 		} else if (strcmp(valname, "Omega") == 0) {
 			Omega = atof(valstring);
@@ -457,25 +498,8 @@ static double heat_capacity2(const int j, const double Z[], const double beta[])
 	return Cv;
 }
 
-int main (int argc,  char * argv[])
+static void init_mem()
 {
-	struct timeval tv;
-	int	n, i;
-	double	atoler, rc, taumin, imass;
-	FILE	*Zout;
-	char	fname[200];
-	
-	
-	MPI_Init(&argc, &argv);
-	MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
-	MPI_Comm_size(MPI_COMM_WORLD, &ncpu);
-	
-	dUrel = 1e-6;
-	read_options(argv[1]);
-	
-
-	//dUrel = 0.5*dUrel/(double)(N*N);
-	
 	r = (double (*)[3])calloc(3*N*nstreams, sizeof(double));
 	rnew = (double (*)[3])calloc(3*N*nstreams, sizeof(double));
 	rmin = (double (*)[3])calloc(3*N*nstreams, sizeof(double));
@@ -497,21 +521,41 @@ int main (int argc,  char * argv[])
 	naccepted = (int *)calloc(nstreams, sizeof(int));
 	Ucache = (double *)malloc(N*N*sizeof(double));
 	Ucacheline = (double *)malloc(N*sizeof(double));
+}
 
+int main (int argc,  char * argv[])
+{
+	struct timeval tv;
+	int	n, i;
+	double	atoler, taumin;
+	FILE	*Zout;
+	char	fname[200];
+	
+	
+	MPI_Init(&argc, &argv);
+	MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
+	MPI_Comm_size(MPI_COMM_WORLD, &ncpu);
+	
+	dUrel = 1e-6;
+	read_options(argv[1]);
+	init_mem();
+	
+
+	//dUrel = 0.5*dUrel/(double)(N*N);
 	
 	gettimeofday(&tv, NULL);
         rng = gsl_rng_alloc(gsl_rng_mt19937);
         gsl_rng_set(rng, tv.tv_usec+myrank);
 
 	if (inputf==NULL) {
-		initial_config();
+		init_unit_cell();
 	}
 	else {
 		load_data(inputf);
 	}
 
 	for (i=0; i<nstreams; i++) {
-		xsteps[i] = xstep[i] = 0.2*sigma;
+		xsteps[i] = xstep[i] = bl/(double)(8*nline);
 		refkT[i] = refTmin*pow(refTmax/refTmin, (double)i/(double)(nstreams-1));
 		refbeta[i] = 1.0/refkT[i];
 		Umin[i] = 1e100;
@@ -531,12 +575,9 @@ int main (int argc,  char * argv[])
 	}
 	beta[nT] = 0.0;
 	
-	bl = 10*R0;
 	atoler = 1e-4;
 	taumin=1e-4;
-	imass = 20.1797;
-	rc = 4.0*sigma;
-	vgwinit_(&imass, &gexp_n, gexp_c, gexp_a, &bl, &rc, &taumin, &atoler);
+	vgwinit_(&imass, &gexp_n, gexp_c, gexp_a, &bl, &Rc, &taumin, &atoler);
 	
 	if (myrank==0) {
 		eout = fopen("eout.dat", "w");
