@@ -52,7 +52,7 @@ SUBROUTINE RHSS0(NEQ,T,Y,YPRIME)
           IF(QRC(I2+(I1-1)*N_atom)) THEN
             DO I=1,3
               Q12(I)=Q(I,I1)-Q(I,I2)
-              IF(Q12(I) > BL2) Q12(I)=Q12(I)-BL      !  fix this later
+              IF(Q12(I) > BL2) Q12(I)=Q12(I)-BL
               IF(Q12(I) < -BL2) Q12(I)=Q12(I)+BL
             ENDDO
             DO J=1,3
