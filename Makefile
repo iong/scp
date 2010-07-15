@@ -1,19 +1,15 @@
 #DBG=1
-VPATH=$(dir $(shell readlink $(CURDIR)/$(firstword $(MAKEFILE_LIST))))
-VGW=$(addsuffix .o,vgw rhss0 vgwrho vgw0)
-
-ARCH=x86_64
-OS=$(shell uname -s)
+VPATH=$(dir $(shell readlink $(shell pwd)/$(firstword $(MAKEFILE_LIST))))
 
 CC=mpicc
 FC=mpif90
-
 CPPFLAGS=$(shell pkg-config --cflags gsl)
 LDFLAGS=$(shell pkg-config --libs-only-L gsl)
 LIBS=-lgsl
 
-include gcc.mk
-#include intel.mk
+OS=$(shell uname -s)
+include config/gcc.mk
+#include config/intel.mk
 
 ifdef DBG
 	CFLAGS:=$(CFLAGS) $(CPPFLAGS) $(DBGFLAGS)
@@ -27,6 +23,7 @@ endif
 
 LIBS:= $(LIBS) $(LAPACK) -lm
 
+VGW=$(addsuffix .o,vgw rhss0 vgwrho vgw0)
 
 all: ljmc
 
