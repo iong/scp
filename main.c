@@ -28,16 +28,15 @@ struct silvera_goldman {
 int	myrank, ncpu;
 int	N, nline, NMC, nstreams, nT;
 double	(*r)[3], (*rnew)[3], (*rmin)[3], (*f)[3], *y, *invmeff, *sqrtmeff;
-double	*U, *Ucache, *Ucacheline, *Umin, *U0;
-int	*naccepted, nswap=100;
-double	epsilon, sigma, sigma6, imass, mass;
-double	*refkT, *refbeta, refTmin, refTmax, *kT, *beta, *Z, *Ztotal, Tmin, Tmax;
-double	dt, ddt, tanneal, tstop, Omega, OmegaSq, dUrel;
+double	*U, *Ucache, *Ucacheline, *Umin, *globalUmin, *U0;
+int	*naccepted, *ntrials, nswap=100;
+double	epsilon, sigma, sigma6, mass;
+double	*kT, *beta, Tmin, Tmax, *Z, *Ztotal;
 double	t;
 int	minidx, Uminiter;
 double	Uminall;
 
-double	bl, bl2, Rc;
+double	rho, ulen, bl, bl2, Rc;
 static double *xstep, *xsteps;
 FILE	*eout;
 char *inputf=NULL, *outputf;
@@ -62,18 +61,9 @@ double lj_a[3] = {8.81337773201576,  0.36684190090077,   1.43757007579231};
 int lj_n = 3;
 
 
-/*
-extern void vgwquenchspb_(double *q, double *f, double *W, double *enrg,
-			double *taumax, double *taui, double *atol,
-			double *rc, double *y);
-extern void vgwquenchspb_(int *, double *, double *, double *, double *, double *, double *, double *, double *, double *, double *, double *, double *, double *, double *);
-*/
-
-//extern void vgw0_(int *, double *, double *, double *, double *, double *, double *, double *, double *, double *);
-
-extern void vgwinit_(double *, int *, double *, double *, double *, double *,
+extern void vgwinit_(int *N, double *, int *, double *, double *, double *, double *,
 		     double *, double *);
-extern void vgw0_(int *N, double *q0, double *Ueff, double *taumax, double *taumin, double *y);
+extern void vgw0_(double *q0, double *Ueff, double *taumax, double *taumin, double *y);
 
 static inline void pol2cart(double *src, double *dest)
 {
@@ -97,6 +87,22 @@ static inline double gaussran(double sigma, double x0)
 }
 
 
+static void dump_acceptance_rates()
+{
+	double	p;
+	int	i;
+	FILE	*aout;
+
+	aout = fopen("acceptance_rates.dat", "w");
+	for (i=0; i<(nstreams-1); i++) {
+		p = exp((beta[i] - beta[i+1]) * (U0[i] - U0[i+1]));
+		fprintf(aout, "%d %lg\n", i, p);
+	}
+	fclose(aout);
+}
+
+
+
 static void dumpxyz(char *fname, double (*rr)[3], char *label)
 {
 	FILE	*fout;
@@ -112,152 +118,40 @@ static void dumpxyz(char *fname, double (*rr)[3], char *label)
 }
 
 
-static void dump_Umin(int MCiter)
+static void dump_Umin(int myrank, int MCiter)
 {
 	char	label[128];
 	double	lUmin;
 	int	i, imin;
 	
-	lUmin = 1e100;
-	printf("n = %d, Umin =", MCiter);
+	MPI_Allreduce(Umin, globalUmin, nstreams, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+	if (myrank==0) {
+		printf("n = %d, Umin =", MCiter);
+		for (i=0; i<nstreams; i++) {
+			printf(" %lg,", globalUmin[i]);
+		}
+		fputc('\n', stdout);
+	}
+
+	lUmin = globalUmin[0];
 	for (i=0; i<nstreams; i++) {
-		printf(" %lg,", Umin[i]);
-		if (Umin[i] <= lUmin) {
-			lUmin = Umin[i];
+		if (globalUmin[i] <= lUmin) {
+			lUmin = globalUmin[i];
 			imin = i;
 		}
 	}
-	fputc('\n', stdout);
 	
-	sprintf(label, "(N2)%d Umin = %lg", N, lUmin);
-	dumpxyz(outputf, rmin + imin*N, label);
-}
-
-
-static inline double ULJ(int i, int j, int nrep)
-{
-	double	dr[3], dr2, y6, Uij;
-	int	ioff, joff;
-	
-	ioff = nrep*N + i;
-	joff = nrep*N + j;
-
-	SUBV(dr, rnew[joff], rnew[ioff]);
-	if (dr[i] > bl2) dr[i] = bl - dr[i];
-	if (dr[i] <-bl2) dr[i] = bl + dr[i];
-	DOTVP(dr2, dr, dr);
-	y6 = sigma6/(dr2*dr2*dr2);
-	Uij = 4.0*epsilon*(y6*y6-y6);
-		
-	return Uij;
-}
-
-
-static inline double USG(int i, int j, int nrep)
-{
-	double	dr[3], dr2, dr4, dr8, drabs, fc, __f, Uij;
-	int	ioff, joff;
-	
-	ioff = nrep*N + i;
-	joff = nrep*N + j;
-
-	SUBV(dr, rnew[joff], rnew[ioff]);
-	if (dr[i] > bl2) dr[i] = bl - dr[i];
-	if (dr[i] <-bl2) dr[i] = bl + dr[i];
-	DOTVP(dr2, dr, dr);
-	drabs = sqrt(dr2);
-
-	dr4 = dr2*dr2;
-	dr8 = dr4*dr4;
-
-	if (dr2>sg.rc2) {
-		fc = 1.0;
-	} else {
-		double __f = sg.rc/drabs - 1.0;
-		fc = exp(-__f*__f);
+	if (fabs(Umin[imin] - lUmin) < 0.1) {
+		sprintf(label, "(N2)%d Umin = %lg", N, lUmin);
+		dumpxyz(outputf, rmin + imin*N, label);
 	}
-
-	Uij = exp(sg.alpha - sg.beta*drabs - sg.gamma*dr2);
-	Uij = Uij - fc * ( sg.C6/(dr2*dr4) + sg.C8/dr8 + sg.C9/(dr8*drabs)
-		+ sg.C10/(dr8*dr2) );
-
-	return Uij;
+	MPI_Barrier(MPI_COMM_WORLD);
 }
-
-
-static double sgUtot(int nrep)
-{
-	double	Utot;
-	int	i, j;
-	
-	Utot=0;
-	for (i=0; i<N; i++) {
-		for (j=i+1; j<N; j++) {
-			Utot += USG(i, j, nrep);
-		}
-	}
-	
-	return Utot;
-}
-
-
-static double sgUtot_single_jump(int nrep, int j)
-{
-	double	Uij, dE;
-	int	i;
-	
-	dE = 0;
-	for (i=0; i<N; i++) {
-		if (i==j) {
-			continue;
-		}
-		Uij = USG(i, j, nrep);
-		dE += Uij - Ucache[j*N+i];
-		Ucacheline[i] = Uij;
-	}
-	return U0[nrep] + dE;
-}
-
-
-
-static double sgUtot_cache(int nrep)
-{
-	double	Uij, Utot;
-	int	i, j;
-	
-	Utot=0;
-	for (i=0; i<N; i++) {
-		for (j=i+1; j<N; j++) {
-			Uij = USG(i, j, nrep);
-			Ucache[i*N+j] = Uij;
-			Ucache[j*N+i] = Uij;
-			Utot += Uij;
-		}
-	}
-	
-	return Utot;
-}
-
 
 static void accept_trial(int nrep, double Unew)
 {
 	U0[nrep] = Unew;
 	memcpy(r[nrep*N], rnew[nrep*N], 3*N*sizeof(double));
-}
-
-
-static void newtrial(int nrep)
-{
-	double	polar[3], move[3];
-	int	i;
-	
-	for (i=1; i<N; i++) {
-		polar[0] = gaussran(xstep[nrep], 0);
-		polar[1] = acos(2.0*gsl_rng_uniform(rng) - 1.0);
-		polar[2] = 2.0*M_PI*gsl_rng_uniform(rng);
-		pol2cart(polar, move);
-		ADDV(rnew[i+nrep*N], r[i+nrep*N], move);
-	}
 }
 
 
@@ -288,7 +182,7 @@ static void swap_streams()
 	i = gsl_rng_uniform_int(rng, nstreams-1);
 	j = i+1;
 	
-	p = exp((refbeta[i] - refbeta[j]) * (U0[i] - U0[j]));
+	p = exp((beta[i] - beta[j]) * (U0[i] - U0[j]));
 	if (p > gsl_rng_uniform(rng)) {
 		swap_ptrs(r[i*N], r[j*N], 3*N);
 		swap_ptrs(U0+i, U0+j, 1);
@@ -312,14 +206,16 @@ static void accept_move(int nrep, int m, double	Unew)
 
 void mc_one_by_one(int burnin_len, int nrep)
 {
-	double Unew, p,rsq, Ulmin;
+	const double	beta0=0.0;
+	double Unew, p, Ulmin;
 	const int acceptance_trials = 1000;
 	int	i, j, joff, k;
 	
 	memcpy(rnew[nrep*N], r[nrep*N], 3*N*sizeof(double));
-	U0[nrep] = sgUtot_cache(nrep);
+	vgw0_(rnew[0], U0+nrep, beta+nrep, &beta0, y);
 	Ulmin = 1e6;
 	for (i = 1; i <= burnin_len; i++) {
+		ntrials[nrep]++;
 		j = 1 + gsl_rng_uniform_int(rng, N-1);
 		joff = j+N*nrep;
 		mc_move_atom(joff, xsteps[nrep]);
@@ -333,8 +229,8 @@ void mc_one_by_one(int burnin_len, int nrep)
 			} 
 		}
 		
-		Unew = sgUtot_single_jump(nrep, j);
-		p = exp(-(Unew - U0[nrep]) * refbeta[nrep]);
+		vgw0_(rnew[0], &Unew, beta+nrep, &beta0, y);
+		p = exp(-(Unew - U0[nrep]) * beta[nrep]);
 		
 		if (p > gsl_rng_uniform(rng)) {
 			accept_move(nrep, j, Unew);
@@ -344,10 +240,11 @@ void mc_one_by_one(int burnin_len, int nrep)
 			Umin[nrep] = U0[nrep];
 			memcpy(rmin[nrep*N], r[nrep*N], 3*N*sizeof(double));
 		}
-		if ((i % acceptance_trials) == 0) {
-			if (naccepted[nrep] < 0.5 * (double) acceptance_trials) {
+		if ((ntrials[nrep] % acceptance_trials) == 0) {
+			if (naccepted[nrep] < 0.3 * (double) acceptance_trials) {
 				xsteps[nrep] = xsteps[nrep] / 1.10779652734191;
-			} else {
+			} else 
+			if (naccepted[nrep] > 0.4 * (double) acceptance_trials) {
 				xsteps[nrep] = xsteps[nrep] * 1.12799165273419;
 			}
 			
@@ -359,10 +256,9 @@ void mc_one_by_one(int burnin_len, int nrep)
 
 static void init_unit_cell()
 {
-	double	ulen, x, y, z;
+	double	x, y, z;
 	int	i, j, k, idx;
 
-	ulen = bl/nline;
 	for (i=0; i<nline; i++) {
 		x = (0.5 + (double)i)*ulen - 0.5*bl;
 		for (j=0; j<nline; j++) {
@@ -429,21 +325,14 @@ static void read_options(const char fname[])
 		} else if (strcmp(valname, "SG") == 0) {
 			memcpy(gexp_c, sg_c, sg_n*sizeof(double));
 			memcpy(gexp_a, sg_a, sg_n*sizeof(double));
-			gexp_n = lj_n;
+			gexp_n = sg_n;
 			Rc = 4.0*sg.rc;
 			required++;
 		} else if (strcmp(valname, "mass") == 0) {
-			imass = atof(valstring);
-			mass = imass/48.5086;
+			mass = atof(valstring)/48.5086;;
 			required++;
 		} else if (strcmp(valname, "NMC") == 0) {
 			NMC = atoi(valstring);
-			required++;
-		} else if (strcmp(valname, "refTmax") == 0) {
-			refTmax = atof(valstring);
-			required++;
-		} else if (strcmp(valname, "refTmin") == 0) {
-			refTmin = atof(valstring);
 			required++;
 		} else if (strcmp(valname, "nstreams") == 0) {
 			nstreams = atoi(valstring);
@@ -454,16 +343,9 @@ static void read_options(const char fname[])
 		} else if (strcmp(valname, "Tmin") == 0) {
 			Tmin = atof(valstring);
 			required++;
-		} else if (strcmp(valname, "nT") == 0) {
-			nT = atoi(valstring);
-			required++;
-		} else if (strcmp(valname, "bl") == 0) {
-			bl = atof(valstring);
-			bl2 = 0.5*bl;
-			required++;
-		} else if (strcmp(valname, "Omega") == 0) {
-			Omega = atof(valstring);
-			OmegaSq = Omega*Omega;
+		} else if (strcmp(valname, "rho") == 0) {
+			rho = atof(valstring);
+			ulen = cbrt(1.0/rho);
 			required++;
 		} else if (strcmp(valname, "input") == 0) {
 			inputf = strdup(valstring);
@@ -508,17 +390,17 @@ static void init_mem()
 	invmeff = (double *)calloc(9*N, sizeof(double));
 	sqrtmeff = (double *)calloc(9*N, sizeof(double));
 
-	refkT = (double *)calloc(nstreams, sizeof(double));
-	refbeta = (double *)calloc(nstreams, sizeof(double));
-	kT = (double *)calloc(nT, sizeof(double));
-	beta = (double *)calloc((nT+1), sizeof(double));
-	Z = (double *)calloc((nT+1), sizeof(double));
-	Ztotal = (double *)calloc((nT+1), sizeof(double));
+	kT = (double *)calloc(nstreams, sizeof(double));
+	beta = (double *)calloc(nstreams, sizeof(double));
+	Z = (double *)calloc(nstreams, sizeof(double));
+	Ztotal = (double *)calloc(nstreams, sizeof(double));
 	Umin = (double *)calloc(nstreams, sizeof(double));
+	globalUmin = (double *)malloc(nstreams*sizeof(double));
 	U0 = (double *)calloc(nstreams, sizeof(double));
 	xstep = (double *)calloc(nstreams, sizeof(double));
 	xsteps = (double *)calloc(nstreams, sizeof(double));
 	naccepted = (int *)calloc(nstreams, sizeof(int));
+	ntrials = (int *)calloc(nstreams, sizeof(int));
 	Ucache = (double *)malloc(N*N*sizeof(double));
 	Ucacheline = (double *)malloc(N*sizeof(double));
 }
@@ -536,13 +418,13 @@ int main (int argc,  char * argv[])
 	MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
 	MPI_Comm_size(MPI_COMM_WORLD, &ncpu);
 	
-	dUrel = 1e-6;
 	read_options(argv[1]);
 	init_mem();
+
+	bl = nline * ulen;
+	bl2 = 0.5*bl;
 	
 
-	//dUrel = 0.5*dUrel/(double)(N*N);
-	
 	gettimeofday(&tv, NULL);
         rng = gsl_rng_alloc(gsl_rng_mt19937);
         gsl_rng_set(rng, tv.tv_usec+myrank);
@@ -555,26 +437,15 @@ int main (int argc,  char * argv[])
 	}
 
 	for (i=0; i<nstreams; i++) {
-		xsteps[i] = xstep[i] = bl/(double)(8*nline);
-		refkT[i] = refTmin*pow(refTmax/refTmin, (double)i/(double)(nstreams-1));
-		refbeta[i] = 1.0/refkT[i];
+		xsteps[i] = xstep[i] = 0.125*ulen;
+		kT[i] = Tmin*pow(Tmax/Tmin, (double)i/(double)(nstreams-1));
+		beta[i] = 1.0/kT[i];
 		Umin[i] = 1e100;
 	}
 	for (i=1; i<nstreams; i++) {
 		memcpy(r[N*i], r[0], 3*N*sizeof(double));
 	}
-	/*
-	for (i=0; i<nT; i++) {
-		beta[nT-i-1] = 1.0/Tmax + (double)i/(double)(nT-1)*(1.0/Tmin-1.0/Tmax);
-		kT[nT-i-1] = 1.0/beta[nT-i-1];
-	}
-	 */
-	for (i=0; i<nT; i++) {
-		kT[i] = Tmin + (double)i/(double)(nT-1)*(Tmax-Tmin);
-		beta[i] = 1.0/kT[i];
-	}
-	beta[nT] = 0.0;
-	
+
 	atoler = 1e-4;
 	taumin=1e-2;
 	vgwinit_(&N, &mass, &gexp_n, gexp_c, gexp_a, &bl, &Rc, &taumin, &atoler);
@@ -586,27 +457,21 @@ int main (int argc,  char * argv[])
 		
 	sprintf(fname, "Z%02d.dat", myrank);
 			
-	for (n=0; n<NMC; n += 100) {
+	for (n=0; n<NMC; n += 1) {
 
 		for (i=0; i<nstreams; i++) {
 			mc_one_by_one(1000, i);
+			Z[i] += exp(-beta[i]*U0[i]);
 		}
-		
-		for (i=nT-1; i>=0; i--) {
-			double	Ueff;
-			vgw0_(&N, r[0], &Ueff, beta+i, beta+(i+1), y);
-			Z[i] += exp(-beta[i]*Ueff + refbeta[0]*U0[0]);
-		}
+		dump_acceptance_rates();
 		swap_streams();
 				
-		if(n%10000==0) {
+		if(n%1000==0) {
 			MPI_Allreduce(Z, Ztotal, nT, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+			dump_Umin(myrank, ncpu*n);
 		}
 
-		if(n%10000==0 && myrank==0) {
-			dump_Umin(ncpu*n);
-			
-
+		if(n%1000==0 && myrank==0) {
 			Zout = fopen("Z.dat", "w");
 			/*
 			rewind(Zout);
@@ -622,10 +487,8 @@ int main (int argc,  char * argv[])
 			fclose(Zout);
 		}
 	}
-	if (myrank==0) {
-		dump_Umin(n);
-		fclose(eout);
-	}
+
+	dump_Umin(myrank, ncpu*n);
 
 	MPI_Finalize();
 	return 0;
