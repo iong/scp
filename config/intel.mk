@@ -1,5 +1,5 @@
 
-OPTFLAGS=-O3 -mdynamic-no-pic -no-prec-div
+OPTFLAGS=-fast
 DBGFLAGS=-O0 -g
 FDBG:=-traceback
 FFLAGS:=-r8 -heap-arrays

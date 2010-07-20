@@ -1,15 +1,15 @@
-#DBG=1
+DBG=1
 VPATH=$(dir $(shell readlink $(shell pwd)/$(firstword $(MAKEFILE_LIST))))
 
 CC=mpicc
 FC=mpif90
-CPPFLAGS=$(shell pkg-config --cflags gsl)
+CPPFLAGS=$(shell pkg-config --cflags gsl) -std=c99
 LDFLAGS=$(shell pkg-config --libs-only-L gsl)
 LIBS=-lgsl
 
 OS=$(shell uname -s)
-include config/gcc.mk
-#include config/intel.mk
+#include config/gcc.mk
+include config/intel.mk
 
 ifdef DBG
 	CFLAGS:=$(CFLAGS) $(CPPFLAGS) $(DBGFLAGS)
