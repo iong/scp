@@ -576,8 +576,8 @@ int main (int argc,  char * argv[])
 	beta[nT] = 0.0;
 	
 	atoler = 1e-4;
-	taumin=1e-4;
-	vgwinit_(&imass, &gexp_n, gexp_c, gexp_a, &bl, &Rc, &taumin, &atoler);
+	taumin=1e-2;
+	vgwinit_(&N, &mass, &gexp_n, gexp_c, gexp_a, &bl, &Rc, &taumin, &atoler);
 	
 	if (myrank==0) {
 		eout = fopen("eout.dat", "w");

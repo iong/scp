@@ -1,26 +1,24 @@
-SUBROUTINE vgw0(N_ATOM_,QCNFG, W, TAUMAX,TAUI,Y)
+SUBROUTINE vgw0(QCNFG, W, TAUMAX,TAUI,Y)
         use vgw
         IMPLICIT NONE
         integer, parameter :: LIW=20,MF=10
-        INTEGER N_atom_,NEQ,LRW,N_STEP,ITASK,ISTATE,IOPT,ITOL,I,J,l, &
+        INTEGER NEQ,LRW,N_STEP,ITASK,ISTATE,IOPT,ITOL,I,J,l, &
                 K,CNT,UF,IWORK(LIW)
-        REAL*8 QCNFG(3,N_atom_),ENRG,FX(3,N_atom_),QFINAL(3,N_atom_), &
-                W,LNZ(2),TAU(2),LOGZ,T,C0,UX(3,N_atom_), &
+        REAL*8 QCNFG(3,N_atom),ENRG,FX(3,N_atom),QFINAL(3,N_atom), &
+                W,LNZ(2),TAU(2),LOGZ,T,C0,UX(3,N_atom), &
                 TOUT,ULJ,LNP,LJS,LJE,BL2, &
                 TAUMAX,TSTEP,TAUI
-        REAL*8 Y(1+9*N_atom_), RWORK(36+336*N_atom_)
+        REAL*8 Y(1+9*N_atom), RWORK(36+336*N_atom)
         integer :: IERR
         real*8, parameter :: RTOL=0.0D0
         EXTERNAL RHSS0
         EXTERNAL JAC
 
-        N_atom = N_atom_
         NEQ=1+9*N_atom
         LRW=36+336*N_atom
         TSTEP=0.1D0
         BL2=BL/2
 
-        
         
         call interaction_lists(QCNFG,N_atom,RC,BL, QRC) !Determine which particles
         call DLSODEINIT(IWORK,RWORK,ITASK,IOPT,ISTATE,ITOL,LIW,LRW)
