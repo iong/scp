@@ -1,23 +1,24 @@
-DBG=1
 VPATH=$(dir $(shell readlink $(shell pwd)/$(firstword $(MAKEFILE_LIST))))
 
-CC=mpicc
-FC=mpif90
-CPPFLAGS=$(shell pkg-config --cflags gsl) -std=c99
-LDFLAGS=$(shell pkg-config --libs-only-L gsl)
-LIBS=-lgsl
+DBG=1
+COMPILER:=intel
+
+CC:=mpicc
+FC:=mpif90
+CPPFLAGS:=$(shell pkg-config --cflags gsl) -std=c99
+LDFLAGS:=$(shell pkg-config --libs-only-L gsl)
+LIBS:=-lgsl
 
 OS=$(shell uname -s)
-#include config/gcc.mk
-include config/intel.mk
+include config/$(COMPILER).mk
 
 ifdef DBG
-	CFLAGS:=$(CFLAGS) $(CPPFLAGS) $(DBGFLAGS)
-	FFLAGS:=$(FFLAGS) $(CPPFLAGS) $(DBGFLAGS) $(FDBG)
+	CFLAGS:=$(CFLAGS) $(DBGFLAGS)
+	FFLAGS:=$(FFLAGS) $(DBGFLAGS) $(FDBG)
 	LDFLAGS:=$(LDFLAGS) $(DBGFLAGS) $(FDBG)
 else
-	CFLAGS:=$(CFLAGS) $(CPPFLAGS) $(OPTFLAGS)
-	FFLAGS:=$(FFLAGS) $(CPPFLAGS) $(OPTFLAGS)
+	CFLAGS:=$(CFLAGS) $(OPTFLAGS)
+	FFLAGS:=$(FFLAGS) $(OPTFLAGS)
 	LDFLAGS:=$(LDFLAGS) $(OPTFLAGS)
 endif
 

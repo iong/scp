@@ -37,8 +37,8 @@ double	t;
 int	minidx, Uminiter;
 double	Uminall;
 
-double	rho, ulen, bl, bl2, Rc;
-static double *xstep, *xsteps;
+double	rho, unit_length, bl, bl2, Rc;
+static double *rmove;
 FILE	*eout;
 char *inputf=NULL, *outputf;
 
@@ -223,7 +223,7 @@ void mc_one_by_one(int burnin_len, int nrep)
 		ntrials[nrep]++;
 		j = 1 + gsl_rng_uniform_int(rng, N-1);
 		joff = j+N*nrep;
-		mc_move_atom(joff, xsteps[nrep]);
+		mc_move_atom(joff, rmove[nrep]);
 		
 		/* wrap around the box */
 		for (k=0; k<3; k++) {
@@ -247,10 +247,10 @@ void mc_one_by_one(int burnin_len, int nrep)
 		}
 		if ((ntrials[nrep] % acceptance_trials) == 0) {
 			if (naccepted[nrep] < 0.3 * (double) acceptance_trials) {
-				xsteps[nrep] = xsteps[nrep] / 1.10779652734191;
+				rmove[nrep] = rmove[nrep] / 1.10779652734191;
 			} else 
 			if (naccepted[nrep] > 0.4 * (double) acceptance_trials) {
-				xsteps[nrep] = xsteps[nrep] * 1.12799165273419;
+				rmove[nrep] = rmove[nrep] * 1.12799165273419;
 			}
 			
 			naccepted[nrep] = 0;
@@ -265,11 +265,11 @@ static void init_unit_cell()
 	int	i, j, k, idx;
 
 	for (i=0; i<nline; i++) {
-		x = (0.5 + (double)i)*ulen - 0.5*bl;
+		x = (0.5 + (double)i)*unit_length - 0.5*bl;
 		for (j=0; j<nline; j++) {
-			y = (0.5 + (double)j)*ulen - 0.5*bl;
+			y = (0.5 + (double)j)*unit_length - 0.5*bl;
 			for (k=0; k<nline; k++) {
-				z = (0.5 + (double)k)*ulen - 0.5*bl;
+				z = (0.5 + (double)k)*unit_length - 0.5*bl;
 				idx = nline*(j + i*nline) + k;
 				r[idx][0]=x;
 				r[idx][1]=y;
@@ -350,7 +350,7 @@ static void read_options(const char fname[])
 			required++;
 		} else if (strcmp(valname, "rho") == 0) {
 			rho = atof(valstring);
-			ulen = cbrt(1.0/rho);
+			unit_length = cbrt(1.0/rho);
 			required++;
 		} else if (strcmp(valname, "input") == 0) {
 			inputf = strdup(valstring);
@@ -402,8 +402,7 @@ static void init_mem()
 	Umin = (double *)calloc(nstreams, sizeof(double));
 	globalUmin = (double *)malloc(nstreams*sizeof(double));
 	U0 = (double *)calloc(nstreams, sizeof(double));
-	xstep = (double *)calloc(nstreams, sizeof(double));
-	xsteps = (double *)calloc(nstreams, sizeof(double));
+	rmove = (double *)calloc(nstreams, sizeof(double));
 	naccepted = (int *)calloc(nstreams, sizeof(int));
 	ntrials = (int *)calloc(nstreams, sizeof(int));
 	Ucache = (double *)malloc(N*N*sizeof(double));
@@ -426,7 +425,7 @@ int main (int argc,  char * argv[])
 	read_options(argv[1]);
 	init_mem();
 
-	bl = nline * ulen;
+	bl = nline * unit_length;
 	bl2 = 0.5*bl;
 	
 
@@ -442,7 +441,7 @@ int main (int argc,  char * argv[])
 	}
 
 	for (i=0; i<nstreams; i++) {
-		xsteps[i] = xstep[i] = 0.125*ulen;
+		rmove[i] =  0.125*unit_length;
 		/*kT[i] = Tmin*pow(Tmax/Tmin, (double)i/(double)(nstreams-1));*/
 		kT[i] = Tmin + (Tmax-Tmin)*(double)i/(double)(nstreams-1);
 		beta[i] = 1.0/kT[i];

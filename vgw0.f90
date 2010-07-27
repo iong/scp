@@ -20,22 +20,13 @@ SUBROUTINE vgw0(QCNFG, W, TAUMAX,TAUI,Y)
         BL2=BL/2
 
         
-        call interaction_lists(QCNFG,N_atom,RC,BL, QRC) !Determine which particles
         call DLSODEINIT(IWORK,RWORK,ITASK,IOPT,ISTATE,ITOL,LIW,LRW)
       
 
-        T = TAUI
         if (T <= 0.0) then
                 T = TAUMIN
-        end if
-
-        if (T <= TAUMIN) then
+                call interaction_lists(QCNFG,N_atom,RC,BL, QRC) !Determine which particles
                 call requal(3*N_atom,QCNFG,Y(2)) !Copy particle positions to Y
-
-                !      DO I=1,3*N_atom
-                !         Y(I+1)=Y(I+1)-BL*DNINT(Y(I+1)/BL) ! Periodic boundary conditions: wrap around box  ???????????????
-                !      ENDDO
-
 
                 C0=T*MASS
 
@@ -55,7 +46,7 @@ SUBROUTINE vgw0(QCNFG, W, TAUMAX,TAUI,Y)
                 CALL potential_energy(QCNFG,N_atom,ULJ)
                 Y(1)=-T*ULJ
         else
-                T = 0.5*T
+                T = 0.5*TAUI
         endif
         TOUT=TAUMAX/2.0D0
 
@@ -79,4 +70,4 @@ SUBROUTINE vgw0(QCNFG, W, TAUMAX,TAUI,Y)
         return
 END
 
-
+! vim:et
