@@ -20,6 +20,7 @@
 
 #include "vectmath.h"
 
+FILE	*aout;
 
 struct silvera_goldman {
 	double alpha, beta, gamma, C6, C8, C9, C10, rc, rc2;
@@ -91,14 +92,11 @@ static void dump_acceptance_rates()
 {
 	double	p;
 	int	i;
-	FILE	*aout;
 
-	aout = fopen("acceptance_rates.dat", "w");
 	for (i=0; i<(nstreams-1); i++) {
 		p = exp((beta[i] - beta[i+1]) * (U0[i] - U0[i+1]));
 		fprintf(aout, "%d %lg\n", i, p);
 	}
-	fclose(aout);
 }
 
 
@@ -177,12 +175,19 @@ static void swap_ptrs(double *p1, double *p2, int len)
 
 static void swap_streams()
 {
-	double	p;
+	double	beta0 = 0.0;
+	double	p, U_betai_ri, U_betai_rj, U_betaj_ri, U_betaj_rj;
 	int	i, j;
 	i = gsl_rng_uniform_int(rng, nstreams-1);
 	j = i+1;
 	
-	p = exp((beta[i] - beta[j]) * (U0[i] - U0[j]));
+	U_betai_ri = U0[i];
+	U_betaj_rj = U0[j];
+	vgw0_(r[i], &U_betaj_ri, beta+j, &beta0, y);
+	vgw0_(r[j], &U_betai_rj, beta+i, &beta0, y);
+
+	p = exp( -beta[i]*(U_betai_rj-U_betai_ri) - beta[j]*(U_betaj_ri - U_betaj_rj));
+	fprintf(aout, "%d -> %d %lg\n", i, j, p);
 	if (p > gsl_rng_uniform(rng)) {
 		swap_ptrs(r[i*N], r[j*N], 3*N);
 		swap_ptrs(U0+i, U0+j, 1);
@@ -438,7 +443,8 @@ int main (int argc,  char * argv[])
 
 	for (i=0; i<nstreams; i++) {
 		xsteps[i] = xstep[i] = 0.125*ulen;
-		kT[i] = Tmin*pow(Tmax/Tmin, (double)i/(double)(nstreams-1));
+		/*kT[i] = Tmin*pow(Tmax/Tmin, (double)i/(double)(nstreams-1));*/
+		kT[i] = Tmin + (Tmax-Tmin)*(double)i/(double)(nstreams-1);
 		beta[i] = 1.0/kT[i];
 		Umin[i] = 1e100;
 	}
@@ -454,16 +460,16 @@ int main (int argc,  char * argv[])
 		eout = fopen("eout.dat", "w");
 		dumpxyz("startcfg.xyz", r, "X trial");
 	}
+	aout = fopen("acceptance_rates.dat", "w");
 		
 	sprintf(fname, "Z%02d.dat", myrank);
 			
-	for (n=0; n<NMC; n += 1) {
+	for (n=0; n<NMC; n += 100) {
 
 		for (i=0; i<nstreams; i++) {
-			mc_one_by_one(1000, i);
+			mc_one_by_one(100, i);
 			Z[i] += exp(-beta[i]*U0[i]);
 		}
-		dump_acceptance_rates();
 		swap_streams();
 				
 		if(n%1000==0) {
@@ -491,5 +497,6 @@ int main (int argc,  char * argv[])
 	dump_Umin(myrank, ncpu*n);
 
 	MPI_Finalize();
+	fclose(aout);
 	return 0;
 }
