@@ -6,8 +6,9 @@ SUBROUTINE vgw0(Q0, W, TAUMAX,TAUI, Q, G, gamma0)
         REAL*8, intent(in) :: Q0(3,N_atom), TAUMAX, TAUI
         REAL*8, intent(inout) :: Q(3,N_atom), G(3,3,N_atom), gamma0
         REAL*8, intent(out) :: W
-        real*8 :: G0(3,3), M(3,3), T, ULJ, LOGDET, DETI, TSTEP=0.002
-        integer :: I
+        real*8 :: G0(3,3), M(3,3), T, ULJ, LOGDET, DETI, TSTEP=2e-3
+        real*8 :: tnow
+        integer :: I, nsteps
       
 
         if (TAUI <= 0.0) then
@@ -28,8 +29,13 @@ SUBROUTINE vgw0(Q0, W, TAUMAX,TAUI, Q, G, gamma0)
                 T = 0.5*TAUI
         endif
 
-        call verlet(RHSS0, Q, G, gamma0, T, TAUMAX/2.00, TSTEP)
+        TSTEP=0.0005
+        call euler(RHSS0, Q, G, gamma0, TSTEP, T, 0.2,1e-4,1e-2)
+        TSTEP=0.005
+        T=0.2
+        call rk45(RHSS0, Q, G, gamma0, TSTEP, T, TAUMAX/2.0,1e-4,1e-2)
 
+        LOGDET=0.0
         DO I=1,N_atom
                 CALL INVDET(G(:,:,I) , M, DETI)
                 LOGDET = LOGDET + LOG(DETI)
