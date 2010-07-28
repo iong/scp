@@ -102,7 +102,7 @@ subroutine euler(F, Q, G, gamma0, dt, tstart, tstop,atol, rtol)
     t = tstart
     do while (t<tstop)
         call eulerstep(F, Q, G, gamma0, Q1, G1, gamma01, dt, atol, rtol, rmserr)
-        write (*,*) t, dt, rmserr
+        !write (*,*) t, dt, rmserr
         if (rmserr <= 1.0) then
             if (t + dt > tstop) then
                 exit
@@ -173,7 +173,7 @@ subroutine eulerstep(F, Q, G, gamma0, Q1, G1, gamma01, dt, atol, rtol, rmserr)
             rmserr = rmserr + Qe(j, i)**2
         enddo
     enddo
-    rmserr = rmserr + gamma0e*gamma0e
+    rmserr = rmserr! + gamma0e*gamma0e
     rmserr = sqrt(rmserr/(12*N_atom + 1))
     return
    end subroutine
@@ -197,7 +197,7 @@ subroutine rk45(F, Q, G, gamma0, dt, tstart, tstop,atol, rtol)
     t = tstart
     do while (t<tstop)
         call rk45step(F, Q, G, gamma0, Q1, G1, gamma01, dt, atol, rtol, rmserr)
-        write (*,*) t, dt, rmserr
+        !write (*,*) t, dt, rmserr
         if (rmserr <= 1.0) then
             if (t + dt > tstop) then
                 exit
@@ -207,10 +207,10 @@ subroutine rk45(F, Q, G, gamma0, dt, tstart, tstop,atol, rtol)
             G=G1
             gamma0 = gamma01
             if (rmserr <=0.1) then
-             !   dt = dt * 1.12799165273419
+                dt = dt * 1.12799165273419
             endif
         else
-            !dt = dt/1.90779652734191
+            dt = dt/1.90779652734191
         endif
     enddo
     call rk45step(F, Q, G, gamma0, Q1, G1, gamma01, tstop-t, atol, rtol, rmserr)
@@ -295,7 +295,7 @@ subroutine rk45step(F, Q, G, gamma0, Q1, G1, gamma01, dt, atol, rtol, rmserr)
             rmserr = rmserr + Qe(j, i)**2
         enddo
     enddo
-    rmserr = rmserr + gamma0e*gamma0e
+    rmserr = rmserr! + gamma0e*gamma0e
     rmserr = sqrt(rmserr/(12*N_atom + 1))
     return
    end subroutine rk45step
