@@ -3,8 +3,8 @@ VPATH=$(dir $(shell readlink $(shell pwd)/$(firstword $(MAKEFILE_LIST))))
 DBG=1
 COMPILER:=intel
 
-CC:=mpicc
-FC:=mpif90
+CC:=icc
+FC:=ifort
 CPPFLAGS:=$(shell pkg-config --cflags gsl) -std=c99
 LDFLAGS:=$(shell pkg-config --libs-only-L gsl)
 LIBS:=-lgsl
@@ -34,7 +34,7 @@ all: ljmc
 %.o : %.f
 	$(FC) $(FFLAGS) -c $^
 
-ljmc: main.o dlsode.o vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03.o vgw.o interaction_lists.o potential_energy.o rhss0.o vgw0.o
+ljmc: ljmc.o dlsode.o vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03.o vgw.o propagation.o  rhss.o interaction_lists.o potential_energy.o rhss0.o vgw0.o
 	$(FC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 clean:

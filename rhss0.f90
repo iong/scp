@@ -1,35 +1,19 @@
-SUBROUTINE RHSS0(NEQ,T,Y,YPRIME)
+SUBROUTINE RHSS0(Q, BLKC, gamma0, Qdot, Gdot, gamma0dot)
       use vgw
       IMPLICIT NONE
-      INTEGER I,J,K,I1,I2,IG,NEQ,CNT,CNT2
-      REAL*8 T,AG(3,3),GU(3,3),Y(NEQ+3*(NEQ-1)/9),YPRIME(NEQ), &
+      REAL*8, intent(in) :: Q(3,N_atom), BLKC(3,3,N_atom), gamma0
+      REAL*8, intent(out) :: Qdot(3,N_atom), Gdot(3,3,N_atom), gamma0dot
+      INTEGER I,J,K,I1,I2,IG,CNT,CNT2
+      REAL*8 T,AG(3,3),GU(3,3),&
            DETA,DETAG,GUG,QP,TRUXXGI,FACTOR,U,UX,UXX,QZQ,EXPAV, &
            TRMG,DETS,DETI,LJS,LJE,GUQ, &
            BL2,M(3,3),A(3,3), &
            R(3), Z(3,3),Q12(3)
-      REAL*8 Q(3,(NEQ-1)/9),UPV(3,(NEQ-1)/9),BLKC(3,3,(NEQ-1)/9), &
-           UPM(3,3,(NEQ-1)/9)
+      REAL*8 UPV(3,N_atom), UPM(3,3,N_atom)
 
-!     equivalence (Y(1),gamma), (Y(2),Q(1,1))
-
-!      write (*,*) T
-      if(N_atom.ne.(NEQ-1)/9) stop 'RHSS0: Oops!'
       BL2=BL/2
 
-      call requal(3*N_atom,Y(2),Q)
       TRMG=0.0D0
-
-      CNT=3*N_atom+2
-
-      DO I=1,N_atom
-        DO J=1,3
-          DO K=J,3
-            BLKC(J,K,I)=Y(CNT)
-            BLKC(K,J,I)=Y(CNT)
-            CNT=CNT+1
-          ENDDO
-        ENDDO
-      ENDDO
 
       DO I=1,N_atom
         call requal(9,BLKC(1,1,I),A)
@@ -133,10 +117,6 @@ SUBROUTINE RHSS0(NEQ,T,Y,YPRIME)
         ENDDO
       ENDDO
 
-       CNT=1
-       YPRIME(CNT)=-0.25D0*TRUXXGI-U
-       CNT=CNT+1
-       CNT2=2+9*N_atom
 
        DO I1=1,N_atom
          DO I=1,3
@@ -144,8 +124,7 @@ SUBROUTINE RHSS0(NEQ,T,Y,YPRIME)
            DO J=1,3
              QP = QP-BLKC(I,J,I1)*UPV(J,I1)
            ENDDO
-           YPRIME(CNT)=QP
-           CNT=CNT+1
+           Qdot(I, I1) = Qp
          ENDDO
        ENDDO
 
@@ -168,11 +147,12 @@ SUBROUTINE RHSS0(NEQ,T,Y,YPRIME)
             IF(I == J) THEN
               GUG=GUG+MASS
             ENDIF
-            YPRIME(CNT)=GUG
-            CNT=CNT+1
+            Gdot(I, J, I1) = GUG
+            Gdot(J, I, I1) = GUG
           ENDDO
         ENDDO
       ENDDO
 
+       gamma0dot=-0.25D0*TRUXXGI-U
       return
 END
