@@ -160,9 +160,9 @@ subroutine eulerstep(F, Q, G, gamma0, Q1, G1, gamma01, dt, atol, rtol, rmserr)
     Ge = 0.5*dt*(GP(:,:,:,1) - GP(:,:,:,2))
     gamma0e = 0.5*dt*(gamma0P(1) - gamma0P(2))
 
-    Qe = Qe / (rtol*Q + atol)
-    Ge = Ge / (rtol*G + atol)
-    gamma0e = gamma0e / (rtol*gamma0 + atol)
+    Qe = Qe / (abs(rtol*Q) + atol)
+    Ge = Ge / (abs(rtol*G) + atol)
+    gamma0e = gamma0e / (abs(rtol*gamma0) + atol)
     
     rmserr = 0.0
     do i=1,N_atom
@@ -282,9 +282,9 @@ subroutine rk45step(F, Q, G, gamma0, Q1, G1, gamma01, dt, atol, rtol, rmserr)
         gamma0e = gamma0e + dt*be(j)*gamma0p(j)
     enddo
 
-    Qe = Qe / (rtol*Q + atol)
-    Ge = Ge / (rtol*G + atol)
-    gamma0e = gamma0e / (rtol*gamma0 + atol)
+    Qe = Qe / (abs(rtol*Q) + atol)
+    Ge = Ge / (abs(rtol*G) + atol)
+    gamma0e = gamma0e / (abs(rtol*gamma0) + atol)
     
     rmserr = 0.0
     do i=1,N_atom

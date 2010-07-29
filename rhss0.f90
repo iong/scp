@@ -16,8 +16,7 @@ SUBROUTINE RHSS0(Q, BLKC, gamma0, Qdot, Gdot, gamma0dot)
       TRMG=0.0D0
 
       DO I=1,N_atom
-        call requal(9,BLKC(1,1,I),A)
-        CALL INVDET(A,M,DETS)
+        CALL INVDET(BLKC(:,:,I),M,DETS)
         DETS=1.0D0/DETS
 
         DO J=1,3
