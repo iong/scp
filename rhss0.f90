@@ -1,8 +1,9 @@
-SUBROUTINE RHSS0(Q, BLKC, gamma0, Qdot, Gdot, gamma0dot)
+SUBROUTINE RHSS0(y, yprime)
       use vgw
       IMPLICIT NONE
-      REAL*8, intent(in) :: Q(3,N_atom), BLKC(3,3,N_atom), gamma0
-      REAL*8, intent(out) :: Qdot(3,N_atom), Gdot(3,3,N_atom), gamma0dot
+      REAL*8, intent(in) :: y(1+9*N_atom)
+      REAL*8, intent(out) :: yprime(1+9*N_atom)
+      REAL*8 :: Q(3,N_atom), BLKC(3,3,N_atom)
       INTEGER I,J,K,I1,I2,IG,CNT,CNT2
       REAL*8 T,AG(3,3),GU(3,3),&
            DETA,DETAG,GUG,QP,TRUXXGI,FACTOR,U,UX,UXX,QZQ,EXPAV, &
@@ -10,6 +11,9 @@ SUBROUTINE RHSS0(Q, BLKC, gamma0, Qdot, Gdot, gamma0dot)
            BL2,M(3,3),A(3,3), &
            R(3), Z(3,3),Q12(3)
       REAL*8 UPV(3,N_atom), UPM(3,3,N_atom)
+
+    Q = reshape(y(2:1+3*N_atom), (/3, N_atom/) )
+    call unpackg(N_atom, y(2+3*N_atom:1+9*N_atom), BLKC)
 
       BL2=BL/2
 
@@ -115,7 +119,10 @@ SUBROUTINE RHSS0(Q, BLKC, gamma0, Qdot, Gdot, gamma0dot)
           ENDDO
         ENDDO
       ENDDO
-
+    
+       YPRIME(1)=-0.25D0*TRUXXGI-U
+       CNT=2
+       CNT2=2+9*N_atom
 
        DO I1=1,N_atom
          DO I=1,3
@@ -123,10 +130,11 @@ SUBROUTINE RHSS0(Q, BLKC, gamma0, Qdot, Gdot, gamma0dot)
            DO J=1,3
              QP = QP-BLKC(I,J,I1)*UPV(J,I1)
            ENDDO
-           Qdot(I, I1) = Qp
+           YPRIME(CNT)=QP
+           CNT=CNT+1
          ENDDO
        ENDDO
-
+      
        DO I1=1,N_atom
          DO I=1,3
            DO J=1,3
@@ -136,7 +144,7 @@ SUBROUTINE RHSS0(Q, BLKC, gamma0, Qdot, Gdot, gamma0dot)
              ENDDO
            ENDDO
         ENDDO
-
+         
         DO I=1,3
           DO J=I,3
             GUG=0.0D0
@@ -146,12 +154,12 @@ SUBROUTINE RHSS0(Q, BLKC, gamma0, Qdot, Gdot, gamma0dot)
             IF(I == J) THEN
               GUG=GUG+MASS
             ENDIF
-            Gdot(I, J, I1) = GUG
-            Gdot(J, I, I1) = GUG
+            YPRIME(CNT)=GUG
+            CNT=CNT+1
           ENDDO
         ENDDO
-      ENDDO
+    ENDDO
 
-       gamma0dot=-0.25D0*TRUXXGI-U
+
       return
 END

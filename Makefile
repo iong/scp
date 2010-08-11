@@ -34,7 +34,7 @@ all: ljmc
 %.o : %.f
 	$(FC) $(FFLAGS) -c $^
 
-ljmc: ljmc.o dlsode.o vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03.o vgw.o propagation.o  rhss.o interaction_lists.o potential_energy.o rhss0.o vgw0.o
+ljmc: ljmc.o dlsode.o vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03.o vgw.o propagation.o  rhss.o interaction_lists.o potential_energy.o rhss0.o vgw0.o unpackg.o
 	$(FC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 clean:
