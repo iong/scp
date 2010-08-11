@@ -93,8 +93,7 @@ c      write (*,*) y(2+18*N_atom:4+18*N_atom)
       ENRG=-(LNZ(2)-LNZ(1))/(2*TSTEP)
       LNP=LOGZ
 c        write (*,*) LOGZ, TAUMAX
-      W=-(1/TAUMAX)*LNP-((1.5D0/TAUMAX)*
-     &        LOG(N_atom*2*3.1415926*TAUMAX/MASS))
+      W=-(1/TAUMAX)*LNP
     
       call requal(3*N_atom,Y(2+18*N_atom),FX)
       call rscale(3*N_atom,FX,1/TAU(2))
