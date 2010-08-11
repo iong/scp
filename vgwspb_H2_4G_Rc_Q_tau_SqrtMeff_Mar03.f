@@ -5,7 +5,7 @@
       integer LIW,MF,IERR
       real*8 RTOL,ATOL,ATOMICMASS,RC
       parameter(LIW=20,MF=10,ATOMICMASS=0.020614788876D0,
-     &     RTOL=0.0D0)
+     &     RTOL=1.0e-4)
       INTEGER N_atom,NEQ,LRW,N_STEP,ITASK,ISTATE,IOPT,ITOL,I,J,l,
      &     K,CNT,UF,IWORK(LIW)
       REAL*8 QCNFG(3,N_atom),ENRG,FX(3,N_atom),QFINAL(3,N_atom),

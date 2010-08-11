@@ -34,7 +34,7 @@ SUBROUTINE vgw0(Q0, W, TAUMAX,TAUI, Y)
                 T = 0.5*TAUI
         endif
 
-        call euler(RHSS0, Y, 1+9*N_atom, TSTEP, T, TAUMAX/2.0,1e-4,1e-3)
+        call euler(RHSS0, Y, 1+9*N_atom, TSTEP, T, TAUMAX/2.0,atol,1e-4)
 
         call unpackg(N_atom, y(2+3*N_atom:1+9*N_atom), G)
         LOGDET=0.0
