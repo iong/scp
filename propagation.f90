@@ -11,9 +11,9 @@ subroutine verlet(F, x, NEQ, dt, nsteps)
     external F
 
     do i = 1, nsteps
-            call F(x, xp)
+            call F(NEQ, dt, x, xp)
             x1 = x + 0.5*dt*xp
-            call F(x1, xp)
+            call F(NEQ, dt, x1, xp)
             x = x + dt*xp
     enddo
 end subroutine verlet
@@ -29,16 +29,16 @@ subroutine rk4(F, x, NEQ, dt, nsteps)
   
 
     do i = 1, nsteps
-            call F(x, xp(:,1))
+            call F(NEQ, dt, x, xp(:,1))
 
             x1 = x + 0.5*dt*xp(:,1)
-            call F(x1, xp(:,2))
+            call F(NEQ, dt, x1, xp(:,2))
 
             x1 = x + 0.5*dt*xp(:,2)
-            call F(x1, xp(:,3))
+            call F(NEQ, dt, x1, xp(:,3))
 
             x1 = x + dt*xp(:,3)
-            call F(x1, xp(:,4))
+            call F(NEQ, dt, x1, xp(:,4))
 
             x = x + (dt/6.0)*(xp(:,1) + 2.0*(xp(:,2) + xp(:,3)) + xp(:,4))
     enddo
@@ -89,9 +89,9 @@ subroutine eulerstep(F, x, x1, NEQ, dt, atol, rtol, rmserr)
     integer :: i, j, k
     external F
 
-    call F(x, xp(:,1))
+    call F(NEQ, dt, x, xp(:,1))
     x1 = x + dt*xp(:,1)
-    call F(x1, xp(:,2))
+    call F(NEQ, dt, x1, xp(:,2))
 
     x1 = x + 0.5*dt*(xp(:,1) + xp(:,2))
     xe = 0.5*dt*(xp(:,1) - xp(:,2))
@@ -159,13 +159,13 @@ subroutine rk45step(F, x, x1, NEQ, dt, atol, rtol, rmserr)
             (/ 6, 6 /) )
     external F
 
-    call F(x, xp(:,1))
+    call F(NEQ, dt, x, xp(:,1))
     do j=2,p
         x1 = x
         do k=1,j-1
                 x1 = x1 + a(k,j)*dt*xp(:,k)
         enddo
-        call F(x1, xp(:,j))
+        call F(NEQ, dt, x1, xp(:,j))
     enddo
 
     x1 = x

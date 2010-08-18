@@ -1,8 +1,9 @@
-SUBROUTINE RHSS0(y, yprime)
+SUBROUTINE RHSS0(NEQ, T, y, yprime)
       use vgw
       IMPLICIT NONE
-      REAL*8, intent(in) :: y(1+9*N_atom)
-      REAL*8, intent(out) :: yprime(1+9*N_atom)
+    integer, intent(in) :: NEQ
+      REAL*8, intent(in) :: T, y(NEQ)
+      REAL*8, intent(out) :: yprime(NEQ)
       REAL*8 :: Q(3,N_atom), BLKC(3,3,N_atom)
       INTEGER I,J,K,I1,I2,IG,CNT,CNT2
       REAL*8 T,AG(3,3),GU(3,3),&
@@ -11,6 +12,11 @@ SUBROUTINE RHSS0(y, yprime)
            BL2,M(3,3),A(3,3), &
            R(3), Z(3,3),Q12(3)
       REAL*8 UPV(3,N_atom), UPM(3,3,N_atom)
+
+    if (NEQ /= (1+9*N_atom) ) then
+        write (*,*) 'NEQ != 1+9*N_atom', NEQ, 1+9*N_atom
+	stop
+    endif
 
     Q = reshape(y(2:1+3*N_atom), (/3, N_atom/) )
     call unpackg(N_atom, y(2+3*N_atom:1+9*N_atom), BLKC)
