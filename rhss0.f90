@@ -6,7 +6,7 @@ SUBROUTINE RHSS0(NEQ, T, y, yprime)
       REAL*8, intent(out) :: yprime(NEQ)
       REAL*8 :: Q(3,N_atom), BLKC(3,3,N_atom)
       INTEGER I,J,K,I1,I2,IG,CNT,CNT2
-      REAL*8 T,AG(3,3),GU(3,3),&
+      REAL*8 AG(3,3),GU(3,3),&
            DETA,DETAG,GUG,QP,TRUXXGI,FACTOR,U,UX,UXX,QZQ,EXPAV, &
            TRMG,DETS,DETI,LJS,LJE,GUQ, &
            BL2,M(3,3),A(3,3), &

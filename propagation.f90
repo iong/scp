@@ -1,5 +1,42 @@
 module propagation
+    integer, parameter :: LIW=20, MF=10
+    integer :: ITASK,IOPT,ISTATE,LRW,ITOL,IWORK(LIW),IERR
+    real*8, allocatable :: RWORK(:)
+
+
 contains
+subroutine  init_mylsode(NEQ)
+    integer, intent(IN) :: NEQ
+    LRW = 10 + 16*NEQ
+    if (.not. allocated(RWORK)) then
+        allocate(RWORK(LRW))
+    endif
+    ITOL=1
+    ITASK=1
+    IOPT=1
+    ISTATE=1
+
+    IWORK(5:10)=(/4, 100000, 0, 0, 0, 0/)
+    !RWORK(7) = HMIN
+    RWORK(5:10)=0.0D0
+end subroutine
+
+subroutine mylsode(F, x, NEQ, dt, tstart, tstop, atol, rtol)
+    implicit none
+    integer, intent(in) :: NEQ
+    REAL*8, intent(inout) :: x(NEQ)
+    real*8, intent(in) :: tstart, tstop, atol, rtol
+    real*8, intent(inout) :: dt
+    external F, JAC
+
+    CALL DLSODE(F,NEQ,x,tstart,tstop,ITOL,RTOL,ATOL,ITASK,ISTATE, &
+                IOPT,RWORK,LRW,IWORK,LIW,JAC,MF)
+end subroutine
+
+subroutine  JAC()
+end subroutine
+
+    
 subroutine verlet(F, x, NEQ, dt, nsteps)
     implicit none
     integer, intent(in) :: NEQ

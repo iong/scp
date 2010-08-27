@@ -28,10 +28,6 @@
 
       call requal(3*N_atom,QCNFG,Y(2)) !Copy particle positions to Y
       
-c      DO I=1,3*N_atom
-c         Y(I+1)=Y(I+1)-BL*DNINT(Y(I+1)/BL) ! Periodic boundary conditions: wrap around box  ???????????????
-c      ENDDO
-
       call initialize_SG_3G(MASS,BL,N_atom) 
       call initialize_QRC(QCNFG,N_atom,RC,BL) !Determine which particles interact having folded particles into a box of side bl
  
@@ -73,15 +69,10 @@ c      ENDDO
       IF(TAUMAX < 1) TSTEP = 0.001D0
       IF((TAUMAX/2)-TAUI < TSTEP) TSTEP = ((TAUMAX/2)-TAUI)/2.0D0
      
-c      DO I=1,3*N_atom
-c        Y(I+1)=Y(I+1)-BL*DNINT(Y(I+1)/BL)    ! Periodic boundary conditions: wrap around box  ???????????????
-c      ENDDO
 
+        write (26,*) (Y(i),i=1,1+21*N_atom)
       TAU(1) = TAUMAX/2.0D0 - TSTEP
       TAU(2) = TAUMAX/2.0D0
-c      write (*,*) y(1:4)
-c      write(*,*) y(2+3*N_atom:7+3*N_atom),  y(2+9*N_atom:10+9*N_atom)
-c      write (*,*) y(2+18*N_atom:4+18*N_atom)
       DO I=1,2
         TOUT=TAU(I)
         CALL DLSODE(RHSS,NEQ,Y,T,TOUT,ITOL,RTOL,ATOL,ITASK,ISTATE,
@@ -92,7 +83,6 @@ c      write (*,*) y(2+18*N_atom:4+18*N_atom)
   
       ENRG=-(LNZ(2)-LNZ(1))/(2*TSTEP)
       LNP=LOGZ
-c        write (*,*) LOGZ, TAUMAX
       W=-(1/TAUMAX)*LNP
     
       call requal(3*N_atom,Y(2+18*N_atom),FX)
@@ -246,8 +236,10 @@ c         write(6,*) ((InvMeff(i,j,l), i=1,3),j=1,3)
       common /carray/ QRC
 c     equivalence (Y(1),gamma), (Y(2),Q(1,1))
 
-c	write (*,*) T
-      if(N_atom.ne.(NEQ-1)/21) stop 'RHSS: Oops!'
+      if(N_atom.ne.(NEQ-1)/21) then
+        write (*,*) N_atom, (NEQ-1)/21
+        stop 'RHSS: Oops!'
+      endif
       BL2=BL/2
      
       call requal(3*N_atom,Y(2),Q)
@@ -543,8 +535,8 @@ c	write (*,*) T
       real*8 LJC(NGAUSS),LJA(NGAUSS)
       common /LJ3/ LJC,LJA
       
-      BL2=BL/2
-      U=0
+      BL2=BL/2.0
+      U=0.0
 
       DO I=1,N-1
          DO J=I+1,N
@@ -575,7 +567,7 @@ c	write (*,*) T
           DO K=1,3
             GRAD=0.0D0
             DO P=1,NGAUSS
-              GRAD=GRAD+2*LJC(P)*LJA(P)*EXP(-RSQ*LJA(P))
+              GRAD=GRAD+2.0*LJC(P)*LJA(P)*EXP(-RSQ*LJA(P))
             ENDDO
             GRAD=GRAD*VEC(K)
             UX(K,I)=UX(K,I)+GRAD
@@ -628,7 +620,7 @@ c	write (*,*) T
       integer i,N
       real*8 A(N)
       do i=1,N
-         A(i)=0
+         A(i)=0.0
       enddo
       return
       end

@@ -1,7 +1,7 @@
 VPATH=$(dir $(shell readlink $(shell pwd)/$(firstword $(MAKEFILE_LIST))))
 
-#DBG=1
-COMPILER:=intel
+DBG=1
+COMPILER:=pgi
 
 CC:=icc
 FC:=ifort
@@ -34,7 +34,7 @@ all: ljmc
 %.o : %.f
 	$(FC) $(FFLAGS) -c $^
 
-ljmc: ljmc.o dlsode.o vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03.o vgw.o propagation.o  rhs.o interaction_lists.o potential_energy.o rhss0.o vgw0.o unpackg.o
+ljmc: ljmc.o dlsode.o vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03.o vgw.o propagation.o  rhs.o interaction_lists.o rhss0.o rhss1.o unpackg.o vgw0.o  vgw1.o
 	$(FC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 clean:

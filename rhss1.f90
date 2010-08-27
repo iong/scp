@@ -6,40 +6,50 @@ SUBROUTINE RHSS1(NEQ, T, y, yprime)
       REAL*8, intent(out) :: yprime(NEQ)
       REAL*8 :: Q(3,N_atom), BLKC(3,3,N_atom), QNK(3,3,N_atom)
       INTEGER I,J,K,I1,I2,IG,CNT,CNT2
-      REAL*8 T,AG(3,3),GU(3,3),&
+      REAL*8 AG(3,3),GU(3,3),&
            DETA,DETAG,GUG,QP,TRUXXGI,FACTOR,U,UX,UXX,QZQ,EXPAV, &
            TRMG,DETS,DETI,LJS,LJE,GUQ, &
            BL2,M(3,3),A(3,3), &
            R(3), Z(3,3),Q12(3)
       REAL*8 UPV(3,N_atom), UPM(3,3,N_atom)
 
-    if (NEQ /= (1+18*N_atom) ) then
-        write (*,*) 'NEQ != 1+9*N_atom', NEQ, 1+18*N_atom
+    if (NEQ /= (1+21*N_atom) ) then
+        write (*,*) 'NEQ != 1+21*N_atom', NEQ, 1+21*N_atom
         stop
     endif
     
+    BL2=BL/2
+
     Q = reshape(y(2:1+3*N_atom), (/3, N_atom/) )
     call unpackg(N_atom, y(2+3*N_atom:1+9*N_atom), BLKC)
-    QNK = reshape(y(2+9*N_atom:1+18*N_atom), (/3, 3, N_atom/) )
 
-      BL2=BL/2
+    CNT = 2+9*N_atom
+    DO I=1,N_atom
+        DO J=1,3
+            DO K=1,3
+                QNK(J,K,I)=Y(CNT)
+                CNT=CNT+1
+            ENDDO
+        ENDDO
+    ENDDO
 
-      TRMG=0.0D0
 
-      DO I=1,N_atom
+
+    TRMG=0.0D0
+    DO I=1,N_atom
         CALL INVDET(BLKC(:,:,I),M,DETS)
         DETS=1.0D0/DETS
 
         DO J=1,3
-          TRMG=TRMG + M(J,J)*DETS
+            TRMG=TRMG + M(J,J)*DETS
         ENDDO
-      ENDDO
+    ENDDO
 
-      TRMG = TRMG*MASS
+    TRMG = TRMG*MASS
 
-      U=0.0D0
-      call rzero(3*N_atom,UPV)
-      call rzero(9*N_atom,UPM)
+    U=0.0D0
+    UPV=0.0
+    UPM = 0.0
 
       DO I1=1,N_atom-1
         DO I2=I1+1,N_atom

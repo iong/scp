@@ -1,26 +1,30 @@
-SUBROUTINE vgw0(Q0, W, TAUMAX,TAUI, Y)
+SUBROUTINE vgw1(Q0, W, TAUMAX,TAUI, Y)
     use vgw
     use propagation
     use rhs
     IMPLICIT NONE
     REAL*8, intent(in) :: Q0(3,N_atom), TAUMAX, TAUI
-    REAL*8, intent(inout) :: Y(1+18*N_atom)
+    REAL*8, intent(inout) :: Y(1+21*N_atom)
     REAL*8, intent(out) :: W
-    real*8 :: G(3,3,N_atom), G0(6), M(3,3), T, ULJ, LOGDET, DETI,
+    real*8 :: G(3,3,N_atom), G0(6), M(3,3), T, ULJ, LOGDET, DETI
     real*8 :: TSTEP=1e-3
     real*8 :: tnow
     integer :: I, nsteps, CNT, CNT2
+    external RHSS
   
 
     if (TAUI <= 0.0) then
         T = TAUMIN
 
         call interaction_lists(Q0,N_atom,RC,BL, QRC) !Determine which particles
-        call potential_energy(Q0,N_atom,ULJ)
+        !call Upot_tau0(Q0,N_atom,ULJ)
+        !call Ux_tau0(Q0, N_atom,Y(2+18*N_atom:1+21*N_atom))
+        CALL GAUSSENERGYPB(Q0,N_atom,BL,ULJ,Y(2+18*N_atom))      
         call init_mylsode(1+21*N_atom)
 
         Y(1) = -T*ULJ
         Y(2:1+3*N_atom)=reshape(Q0, (/3*N_atom/))
+        Y(2+18*N_atom:1+21*N_atom) = Y(2+18*N_atom:1+21*N_atom) * T
 
         G0=T*MASS*(/1,0,0,1,0,1/)
         CNT=2+3*N_atom
@@ -31,7 +35,7 @@ SUBROUTINE vgw0(Q0, W, TAUMAX,TAUI, Y)
             CNT=CNT+6
             CNT2=CNT2+9
         ENDDO
-
+        write (25,*) (Y(i),i=1,1+21*N_atom)
     else
         T = 0.5*TAUI
     endif

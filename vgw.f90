@@ -5,6 +5,8 @@ module vgw
         real*8 :: MASS, BL, RC, ATOL, TAUMIN
         integer :: N_atom
         real*8 :: RTOL = 1e-4
+contains
+include 'potential_energy.f90'
 end module vgw
 
 subroutine vgwinit(natom, real_mass, ng, c, a, boxlen, rc_, taumin_, atol_)
