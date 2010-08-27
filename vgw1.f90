@@ -34,7 +34,6 @@ SUBROUTINE vgw1(Q0, W, TAUMAX,TAUI, Y)
             CNT=CNT+6
             CNT2=CNT2+9
         ENDDO
-        write (25,*) (Y(i),i=1,1+21*N_atom)
     else
         T = 0.5*TAUI
     endif

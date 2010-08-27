@@ -70,7 +70,6 @@
       IF((TAUMAX/2)-TAUI < TSTEP) TSTEP = ((TAUMAX/2)-TAUI)/2.0D0
      
 
-        write (26,*) (Y(i),i=1,1+21*N_atom)
       TAU(1) = TAUMAX/2.0D0 - TSTEP
       TAU(2) = TAUMAX/2.0D0
       DO I=1,2
