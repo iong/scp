@@ -3,8 +3,6 @@ VPATH=$(dir $(shell readlink $(shell pwd)/$(firstword $(MAKEFILE_LIST))))
 DBG=1
 COMPILER:=pgi
 
-CC:=icc
-FC:=ifort
 CPPFLAGS:=$(shell pkg-config --cflags gsl) -std=c99
 LDFLAGS:=$(shell pkg-config --libs-only-L gsl)
 LIBS:=-lgsl
