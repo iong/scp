@@ -4,9 +4,10 @@ program ljmc
         real*8, parameter :: imass = 2.0, taui = 1.0e-6, bl=40.0, atol=1.0e-4, rc=10.0
         real*8 :: lnp, w, enrg, taumax, et(4)
         real*8, parameter, dimension(4) :: &
-                LJA = (/1.03825, 0.597404, 0.1964765, 0.0666861 /), &
-                LJC = (/96609.488289873, 14584.6207550751, &
-                        -365.460614956589, -19.5534697800036/)
+                LJA = (/1.038252215127D0, 0.5974039109464D0, &
+                        0.196476572277834D0, 0.06668611771781D0/), &
+                LJC = (/96609.488289873d0, 14584.62075507514d0, &
+                        -365.460614956589d0, -19.5534697800036d0/)
         real*8, dimension(ntests,2) :: Ueff
         integer :: seed_size, seed(10)
 !POMP$ INST INIT 
