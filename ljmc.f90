@@ -1,7 +1,7 @@
 program ljmc
         integer, parameter :: natom = 147, ntests=1
         real*8 :: q0(3,natom), dq0(3,natom), q00(3,natom), y0(1+18*natom), fx(3,natom), y(1+21*natom), invmeff(3,3,natom), sqrtmeff(3,3,natom)
-        real*8, parameter :: imass = 2.0, taui = 1.0e-6, bl=40.0, atol=1.0e-4, rc=10.0
+        real*8, parameter :: imass = 2.0, taui = 1.0e-6, bl=40.0, rtol=1e-4, atol=1.0e-4, rc=10.0
         real*8 :: lnp, w, enrg, taumax, et(4)
         real*8, parameter, dimension(4) :: &
                 LJA = (/1.038252215127D0, 0.5974039109464D0, &
@@ -22,8 +22,8 @@ program ljmc
         call random_seed(GET=seed(1:seed_size))
         call random_seed(PUT=seed(1:seed_size))
 
-        !call  vgwinit(natom, IMASS/48.5086, 4, LJC, LJA, bl, rc, taui, atol)
-        call  vgwinit(natom, IMASS*0.020614788876D0, 4, LJC, LJA, bl, rc, taui, atol)
+        !call  vgwinit(natom, IMASS/48.5086, 4, LJC, LJA, bl, rc, taui, atol, rtol)
+        call  vgwinit(natom, IMASS*0.020614788876D0, 4, LJC, LJA, bl, rc, taui, atol, rtol)
         q00 = q0
        call cpu_time(et(1))
 !$OMP PARALLEL SHARED(Y, UPV_SHARED, UPM_SHARED) PRIVATE(tid,nthreads) FIRSTPRIVATE(NEQ,ISTATE,T)

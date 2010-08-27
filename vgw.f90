@@ -2,14 +2,14 @@ module vgw
         real*8, dimension(10) :: LJA, LJC
         integer :: NGAUSS
         logical, allocatable :: QRC(:)
-        real*8 :: MASS, BL, RC, ATOL, TAUMIN
+        real*8 :: MASS, BL, RC, ATOL, RTOL, TAUMIN
         integer :: N_atom
-        real*8 :: RTOL = 1e-4
+        real*8 ::
 contains
 include 'potential_energy.f90'
 end module vgw
 
-subroutine vgwinit(natom, real_mass, ng, c, a, boxlen, rc_, taumin_, atol_)
+subroutine vgwinit(natom, real_mass, ng, c, a, boxlen, rc_, taumin_, atol_, rtol_)
         use vgw
         implicit none
         integer, intent(in) :: natom, ng
@@ -24,6 +24,7 @@ subroutine vgwinit(natom, real_mass, ng, c, a, boxlen, rc_, taumin_, atol_)
         BL = boxlen
         RC = rc_
         ATOL=atol_
+        RTOL=rtol_
 
         allocate(QRC(natom*natom))
 end subroutine
