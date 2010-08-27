@@ -116,34 +116,28 @@ static void dumpxyz(char *fname, double (*rr)[3], char *label)
 }
 
 
-static void dump_Umin(int myrank, int MCiter)
+static void dump_Umin(int MCiter)
 {
 	char	label[128];
 	double	lUmin;
 	int	i, imin;
 	
-	MPI_Allreduce(Umin, globalUmin, nstreams, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
-	if (myrank==0) {
-		printf("n = %d, Umin =", MCiter);
-		for (i=0; i<nstreams; i++) {
-			printf(" %lg,", globalUmin[i]);
-		}
-		fputc('\n', stdout);
-	}
+        printf("n = %d, Umin =", MCiter);
+        for (i=0; i<nstreams; i++) {
+                printf(" %lg,", globalUmin[i]);
+        }
+        fputc('\n', stdout);
 
-	lUmin = globalUmin[0];
+	lUmin = Umin[0];
 	for (i=0; i<nstreams; i++) {
-		if (globalUmin[i] <= lUmin) {
-			lUmin = globalUmin[i];
+		if (Umin[i] <= lUmin) {
+			lUmin = Umin[i];
 			imin = i;
 		}
 	}
 	
-	if (fabs(Umin[imin] - lUmin) < 0.1) {
-		sprintf(label, "(N2)%d Umin = %lg", N, lUmin);
-		dumpxyz(outputf, rmin + imin*N, label);
-	}
-	MPI_Barrier(MPI_COMM_WORLD);
+        sprintf(label, "(N2)%d Umin = %lg", N, lUmin);
+        dumpxyz(outputf, rmin + imin*N, label);
 }
 
 static void accept_trial(int nrep, double Unew)
@@ -418,10 +412,6 @@ int main (int argc,  char * argv[])
 	char	fname[200];
 	
 	
-	MPI_Init(&argc, &argv);
-	MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
-	MPI_Comm_size(MPI_COMM_WORLD, &ncpu);
-	
 	read_options(argv[1]);
 	init_mem();
 
@@ -472,7 +462,6 @@ int main (int argc,  char * argv[])
 		swap_streams();
 				
 		if(n%1000==0) {
-			MPI_Allreduce(Z, Ztotal, nT, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 			dump_Umin(myrank, ncpu*n);
 		}
 
@@ -495,7 +484,6 @@ int main (int argc,  char * argv[])
 
 	dump_Umin(myrank, ncpu*n);
 
-	MPI_Finalize();
 	fclose(aout);
 	return 0;
 }
