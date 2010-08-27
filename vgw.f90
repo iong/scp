@@ -4,7 +4,6 @@ module vgw
         logical, allocatable :: QRC(:)
         real*8 :: MASS, BL, RC, ATOL, RTOL, TAUMIN
         integer :: N_atom
-        real*8 ::
 contains
 include 'potential_energy.f90'
 end module vgw
@@ -13,7 +12,7 @@ subroutine vgwinit(natom, real_mass, ng, c, a, boxlen, rc_, taumin_, atol_, rtol
         use vgw
         implicit none
         integer, intent(in) :: natom, ng
-        real*8, intent(in) :: real_mass, boxlen, c(ng), a(ng), rc_, taumin_, atol_
+        real*8, intent(in) :: real_mass, boxlen, c(ng), a(ng), rc_, taumin_, atol_, rtol_
 
         N_atom = natom
         MASS=1.0D0/real_mass
