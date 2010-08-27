@@ -1,3 +1,5 @@
+CC=gcc-mp-4.4
+FC=gfortran-mp-4.4
 OPTFLAGS=-O3
 DBGFLAGS=-O0 -ggdb -Wall
 
