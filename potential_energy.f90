@@ -24,7 +24,7 @@ SUBROUTINE Upot_tau0(Q,N,U)
          ENDDO
       ENDDO
       return
-END
+END SUBROUTINE
 
 
 SUBROUTINE Ux_tau0(Q,N,UX)
@@ -59,6 +59,4 @@ SUBROUTINE Ux_tau0(Q,N,UX)
         ENDDO
       ENDDO
       return
-END
-
-
+END SUBROUTINE

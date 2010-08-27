@@ -17,9 +17,8 @@ SUBROUTINE vgw1(Q0, W, TAUMAX,TAUI, Y)
         T = TAUMIN
 
         call interaction_lists(Q0,N_atom,RC,BL, QRC) !Determine which particles
-        !call Upot_tau0(Q0,N_atom,ULJ)
-        !call Ux_tau0(Q0, N_atom,Y(2+18*N_atom:1+21*N_atom))
-        CALL GAUSSENERGYPB(Q0,N_atom,BL,ULJ,Y(2+18*N_atom))      
+        call Upot_tau0(Q0,N_atom,ULJ)
+        call Ux_tau0(Q0, N_atom,Y(2+18*N_atom:1+21*N_atom))
         call init_mylsode(1+21*N_atom)
 
         Y(1) = -T*ULJ
