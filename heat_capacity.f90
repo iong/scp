@@ -1,20 +1,20 @@
-subroutine heat_capacity(Z, kT, Cv)
-    use ljmc
+subroutine heat_capacity(N, Z, kT, Cv)
     implicit none
-    real*8, intent(in), dimension(nstreams) :: Z, kT
-    real*8, intent(out), dimension(nstreams) :: Cv
+    integer, intent(in) :: N
+    real*8, intent(in), dimension(N) :: Z, kT
+    real*8, intent(out), dimension(N) :: Cv
     integer :: j
-    real*8, dimension(nstreams) :: dT, Tmid, dlogZ
+    real*8, dimension(N) :: dT, Tmid, dlogZ, dlogZdT
 
-    dT = kT(2:nstreams) - kT(1:nstreams-1)
-    Tmid = 0.5*(kT(2:nstreams) + kT(1:nstreams-1))
-    dlogZ = log(Z(2:nstreams) / Z(1:nstreams-1))
+    dT = kT(2:N) - kT(1:N-1)
+    Tmid = 0.5*(kT(2:N) + kT(1:N-1))
+    dlogZ = log(Z(2:N) / Z(1:N-1))
 
     dlogZdT = Tmid**2 * dlogZ/dT
-    do j=2,nstreams-1
-        Cv(i) = (dlogZ(j) - dlogZ(j-1)) *2.0/ (T(j+1)-T(j-1))
+    do j=2,N-1
+        Cv(j) = (dlogZdT(j) - dlogZdT(j-1)) *2.0/ (kT(j+1)-kT(j-1))
     enddo
 
     Cv(1) = Cv(2)
-    Cv(nstreams) = Cv(nstreams-1)
+    Cv(N) = Cv(N-1)
 end subroutine

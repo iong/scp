@@ -1,11 +1,10 @@
 SUBROUTINE Upot_tau0(Q,N,U)
-    use vgw
     IMPLICIT NONE
     integer, intent(in) :: N
     REAL*8, intent(in) :: Q(3,N)
     real*8, intent(out) :: U
-    INTEGER  I,J,K,P
-    real*8 :: RSQ,BL2,QIJ,VEC(3),GRAD
+    INTEGER  I,J,K
+    real*8 :: RSQ,BL2,QIJ
       
       BL2=BL/2.0
       U=0.0
@@ -29,13 +28,12 @@ END SUBROUTINE
 
 
 SUBROUTINE Ux_tau0(Q,N,UX)
-    use vgw
     IMPLICIT NONE
     integer, intent(in) :: N
     REAL*8, intent(in) :: Q(3,N)
     real*8, intent(out) :: UX(3,N)
     INTEGER  I,J,K,P
-    REAL*8  RSQ,BL2,QIJ,VEC(3),GRAD
+    REAL*8  RSQ,BL2,VEC(3),GRAD
       
       BL2=BL/2
 

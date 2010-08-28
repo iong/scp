@@ -1,9 +1,3 @@
-real*8 function gaussran(sigma, x0) result(y)
-    implicit none
-    real*8 :: x(2), M_PI = 3.14159265358979323846264338327950288
-    call random_number(x)
-    y = sqrt( -2.0 * log(x(1)) * cos(2*M_PI*x(2)) )
-end function
 
 subroutine pol2cart(pol, cart)
     real*8, intent(in) :: pol(3)
@@ -23,7 +17,7 @@ subroutine mc_move_atom(x, rad)
     real*8, intent(in) :: rad
     real*8, dimension(3) :: pol, cart
 
-    pol(1) = gaussran(rad, 0)
+    pol(1) = gaussran(rad, 0.0)
     call random_number(pol(2:3))
     pol(2) = acos(2.0*pol(2) - 1.0)
     pol(3) = 2.0*M_PI*pol(3)
@@ -37,10 +31,11 @@ subroutine mc_1by1(mcburn, irep)
     integer, intent(in) :: mcburn, irep
     integer, parameter :: acceptance_trials = 1000
     integer :: i, j, k
-    real*8 :: lUmin, Unew, p, rn
+    real*8 :: lUmin, Unew, p, rn,bl2
     rnew(:,:,irep) = r(:,:,irep)
     call vgw0(rnew(:,:,irep), U0(irep), beta(irep), 0.0, y0)
     lUmin = 1e10
+    bl2 = bl/2
     do i=1,mcburn
         ntrials(irep) = ntrials(irep) + 1
         call random_number(rn)
@@ -49,9 +44,9 @@ subroutine mc_1by1(mcburn, irep)
 
 
         do k=1,3
-            if (rnew(k,j,irep) > bl2)
+            if (rnew(k,j,irep) > bl2) then
                 rnew(k,j,irep) = rnew(k,j,irep) - bl
-            elseif (rnew(k,j,irep) < -bl2)
+            elseif (rnew(k,j,irep) < -bl2) then
                 rnew(k,j,irep) = rnew(k,j,irep) + bl
             endif
         enddo
@@ -75,7 +70,7 @@ subroutine mc_1by1(mcburn, irep)
             if (naccepted(irep) < 0.3*acceptance_trials) then
                 rmove(irep) = rmove(irep) / 1.10779652734191
             elseif (naccepted(irep) > 0.4*acceptance_trials) then
-                rmove(nrep) = rmove(nrep) * 1.12799165273419;
+                rmove(irep) = rmove(irep) * 1.12799165273419;
             endif
             naccepted(irep) = 0
         endif
@@ -85,7 +80,9 @@ end subroutine
 subroutine pt_swap()
     use ljmc
     implicit none
-    real*8 :: rtmp(3,Natom)
+    real*8 :: rtmp(3,Natom), rn, p
+    real*8 :: U_betai_ri,U_betai_rj,U_betaj_ri,U_betaj_rj
+    integer :: i, j
     call random_number(rn)
     i = 1 + aint( rn * (nstreams-1) )
     j = i+1
