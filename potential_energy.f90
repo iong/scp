@@ -1,4 +1,5 @@
 SUBROUTINE Upot_tau0(Q,N,U)
+    use vgw
     IMPLICIT NONE
     integer, intent(in) :: N
     REAL*8, intent(in) :: Q(3,N)
@@ -28,6 +29,7 @@ END SUBROUTINE
 
 
 SUBROUTINE Ux_tau0(Q,N,UX)
+    use vgw
     IMPLICIT NONE
     integer, intent(in) :: N
     REAL*8, intent(in) :: Q(3,N)

@@ -22,7 +22,12 @@ endif
 
 LIBS:= $(LIBS) $(LAPACK) -lm
 
-VGW=$(addsuffix .o,vgw rhss0 vgwrho vgw0)
+VGW:=vgw propagation rhs vgw0 vgw1 unpackg rhss0 rhss1\
+       interaction_lists dlsode potential_energy
+VGW:=$(addsuffix .o,$(VGW))
+
+LJMC:=setup_ljmc ljmc mc dump_Umin heat_capacity
+LJMC:=$(addsuffix .o,$(LJMC))
 
 all: ljmc
 
@@ -32,7 +37,7 @@ all: ljmc
 %.o : %.f
 	$(FC) $(FFLAGS) -c $^
 
-ljmc: ljmc.o dlsode.o vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03.o vgw.o propagation.o  rhs.o interaction_lists.o rhss0.o rhss1.o unpackg.o vgw0.o  vgw1.o
+ljmc: $(VGW) $(LJMC)
 	$(FC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 clean:

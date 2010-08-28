@@ -211,7 +211,7 @@ void mc_one_by_one(int burnin_len, int nrep)
 	int	i, j, joff, k;
 	
 	memcpy(rnew[nrep*N], r[nrep*N], 3*N*sizeof(double));
-	vgw0_(rnew[0], U0+nrep, beta+nrep, &beta0, y);
+	vgw0_(rnew[nrep*N], U0+nrep, beta+nrep, &beta0, y);
 	Ulmin = 1e6;
 	for (i = 1; i <= burnin_len; i++) {
 		ntrials[nrep]++;
@@ -228,7 +228,7 @@ void mc_one_by_one(int burnin_len, int nrep)
 			} 
 		}
 		
-		vgw0_(rnew[0], &Unew, beta+nrep, &beta0, y);
+		vgw0_(rnew[nrep*N], &Unew, beta+nrep, &beta0, y);
 		p = exp(-(Unew - U0[nrep]) * beta[nrep]);
 		
 		if (p > gsl_rng_uniform(rng)) {
