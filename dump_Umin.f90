@@ -8,7 +8,7 @@ subroutine dump_Umin(MCiter)
 
     im = minloc(Umin(1:nstreams))
 
-    open(33, file=outputf)
+    open(33, file=outfile)
     write(33,'(I10)') Natom
     write(33,"('Umin = ', ES14.7)") Umin(im(1))
     write(33,"('Ne ', 3ES14.7)") ((r(i, j,im(1)), i=1,3), j=1,Natom)

@@ -123,7 +123,6 @@ subroutine eulerstep(F, x, x1, NEQ, dt, atol, rtol, rmserr)
     real*8, intent(out) :: rmserr
     integer, parameter :: p=2
     REAL*8 :: xp(NEQ,p), xe(NEQ)
-    integer :: i, j, k
     external F
 
     call F(NEQ, dt, x, xp(:,1))
@@ -194,6 +193,7 @@ subroutine rk45step(F, x, x1, NEQ, dt, atol, rtol, rmserr)
         439.0/216.0, -8.0,  3680.0/513.0,    -845.0/4104.0, 0.0, 0.0, &
         -8.0/27.0,  2.0,   -3544.0/2565.0,  1859.0/4104.0, 11.0/40.0, 0.0/), &
             (/ 6, 6 /) )
+    real*8 :: t0 = 0.0
     external F
 
     call F(NEQ, dt, x, xp(:,1))
@@ -202,7 +202,7 @@ subroutine rk45step(F, x, x1, NEQ, dt, atol, rtol, rmserr)
         do k=1,j-1
                 x1 = x1 + a(k,j)*dt*xp(:,k)
         enddo
-        call F(NEQ, dt, x1, xp(:,j))
+        call F(NEQ, t0+dt*c(j), x1, xp(:,j))
     enddo
 
     x1 = x

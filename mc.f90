@@ -17,7 +17,7 @@ subroutine mc_move_atom(x, rad)
     real*8, intent(in) :: rad
     real*8, dimension(3) :: pol, cart
 
-    pol(1) = gaussran(rad, 0.0)
+    pol(1) = gaussran(rad, 0.0d0)
     call random_number(pol(2:3))
     pol(2) = acos(2.0*pol(2) - 1.0)
     pol(3) = 2.0*M_PI*pol(3)
@@ -31,7 +31,7 @@ subroutine mc_1by1(mcburn, irep)
     integer, intent(in) :: mcburn, irep
     integer, parameter :: acceptance_trials = 1000
     integer :: i, j, k
-    real*8 :: lUmin, Unew, p, rn,bl2
+    real*8 :: lUmin, Unew, p, rn
     rnew(:,:,irep) = r(:,:,irep)
     call vgw0(rnew(:,:,irep), U0(irep), beta(irep), 0.0, y0)
     lUmin = 1e10
