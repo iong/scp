@@ -3,8 +3,8 @@ FC:=ifort
 OPTFLAGS=-O2
 DBGFLAGS=-O0 -g -warn unused
 FDBG:=-traceback -check all -ftrapuv
-FFLAGS:=-r8 -heap-arrays
-LDFLAGS:=-r8  $(LDFLAGS) -heap-arrays
+FFLAGS:=-openmp
+LDFLAGS:=$(LDFLAGS) -openmp
 MKLLIBS:= mkl_intel_lp64 mkl_sequential mkl_core
 
 LAPACK:=-framework Intel_MKL
