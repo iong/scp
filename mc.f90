@@ -31,9 +31,9 @@ subroutine mc_1by1(mcburn, irep)
     integer, intent(in) :: mcburn, irep
     integer, parameter :: acceptance_trials = 1000
     integer :: i, j, k
-    real*8 :: lUmin, Unew, p, rn
+    real*8 :: lUmin, Unew, p, rn,tau0=0.0
     rnew(:,:,irep) = r(:,:,irep)
-    call vgw0(rnew(:,:,irep), U0(irep), beta(irep), 0.0, y0)
+    call vgw0(rnew(:,:,irep), U0(irep), beta(irep), tau0, y0)
     lUmin = 1e10
     bl2 = bl/2
     do i=1,mcburn
@@ -51,7 +51,7 @@ subroutine mc_1by1(mcburn, irep)
             endif
         enddo
 
-        call vgw0(rnew(:,:,irep), Unew, beta(irep), 0.0, y0)
+        call vgw0(rnew(:,:,irep), Unew, beta(irep), tau0, y0)
         p = exp( - (Unew - U0(irep)) * beta(irep) )
         call random_number(rn)
 

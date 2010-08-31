@@ -63,14 +63,10 @@ program pljmc
     call  vgwinit(natom, IMASS*0.020614788876D0, 4, LJC, LJA, bl, rc, taumin, atol, rtol)
 
     do n=1,NMC
-!$OMP PARALLEL DEFAULT(PRIVATE) SHARED(r,rnew,rmin,U0,Umin,rmove,Z,kT,beta,naccepted,ntrials)
-!$OMP DO SCHEDULE(GUIDED) 
         do i=1,nstreams
             call mc_1by1(mcburn, i)
             Z(i) = Z(i) + exp(-beta(i) * U0(i))
         enddo
-!$OMP END DO
-!$OMP END PARALLEL
 
         call pt_swap()
 
