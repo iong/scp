@@ -1,11 +1,7 @@
 VPATH=$(dir $(shell readlink $(shell pwd)/$(firstword $(MAKEFILE_LIST))))
 
 DBG=1
-COMPILER:=pgi
-
-CPPFLAGS:=$(shell pkg-config --cflags gsl) -std=c99
-LDFLAGS:=$(shell pkg-config --libs-only-L gsl)
-LIBS:=-lgsl
+COMPILER:=intel
 
 OS=$(shell uname -s)
 include config/$(COMPILER).mk
@@ -23,7 +19,7 @@ endif
 LIBS:= $(LIBS) $(LAPACK) -lm
 
 VGW:=vgw propagation rhs vgw0 vgw1 unpackg rhss0 rhss1\
-       interaction_lists dlsode potential_energy
+       interaction_lists dlsode vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03
 VGW:=$(addsuffix .o,$(VGW))
 
 LJMC:=setup_ljmc ljmc mc dump_Umin heat_capacity
