@@ -1,3 +1,6 @@
+*.o
+*.mod
+
 # xcode noise
 build/*
 *.pbxuser
