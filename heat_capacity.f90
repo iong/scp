@@ -6,9 +6,9 @@ subroutine heat_capacity(N, Z, kT, Cv)
     integer :: j
     real*8, dimension(N) :: dT, Tmid, dlogZ, dlogZdT
 
-    dT = kT(2:N) - kT(1:N-1)
-    Tmid = 0.5*(kT(2:N) + kT(1:N-1))
-    dlogZ = log(Z(2:N) / Z(1:N-1))
+    dT(1:N-1) = kT(2:N) - kT(1:(N-1))
+    Tmid(1:N-1) = 0.5*(kT(2:N) + kT(1:N-1))
+    dlogZ(1:N-1) = log(Z(2:N) / Z(1:N-1))
 
     dlogZdT = Tmid**2 * dlogZ/dT
     do j=2,N-1

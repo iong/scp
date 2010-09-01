@@ -1,7 +1,5 @@
 SUBROUTINE vgw1(Q0, W, TAUMAX,TAUI, Y)
-    use vgw
     use propagation
-    use rhs
     IMPLICIT NONE
     REAL*8, intent(in) :: Q0(3,N_atom), TAUMAX, TAUI
     REAL*8, intent(inout) :: Y(1+21*N_atom)
@@ -51,6 +49,6 @@ SUBROUTINE vgw1(Q0, W, TAUMAX,TAUI, Y)
 
     W=-(1/TAUMAX)*(2.0*y(1) - 0.5*LOGDET)
     return
-END
+END SUBROUTINE
 
 ! vim:et

@@ -1,5 +1,4 @@
 SUBROUTINE RHSS0(NEQ, T, y, yprime)
-      use vgw
       IMPLICIT NONE
     integer, intent(in) :: NEQ
       REAL*8, intent(in) :: T, y(NEQ)
@@ -168,4 +167,4 @@ SUBROUTINE RHSS0(NEQ, T, y, yprime)
 
 
       return
-END
+END SUBROUTINE

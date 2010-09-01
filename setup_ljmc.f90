@@ -1,33 +1,21 @@
-module ljmc
-    integer :: Natom
-    real*8 :: M_PI = 3.14159265358979323846264338327950288d0
-    real*8 :: bl=1e10, bl2, Tmin, Tmax,rho,imass
-    integer::ncells, nstreams
-    real*8,allocatable :: q0(:,:), y0(:)
-    real*8, allocatable :: r(:,:,:), rnew(:,:,:), rmin(:,:,:), U0(:), Umin(:)
-    real*8, allocatable :: rmove(:), Z(:), kT(:), beta(:), Cv(:)
-    integer, allocatable :: naccepted(:), ntrials(:)
-    character(len=256) :: outfile
-contains
-real*8 function gaussran(sigma, x0) result(y)
-    implicit none
-    real*8, intent(in) :: sigma, x0
-    real*8 :: x(2), M_PI = 3.14159265358979323846264338327950288
-    call random_number(x)
-    do while (x(1) == 0)
-        call random_number(x)
-    enddo
-    y = sqrt( -2.0 * log(x(1))) * cos(2*M_PI*x(2))
-
-    y = y*sigma + x0
-end function
-
 subroutine setup_ljmc()
+    use ljmc
+    use mc
+    implicit none
+    integer :: i
+
     allocate (q0(3,natom), y0(1+21*natom), &
-            r(3,natom,nstreams), rnew(3,natom,nstreams), &
-            rmin(3,natom,nstreams), U0(nstreams), &
-            Umin(nstreams), ntrials(nstreams), naccepted(nstreams),rmove(nstreams),&
-            Z(nstreams), kT(nstreams), beta(nstreams), Cv(nstreams))
+        r(3,natom,nstreams), rnew(3,natom,nstreams), &
+        rmin(3,natom,nstreams), U0(nstreams), &
+        Umin(nstreams), ntrials(nstreams,nmoves), naccepted(nstreams,nmoves),&
+        stepdim(nmoves),xstep(nstreams,nmoves), tpool(natom), &
+        Z(nstreams), kT(nstreams), beta(nstreams), Cv(nstreams))
+
+    kT(1:nstreams) = (/(Tmin + (Tmax-Tmin)/(nstreams-1)*(i-1), i=1,nstreams)/)
+    beta(1:nstreams) = 1.0/kT(1:nstreams)
+
+    stepdim=(/(1 + i*(Natom-1)/(nmoves-1),i=0,nmoves-1)/)
+
+    tpool(1:natom) = (/(i,i=1,natom)/)
 end subroutine
-end module ljmc
 
