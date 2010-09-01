@@ -18,11 +18,11 @@ endif
 
 LIBS:= $(LIBS) $(LAPACK) -lm
 
-VGW:=vgw propagation rhs vgw0 vgw1 unpackg rhss0 rhss1\
+VGW:=propagation vgw unpackg\
        interaction_lists dlsode vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03
 VGW:=$(addsuffix .o,$(VGW))
 
-LJMC:=setup_ljmc ljmc mc dump_Umin heat_capacity
+LJMC:=ljmc_mod mc setup_ljmc ljmc dump_Tmin heat_capacity rng load_defaults populate_cube
 LJMC:=$(addsuffix .o,$(LJMC))
 
 all: ljmc
