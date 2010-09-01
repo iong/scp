@@ -54,22 +54,19 @@ program pljmc
         call vgw0(r(:,:,i), U0(i), beta(i), 0.0d0, y0)
     enddo
 
-    call mc_burnin(10)
+    call mc_burnin(10000)
     write (*,*) 'xstep', xstep(1,:)
 
 
     do n=1,NMC,mcblen
-        call mc_block(mcblen, 100)
+        call mc_block(mcblen, 1000)
         write (*,*) 'xstep', xstep(1,:)
 
-
-        if (mod(n,2) == 0) then
-            call dump_Tmin(n)
-            call heat_capacity(nstreams, Z, kT, Cv)
-            open(30, file='Z.dat')
-            write (30,'(4(ES16.8," "))') (kT(i), Cv(i), Z(i), beta(i),i=1,nstreams)
-            close(30)
-        endif
+        call dump_Tmin(n)
+        call heat_capacity(nstreams, Z, kT, Cv)
+        open(30, file='Z.dat')
+        write (30,'(4(ES16.8," "))') (kT(i), Cv(i), Z(i), beta(i),i=1,nstreams)
+        close(30)
     enddo
 
     call dump_Tmin(NMC)
