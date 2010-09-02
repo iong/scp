@@ -16,7 +16,7 @@ program pljmc
     real*8 :: rcmin
     character(LEN=256) :: arg, inputf
     integer :: i, j, n, NMC,mcblen,ierr
-    namelist /ljmccfg/Natom,imass,rc,rtol,atol,taumin,NMC,mcblen,ptinterval,Tmin,Tmax,bl,outfile,rho,rcmin,ncells
+    namelist /ljmccfg/Natom,imass,rc,rtol,atol,taumin,NMC,mcblen,ptinterval,Tmin,Tmax,bl,outfile,rho,rcmin
 
     call MPI_Init(ierr)
     call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)

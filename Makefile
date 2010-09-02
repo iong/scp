@@ -5,6 +5,8 @@ COMPILER:=intel
 
 OS=$(shell uname -s)
 include config/$(COMPILER).mk
+CC:=mpicc
+FC:=mpif90
 
 ifdef DBG
 	CFLAGS:=$(CFLAGS) $(DBGFLAGS)
