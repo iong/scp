@@ -137,7 +137,7 @@ subroutine mc_block(blen, sublen)
         istep = 1 + aint(nmoves*rn)
         do j=1,sublen
             call mc_trial(istep)
-            Z(me) = Z(me) + exp(-beta(me+1) * U0)
+            Z(me+1) = Z(me+1) + exp(-beta(me+1) * U0)
             call pt_swap((i-1)*sublen+j)
         enddo
     enddo
@@ -162,21 +162,22 @@ subroutine pt_swap(nmcsteps)
     implicit none
     include 'mpif.h'
     integer, intent(in) :: nmcsteps
-    real*8 :: rtmp(3,Natom), rn, p
+    real*8 :: rbuf(3*Natom), rn, p
     real*8 :: U_rlow(2),U_rhigh(2), betalow, betahigh
     integer :: synctag = 1, swaptag=2, ilow, ihigh, flag, s(MPI_STATUS_SIZE)
     integer :: dest, IERR
 
+    flag = .FALSE.
     call MPI_Iprobe(MPI_ANY_SOURCE, synctag, MPI_COMM_WORLD, flag, s, IERR)
     if (flag) then
             ilow = s(MPI_SOURCE)
             ihigh = me
-            call MPI_Recv(rn,1,MPI_REAL8, ilow, synctag, MPI_COMM_WORLD, ierr)
+            call MPI_Recv(rn,1,MPI_REAL8, ilow, synctag, MPI_COMM_WORLD, s, ierr)
     elseif (me<(nprocs-1) .and. mod(nmcsteps,ptinterval)==0) then
             ilow = me
             ihigh = me+1
             call random_number(rn)
-            call MPI_Send(rn, 1, MPI_INTEGER, ihigh, synctag, MPI_COMM_WORLD, ierr)
+            call MPI_Send(rn, 1, MPI_REAL8, ihigh, synctag, MPI_COMM_WORLD, ierr)
     else
         return
     endif
@@ -187,12 +188,12 @@ subroutine pt_swap(nmcsteps)
         U_rlow(1) = U0
         call vgw0(r(:,:), U_rlow(2), betahigh, 0.0d0, y0)
         call MPI_Sendrecv(U_rlow, 2, MPI_REAL8, ihigh, swaptag, &
-                U_rhigh, 3, MPI_REAL8, ihigh, swaptag, MPI_COMM_WORLD, s, IERR)
+                U_rhigh, 2, MPI_REAL8, ihigh, swaptag, MPI_COMM_WORLD, s, IERR)
     else
         call vgw0(r(:,:), U_rhigh(1), betalow, 0.0d0, y0)
         U_rhigh(2) = U0
         call MPI_Sendrecv(U_rhigh, 2, MPI_REAL8, ilow, swaptag, &
-                U_rlow, 3, MPI_REAL8, ilow, swaptag, MPI_COMM_WORLD, s, IERR)
+                U_rlow, 2, MPI_REAL8, ilow, swaptag, MPI_COMM_WORLD, s, IERR)
     endif
     
     p = exp(-betalow*(U_rhigh(1) - U_rlow(1))-betahigh*(U_rlow(2) - U_rhigh(2)))
@@ -200,8 +201,11 @@ subroutine pt_swap(nmcsteps)
         write (*,*) 'swapping', ilow,ihigh, 'p=',p
         dest = ilow
         if (me == ilow) dest=ihigh
-        call MPI_Sendrecv(r, 3*Natom, MPI_REAL8, dest, swaptag, &
-                rtmp, 3*Natom, MPI_REAL8, dest, swaptag, MPI_COMM_WORLD, s, IERR)
+        call MPI_Sendrecv(reshape(r, (/3*Natom/)), 3*Natom, MPI_REAL8, dest, &
+            swaptag, &
+            rbuf, 3*Natom, MPI_REAL8, dest, swaptag, &
+            MPI_COMM_WORLD, s, IERR)
+        r = reshape(rbuf, (/3, Natom/) )
     endif
 end subroutine
 
