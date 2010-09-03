@@ -2,11 +2,11 @@ module mc
     use ljmc
     implicit none
     integer, parameter :: nmoves = 4
-    real*8, allocatable :: r(:,:), rnew(:,:), rmin(:,:), U0, Umin
+    real*8, allocatable :: r(:,:), rnew(:,:), rmin(:,:)
     real*8, allocatable :: xstep(:), Z(:), kT(:), beta(:), Cv(:)
     integer, allocatable :: naccepted(:), ntrials(:), tpool(:), stepdim(:)
     integer :: ptinterval
-    real*8 :: Tmin, Tmax
+    real*8 :: Tmin, Tmax, U0, Umin
 contains
 
 subroutine pol2cart(pol, cart)
@@ -101,8 +101,8 @@ subroutine mc_trial(istep)
         enddo
     enddo
 
-    call vgw0(rnew(:,:), Unew, beta(me), 0.0d0, y0)
-    p = exp( - (Unew - U0) * beta(me) )
+    call vgw0(rnew(:,:), Unew, beta(me+1), 0.0d0, y0)
+    p = exp( - (Unew - U0) * beta(me+1) )
     call random_number(rn)
 
     if (p>rn) then
@@ -137,10 +137,8 @@ subroutine mc_block(blen, sublen)
         istep = 1 + aint(nmoves*rn)
         do j=1,sublen
             call mc_trial(istep)
-            Z(me) = Z(me) + exp(-beta(me) * U0)
-            if (me<(nprocs-1) .and. mod((i-1)*sublen+j,ptinterval)==0) then
-                call pt_swap((i-1)*sublen+j)
-            endif
+            Z(me) = Z(me) + exp(-beta(me+1) * U0)
+            call pt_swap((i-1)*sublen+j)
         enddo
     enddo
 end subroutine
@@ -165,7 +163,7 @@ subroutine pt_swap(nmcsteps)
     include 'mpif.h'
     integer, intent(in) :: nmcsteps
     real*8 :: rtmp(3,Natom), rn, p
-    real*8 :: U_rlow(2),U_rhigh(2)
+    real*8 :: U_rlow(2),U_rhigh(2), betalow, betahigh
     integer :: synctag = 1, swaptag=2, ilow, ihigh, flag, s(MPI_STATUS_SIZE)
     integer :: dest, IERR
 
@@ -183,19 +181,21 @@ subroutine pt_swap(nmcsteps)
         return
     endif
 
+    betahigh = beta(ihigh+1)
+    betalow = beta(ilow+1)
     if (me==ilow) then
         U_rlow(1) = U0
-        call vgw0(r(:,:), U_rlow(2), beta(ihigh), 0.0d0, y0)
+        call vgw0(r(:,:), U_rlow(2), betahigh, 0.0d0, y0)
         call MPI_Sendrecv(U_rlow, 2, MPI_REAL8, ihigh, swaptag, &
                 U_rhigh, 3, MPI_REAL8, ihigh, swaptag, MPI_COMM_WORLD, s, IERR)
     else
-        call vgw0(r(:,:), U_rhigh(1), beta(ilow), 0.0d0, y0)
+        call vgw0(r(:,:), U_rhigh(1), betalow, 0.0d0, y0)
         U_rhigh(2) = U0
         call MPI_Sendrecv(U_rhigh, 2, MPI_REAL8, ilow, swaptag, &
                 U_rlow, 3, MPI_REAL8, ilow, swaptag, MPI_COMM_WORLD, s, IERR)
     endif
     
-    p = exp(-beta(ilow)*(U_rhigh(1) - U_rlow(1))-beta(ihigh)*(U_rlow(2) - U_rhigh(2)))
+    p = exp(-betalow*(U_rhigh(1) - U_rlow(1))-betahigh*(U_rlow(2) - U_rhigh(2)))
     if (p>rn) then
         write (*,*) 'swapping', ilow,ihigh, 'p=',p
         dest = ilow

@@ -16,7 +16,7 @@ program pljmc
     real*8 :: rcmin
     character(LEN=256) :: arg, inputf
     integer :: i, j, n, NMC,mcblen,ierr
-    namelist /ljmccfg/Natom,imass,rc,rtol,atol,taumin,NMC,mcblen,ptinterval,Tmin,Tmax,bl,outfile,rho,rcmin
+    namelist /ljmccfg/Natom,imass,rc,rtol,atol,taumin,NMC,mcblen,ptinterval,Tmin,Tmax,outfile,rho,rcmin
 
     call MPI_Init(ierr)
     call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
@@ -55,7 +55,8 @@ program pljmc
     IMASS = IMASS*0.020614788876D0
     call vgwinit(natom, 3, pH2C, pH2A, bl)
     call populate_cube(bl, rcmin, r(:,:))
-    call vgw0(r(:,:), U0, beta(me), 0.0d0, y0)
+    U0=0
+    call vgw0(r(:,:), U0, beta(me+1), 0.0d0, y0)
 
     call mc_burnin(10000)
     write (*,*) 'xstep', xstep
@@ -65,7 +66,7 @@ program pljmc
         call mc_block(mcblen, 1000)
         write (*,*) 'xstep', xstep
     
-        call MPI_Gather(Z(me), 1, MPI_REAL8, Z, nprocs, MPI_REAL8, 0, MPI_COMM_WORLD)
+        call MPI_Gather(Z(me+1), 1, MPI_REAL8, Z, nprocs, MPI_REAL8, 0, MPI_COMM_WORLD)
         if (me==0) then
             call dump_Tmin(n)
             call heat_capacity(nprocs, Z, kT, Cv)
