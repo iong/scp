@@ -4,19 +4,10 @@ program pljmc
     use vgw
     implicit none
     include 'mpif.h'
-    real*8, parameter, dimension(4) :: &
-            LJA = (/1.038252215127D0, 0.5974039109464D0, &
-                    0.196476572277834D0, 0.06668611771781D0/), &
-            LJC = (/96609.488289873d0, 14584.62075507514d0, &
-                    -365.460614956589d0, -19.5534697800036d0/)
-    real*8, parameter, dimension(3) :: &
-            pH2A = (/0.680688416015581, 0.172533385762719, 0.0509575639089336/), &
-            pH2C = (/31319.4442342458, -282.50951658104, -9.27807987319189/)
-            
     real*8 :: rcmin
     character(LEN=256) :: arg, inputf
     integer :: i, j, n, NMC,mcblen,ierr
-    namelist /ljmccfg/Natom,imass,rc,rtol,atol,taumin,NMC,mcblen,ptinterval,Tmin,Tmax,outfile,rho,rcmin
+    namelist /ljmccfg/Natom,imass,NGAUSS,LJA,LJC,rc,rtol,atol,taumin,NMC,mcblen,ptinterval,Tmin,Tmax,outfile,rho,rcmin
 
     call MPI_Init(ierr)
     call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
@@ -32,16 +23,14 @@ program pljmc
 
     call load_defaults()
 
+    LJA=0.0d0
+    LJC=0.0d0
     open(20, file=inputf)
     read(20, NML=ljmccfg)
     close(20)
     
     call setup_ljmc()
     call seed_rng()
-
-!    open(20, file='Ne147.dat')
-!    read(20, *) (q0(1,i), q0(2,i), q0(3,i),i=1,natom)
-!    close(20)
 
     bl = (Natom/rho)**(1.0/3.0)
     bl2=bl/2
@@ -53,7 +42,7 @@ program pljmc
     endif
 
     IMASS = IMASS*0.020614788876D0
-    call vgwinit(natom, 3, pH2C, pH2A, bl)
+    call vgwinit(natom, bl)
     call populate_cube(bl, rcmin, r(:,:))
     U0=0
     call vgw0(r(:,:), U0, beta(me+1), 0.0d0, y0)
@@ -62,6 +51,7 @@ program pljmc
     write (*,*) 'xstep', xstep
 
 
+    Z = 0.0d0
     do n=1,NMC,mcblen
         call mc_block(mcblen, 1000)
         write (*,*) 'xstep', xstep
