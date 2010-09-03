@@ -66,10 +66,10 @@ program pljmc
         call mc_block(mcblen, 1000)
         write (*,*) 'xstep', xstep
     
-        call MPI_Gather(Z(me+1), 1, MPI_REAL8, Z, nprocs, MPI_REAL8, 0, MPI_COMM_WORLD)
+        call MPI_Allgather(Z(me+1), 1, MPI_REAL8, Z, 1, MPI_REAL8, MPI_COMM_WORLD, ierr)
+        call heat_capacity(nprocs, Z, kT, Cv)
         if (me==0) then
             call dump_Tmin(n)
-            call heat_capacity(nprocs, Z, kT, Cv)
             open(30, file='Z.dat')
             write (30,'(4(ES16.8," "))') (kT(i), Cv(i), Z(i), beta(i),i=1,nprocs)
             close(30)
