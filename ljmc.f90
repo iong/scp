@@ -13,13 +13,16 @@ program pljmc
     call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
     call MPI_Comm_size(MPI_COMM_WORLD, nprocs, ierr)
 
-    if (command_argument_count() /= 1) then
-        write (*,*) 'Need input file'
+    if (command_argument_count() == 0) then
+        inputf='pH2.in'
+    else if (command_argument_count() == 1) then
+        call get_command_argument(1, arg)
+        inputf=trim(arg)
+    else
+        write (*,*) 'too many arguments'
         stop
     endif
 
-    call get_command_argument(1, arg)
-    inputf=trim(arg)
 
     call load_defaults()
 
@@ -47,7 +50,7 @@ program pljmc
     U0=0
     call vgw0(r(:,:), U0, beta(me+1), 0.0d0, y0)
 
-    call mc_burnin(10000)
+    call mc_burnin(10)
     write (*,*) 'xstep', xstep
 
 
