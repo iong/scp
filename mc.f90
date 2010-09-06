@@ -79,7 +79,7 @@ subroutine mc_trial(istep)
     use vgw
     implicit none
     integer, intent(in) :: istep
-    integer, parameter :: acceptance_trials = 100
+    integer, parameter :: acceptance_trials = 1000
     integer :: i, k, j
     real*8 :: lUmin, Unew, p, rn
 
@@ -165,7 +165,8 @@ subroutine pt_swap(nmcsteps)
     integer, intent(in) :: nmcsteps
     real*8 :: rbuf(3*Natom), rn, p
     real*8 :: U_rlow(2),U_rhigh(2), betalow, betahigh
-    integer :: synctag = 1, swaptag=2, ilow, ihigh, flag, s(MPI_STATUS_SIZE)
+    integer :: synctag = 1, swaptag=2, ilow, ihigh, s(MPI_STATUS_SIZE)
+    logical :: flag
     integer :: dest, IERR
 
     flag = .FALSE.
