@@ -83,6 +83,7 @@ subroutine mc_trial(istep)
     integer :: i, k, j
     real*8 :: lUmin, Unew, p, rn
 
+    write (*, '(I1$)') me
     rnew(:,:) = r(:,:)
     lUmin = 1d10
     ntrials(istep) = ntrials(istep) + 1
