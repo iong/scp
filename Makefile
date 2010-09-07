@@ -1,7 +1,7 @@
 VPATH=$(dir $(shell readlink $(shell pwd)/$(firstword $(MAKEFILE_LIST))))
 
 DBG=1
-COMPILER:=intel
+COMPILER:=pgi
 
 OS=$(shell uname -s)
 include config/$(COMPILER).mk
@@ -24,7 +24,7 @@ VGW:=propagation vgw unpackg\
        interaction_lists dlsode vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03
 VGW:=$(addsuffix .o,$(VGW))
 
-LJMC:=ljmc_mod mc setup_ljmc ljmc dump_Tmin heat_capacity rng load_defaults populate_cube
+LJMC:=xyz ljmc_mod mc setup_ljmc ljmc dump_Tmin heat_capacity rng load_defaults populate_cube
 LJMC:=$(addsuffix .o,$(LJMC))
 
 all: ljmc

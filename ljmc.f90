@@ -56,7 +56,7 @@ program pljmc
     call load_xyz(r, fname)
     call vgw0(r(:,:), U0, beta(me+1), 0.0d0, y0)
 
-    !call mc_burnin(10000)
+    call mc_burnin(10000)
     !write (*,*) 'xstep', xstep
     
     !call int2str(me, csubme)
@@ -66,6 +66,7 @@ program pljmc
     Z = 0.0d0
     do n=1,NMC,mcblen
         call mc_block(mcblen, 1000)
+        call MPI_Barrier(MPI_COMM_WORLD, ierr)
         write (*,*) 'xstep', xstep
     
         call MPI_Allgather(Z(me+1), 1, MPI_REAL8, Z, 1, MPI_REAL8, MPI_COMM_WORLD, ierr)

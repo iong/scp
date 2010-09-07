@@ -7,6 +7,7 @@ module mc
     integer, allocatable :: naccepted(:), ntrials(:), tpool(:), stepdim(:)
     integer :: ptinterval
     real*8 :: Tmin, Tmax, U0, Umin
+    integer :: ptsynctag = 1, ptswaptag=2, mcblocktag = 3
 contains
 
 subroutine pol2cart(pol, cart)
@@ -128,20 +129,43 @@ subroutine mc_trial(istep)
 end subroutine
 
 subroutine mc_block(blen, sublen)
+    implicit none
+    include 'mpif.h'
     integer, intent(in) :: blen, sublen
-    integer :: nsub, i, j, istep
+    integer :: i, j, istep, ierr, req(nprocs), idx, blen2
     real*8 :: rn
+    logical :: flag
 
-    nsub = blen/sublen
-    do i=1,nsub
-        call random_number(rn)
-        istep = 1 + aint(nmoves*rn)
-        do j=1,sublen
-            call mc_trial(istep)
-            Z(me+1) = Z(me+1) + exp(-beta(me+1) * U0)
-            call pt_swap((i-1)*sublen+j)
-        enddo
+    blen2 = blen
+    if (me /= 0) then
+         blen2 = blen*100
+    end if
+    do i=1,blen2
+        flag = .FALSE.
+        call MPI_Iprobe(0, mcblocktag, MPI_COMM_WORLD, flag, MPI_STATUS_IGNORE, IERR)
+        if (flag) then
+            call MPI_Recv(idx, 1, MPI_INTEGER, 0, mcblocktag, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
+            return
+        end if
+
+        if (mod(i-1,sublen) == 0) then
+            call random_number(rn)
+            istep = 1 + aint(nmoves*rn)
+        end if
+
+        call mc_trial(istep)
+        Z(me+1) = Z(me+1) + exp(-beta(me+1) * U0)
+        call pt_swap(i)
     enddo
+
+    if (me==0) then
+        do i=1,(nprocs-1)
+            call MPI_Isend(1, 1, MPI_INTEGER, i, mcblocktag, MPI_COMM_WORLD, req(i), ierr)
+        end do
+        do i=1,(nprocs-1)
+            call MPI_Waitany(nprocs-1, req(2:nprocs), idx, MPI_STATUS_IGNORE, ierr)
+        end do
+    end if
 end subroutine
 
 
@@ -165,21 +189,21 @@ subroutine pt_swap(nmcsteps)
     integer, intent(in) :: nmcsteps
     real*8 :: rbuf(3*Natom), rn, p
     real*8 :: U_rlow(2),U_rhigh(2), betalow, betahigh
-    integer :: synctag = 1, swaptag=2, ilow, ihigh, s(MPI_STATUS_SIZE)
+    integer :: ilow, ihigh, s(MPI_STATUS_SIZE)
     logical :: flag
     integer :: dest, IERR
 
     flag = .FALSE.
-    call MPI_Iprobe(MPI_ANY_SOURCE, synctag, MPI_COMM_WORLD, flag, s, IERR)
+    call MPI_Iprobe(MPI_ANY_SOURCE, ptsynctag, MPI_COMM_WORLD, flag, s, IERR)
     if (flag) then
             ilow = s(MPI_SOURCE)
             ihigh = me
-            call MPI_Recv(rn,1,MPI_REAL8, ilow, synctag, MPI_COMM_WORLD, s, ierr)
+            call MPI_Recv(rn,1,MPI_REAL8, ilow, ptsynctag, MPI_COMM_WORLD, s, ierr)
     elseif (me<(nprocs-1) .and. mod(nmcsteps,ptinterval)==0) then
             ilow = me
             ihigh = me+1
             call random_number(rn)
-            call MPI_Send(rn, 1, MPI_REAL8, ihigh, synctag, MPI_COMM_WORLD, ierr)
+            call MPI_Send(rn, 1, MPI_REAL8, ihigh, ptsynctag, MPI_COMM_WORLD, ierr)
     else
         return
     endif
@@ -189,13 +213,13 @@ subroutine pt_swap(nmcsteps)
     if (me==ilow) then
         U_rlow(1) = U0
         call vgw0(r(:,:), U_rlow(2), betahigh, 0.0d0, y0)
-        call MPI_Sendrecv(U_rlow, 2, MPI_REAL8, ihigh, swaptag, &
-                U_rhigh, 2, MPI_REAL8, ihigh, swaptag, MPI_COMM_WORLD, s, IERR)
+        call MPI_Sendrecv(U_rlow, 2, MPI_REAL8, ihigh, ptswaptag, &
+                U_rhigh, 2, MPI_REAL8, ihigh, ptswaptag, MPI_COMM_WORLD, s, IERR)
     else
         call vgw0(r(:,:), U_rhigh(1), betalow, 0.0d0, y0)
         U_rhigh(2) = U0
-        call MPI_Sendrecv(U_rhigh, 2, MPI_REAL8, ilow, swaptag, &
-                U_rlow, 2, MPI_REAL8, ilow, swaptag, MPI_COMM_WORLD, s, IERR)
+        call MPI_Sendrecv(U_rhigh, 2, MPI_REAL8, ilow, ptswaptag, &
+                U_rlow, 2, MPI_REAL8, ilow, ptswaptag, MPI_COMM_WORLD, s, IERR)
     endif
     
     p = exp(-betalow*(U_rhigh(1) - U_rlow(1))-betahigh*(U_rlow(2) - U_rhigh(2)))
@@ -204,8 +228,8 @@ subroutine pt_swap(nmcsteps)
         dest = ilow
         if (me == ilow) dest=ihigh
         call MPI_Sendrecv(reshape(r, (/3*Natom/)), 3*Natom, MPI_REAL8, dest, &
-            swaptag, &
-            rbuf, 3*Natom, MPI_REAL8, dest, swaptag, &
+            ptswaptag, &
+            rbuf, 3*Natom, MPI_REAL8, dest, ptswaptag, &
             MPI_COMM_WORLD, s, IERR)
         r = reshape(rbuf, (/3, Natom/) )
     endif
