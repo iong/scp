@@ -63,21 +63,7 @@ program pljmc
     !fname = "r0."//csubme//".xyz"
     !call dump_xyz(r, fname, "(pH2)_50")
 
-    Z = 0.0d0
-    do n=1,NMC,mcblen
-        call mc_block(mcblen, 1000)
-        call MPI_Barrier(MPI_COMM_WORLD, ierr)
-        write (*,*) 'xstep', xstep
-    
-        call MPI_Allgather(Z(me+1), 1, MPI_REAL8, Z, 1, MPI_REAL8, MPI_COMM_WORLD, ierr)
-        call heat_capacity(nprocs, Z, kT, Cv)
-        if (me==0) then
-            call dump_Tmin(n)
-            open(30, file='Z.dat')
-            write (30,'(4(ES16.8," "))') (kT(i), Cv(i), Z(i), beta(i),i=1,nprocs)
-            close(30)
-        endif
-    enddo
+    call mc_run_loop(NMC, mcblen, 1000)
 
     call dump_Tmin(NMC)
     call MPI_Finalize(ierr)

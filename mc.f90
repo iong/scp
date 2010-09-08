@@ -6,7 +6,7 @@ module mc
     real*8, allocatable :: xstep(:), Z(:), kT(:), beta(:), Cv(:)
     integer, allocatable :: naccepted(:), ntrials(:), tpool(:), stepdim(:)
     integer :: ptinterval
-    real*8 :: Tmin, Tmax, U0, Umin
+    real*8 :: Tmin, Tmax, U0, Umin, Zlocal
     integer :: ptsynctag = 1, ptswaptag=2, mcblocktag = 3
 contains
 
@@ -84,7 +84,7 @@ subroutine mc_trial(istep)
     integer :: i, k, j
     real*8 :: lUmin, Unew, p, rn
 
-    write (*, '(I1$)') me
+    !write (*, '(I1$)') me
     rnew(:,:) = r(:,:)
     lUmin = 1d10
     ntrials(istep) = ntrials(istep) + 1
@@ -128,45 +128,91 @@ subroutine mc_trial(istep)
     endif
 end subroutine
 
-subroutine mc_block(blen, sublen)
+subroutine mc_run_loop(NMC, mcblen, sublen)
     implicit none
     include 'mpif.h'
-    integer, intent(in) :: blen, sublen
-    integer :: i, j, istep, ierr, req(nprocs), idx, blen2
+    integer, intent(in) :: NMC, mcblen, sublen
+    integer :: i, j, istep, ierr, req(nprocs), NMC2, ackbuf, s(MPI_STATUS_SIZE)
     real*8 :: rn
     logical :: flag
 
-    blen2 = blen
+    NMC2 = NMC
     if (me /= 0) then
-         blen2 = blen*100
+         NMC2 = NMC*100
     end if
-    do i=1,blen2
-        flag = .FALSE.
-        call MPI_Iprobe(0, mcblocktag, MPI_COMM_WORLD, flag, MPI_STATUS_IGNORE, IERR)
-        if (flag) then
-            call MPI_Recv(idx, 1, MPI_INTEGER, 0, mcblocktag, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
-            return
-        end if
-
-        if (mod(i-1,sublen) == 0) then
+    Zlocal = 0.0
+    do i=1,NMC2
+         if (mod(i-1,sublen) == 0) then
             call random_number(rn)
             istep = 1 + aint(nmoves*rn)
         end if
 
         call mc_trial(istep)
-        Z(me+1) = Z(me+1) + exp(-beta(me+1) * U0)
-        call pt_swap(i)
-    enddo
+        Zlocal = Zlocal + exp(-beta(me+1) * U0)
 
-    if (me==0) then
-        do i=1,(nprocs-1)
-            call MPI_Isend(1, 1, MPI_INTEGER, i, mcblocktag, MPI_COMM_WORLD, req(i), ierr)
-        end do
-        do i=1,(nprocs-1)
-            call MPI_Waitany(nprocs-1, req(2:nprocs), idx, MPI_STATUS_IGNORE, ierr)
-        end do
-    end if
+        call MPI_Iprobe(MPI_ANY_SOURCE, ptsynctag, MPI_COMM_WORLD, flag, s, IERR)
+        if (flag) then
+            call pt_swap(s(MPI_SOURCE), me)
+        end if
+
+        call MPI_Iprobe(0, mcblocktag, MPI_COMM_WORLD, flag, MPI_STATUS_IGNORE, IERR)
+        if (flag) then
+            call MPI_Recv(ackbuf, 1, MPI_INTEGER, 0, mcblocktag, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
+            call mc_dump_state(i)
+        end if
+        if (me==0 .and. mod(i,mcblen) == 0) then
+                do j=1,(nprocs-1)
+                    call MPI_Isend(1, 1, MPI_INTEGER, j, mcblocktag, MPI_COMM_WORLD, req(j+1), ierr)
+                end do
+                call MPI_Waitall(nprocs-1, req(2:nprocs), MPI_STATUS_IGNORE, ierr)
+                call mc_dump_state(i)
+        endif
+
+        if (me<(nprocs-1) .and. mod(i,ptinterval)==0) then
+            call pt_swap(me, me+1)
+        end if
+    enddo
 end subroutine
+
+subroutine int2strz(n, w, str0)
+    implicit none
+    integer, intent(in) :: n, w
+    character(w), intent(out) :: str0
+    integer :: z, n2, i
+
+    n2 = n
+    z=iachar('0')
+    do i=w,1,-1
+        str0(i:i) = achar(z + mod(n2,10))
+        n2 = n2/10
+    end do
+end subroutine
+
+subroutine mc_dump_state(nmcnow)
+    use xyz
+    implicit none
+    include 'mpif.h'
+    integer, intent(in) :: nmcnow
+    real*8 :: Zbuf(1)
+    integer :: ierr, i
+    character(256) :: fname, label, nmcstr
+ 
+    call MPI_Barrier(MPI_COMM_WORLD, ierr)
+    Zbuf(1) = Zlocal / real(nmcnow, 8)
+    call MPI_Allgather(Zbuf, 1, MPI_REAL8, Z, 1, MPI_REAL8, MPI_COMM_WORLD, ierr)
+    call heat_capacity(nprocs, Z, kT, Cv)
+    if (me==0) then
+        write(label, "('Umin =',F14.7)") Umin
+        call int2strz(nmcnow, 10, nmcstr)
+        fname = "dump."//nmcstr(1:10)//".xyz"
+        call dump_xyz(r, fname, label)
+
+        open(30, file='Z.dat')
+        write (30,'(4(ES16.8," "))') (kT(i), Cv(i), Z(i), beta(i),i=1,nprocs)
+        close(30)
+    endif
+end subroutine
+
 
 
 subroutine mc_burnin(burnlen)
@@ -182,34 +228,29 @@ subroutine mc_burnin(burnlen)
     enddo
 end subroutine
 
-subroutine pt_swap(nmcsteps)
+subroutine pt_swap(ilow, ihigh)
     use vgw
     implicit none
     include 'mpif.h'
-    integer, intent(in) :: nmcsteps
+    integer, intent(in) :: ilow, ihigh
     real*8 :: rbuf(3*Natom), rn, p
     real*8 :: U_rlow(2),U_rhigh(2), betalow, betahigh
-    integer :: ilow, ihigh, s(MPI_STATUS_SIZE)
-    logical :: flag
+    integer :: s(MPI_STATUS_SIZE)
     integer :: dest, IERR
 
-    flag = .FALSE.
-    call MPI_Iprobe(MPI_ANY_SOURCE, ptsynctag, MPI_COMM_WORLD, flag, s, IERR)
-    if (flag) then
-            ilow = s(MPI_SOURCE)
-            ihigh = me
-            call MPI_Recv(rn,1,MPI_REAL8, ilow, ptsynctag, MPI_COMM_WORLD, s, ierr)
-    elseif (me<(nprocs-1) .and. mod(nmcsteps,ptinterval)==0) then
-            ilow = me
-            ihigh = me+1
-            call random_number(rn)
-            call MPI_Send(rn, 1, MPI_REAL8, ihigh, ptsynctag, MPI_COMM_WORLD, ierr)
+    if (me==ilow) then
+        call random_number(rn)
+        call MPI_Send(rn, 1, MPI_REAL8, ihigh, ptsynctag, MPI_COMM_WORLD, ierr)
+    else if (me==ihigh) then
+        call MPI_Recv(rn,1,MPI_REAL8, ilow, ptsynctag, MPI_COMM_WORLD, s, ierr)
     else
-        return
+        write (*,*) 'me is neither ilow or ihigh'
+        stop
     endif
 
     betahigh = beta(ihigh+1)
     betalow = beta(ilow+1)
+
     if (me==ilow) then
         U_rlow(1) = U0
         call vgw0(r(:,:), U_rlow(2), betahigh, 0.0d0, y0)
