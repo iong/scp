@@ -5,7 +5,7 @@ subroutine dump_Tmin(MCiter)
     integer :: MCiter
     integer :: i, j
     
-    write (*, "('n =',I10,', Umin = ',(F14.7$))") MCiter, Umin!(1:nstreams)
+    write (*, "('n =',I10,', Umin = ',F14.7)") MCiter, Umin!(1:nstreams)
     write (*,*)
 
 

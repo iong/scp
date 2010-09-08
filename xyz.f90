@@ -8,7 +8,7 @@ subroutine dump_xyz(r, fname, molname)
     N = size(r, 2)
     open(33,file=fname)
     write(33,'(I10)') N
-    write(33,*) molname
+    write(33,*) trim(molname)
     write(33,"(('Ne ', 3(F12.5, ' ')))") ((r(i, j), i=1,3), j=1,N)
     close(33)
 end subroutine
