@@ -1,7 +1,7 @@
 VPATH=$(dir $(shell readlink $(shell pwd)/$(firstword $(MAKEFILE_LIST))))
 
-DBG=1
-COMPILER:=pgi
+#DBG=1
+COMPILER:=gcc
 
 OS=$(shell uname -s)
 include config/$(COMPILER).mk
