@@ -22,6 +22,7 @@ subroutine pol2cart(pol, cart)
 end subroutine
 
 subroutine mc_move_atom(x, rad)
+    use utils
     implicit none
     real*8, intent(inout) :: x(3)
     real*8, intent(in) :: rad
@@ -132,7 +133,7 @@ subroutine mc_run_loop(NMC, mcblen, sublen)
     implicit none
     include 'mpif.h'
     integer, intent(in) :: NMC, mcblen, sublen
-    integer :: i, j, istep, ierr, req(nprocs), NMC2, ackbuf, s(MPI_STATUS_SIZE)
+    integer :: i, j, istep, ierr, req(nprocs), NMC2, nmcmaster, s(MPI_STATUS_SIZE)
     real*8 :: rn
     logical :: flag
 
@@ -157,15 +158,16 @@ subroutine mc_run_loop(NMC, mcblen, sublen)
 
         call MPI_Iprobe(0, mcblocktag, MPI_COMM_WORLD, flag, MPI_STATUS_IGNORE, IERR)
         if (flag) then
-            call MPI_Recv(ackbuf, 1, MPI_INTEGER, 0, mcblocktag, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
-            call mc_dump_state(i)
+            call MPI_Recv(nmcmaster, 1, MPI_INTEGER, 0, mcblocktag, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
+            call mc_dump_state(i, nmcmaster)
         end if
+
         if (me==0 .and. mod(i,mcblen) == 0) then
                 do j=1,(nprocs-1)
-                    call MPI_Isend(1, 1, MPI_INTEGER, j, mcblocktag, MPI_COMM_WORLD, req(j+1), ierr)
+                    call MPI_Isend(i, 1, MPI_INTEGER, j, mcblocktag, MPI_COMM_WORLD, req(j+1), ierr)
                 end do
                 call MPI_Waitall(nprocs-1, req(2:nprocs), MPI_STATUS_IGNORE, ierr)
-                call mc_dump_state(i)
+                call mc_dump_state(i, i)
         endif
 
         if (me<(nprocs-1) .and. mod(i,ptinterval)==0) then
@@ -174,40 +176,33 @@ subroutine mc_run_loop(NMC, mcblen, sublen)
     enddo
 end subroutine
 
-subroutine int2strz(n, w, str0)
-    implicit none
-    integer, intent(in) :: n, w
-    character(w), intent(out) :: str0
-    integer :: z, n2, i
-
-    n2 = n
-    z=iachar('0')
-    do i=w,1,-1
-        str0(i:i) = achar(z + mod(n2,10))
-        n2 = n2/10
-    end do
-end subroutine
-
-subroutine mc_dump_state(nmcnow)
+subroutine mc_dump_state(nmcnow, nmcmaster)
     use xyz
+    use utils
     implicit none
     include 'mpif.h'
-    integer, intent(in) :: nmcnow
+    integer, intent(in) :: nmcnow, nmcmaster
     real*8 :: Zbuf(1)
     integer :: ierr, i
-    character(256) :: fname, label, nmcstr
+    character(256) :: fname, label
+    character(20) :: pestr, nowstr, masterstr
  
     call MPI_Barrier(MPI_COMM_WORLD, ierr)
     Zbuf(1) = Zlocal / real(nmcnow, 8)
     call MPI_Allgather(Zbuf, 1, MPI_REAL8, Z, 1, MPI_REAL8, MPI_COMM_WORLD, ierr)
     call heat_capacity(nprocs, Z, kT, Cv)
-    if (me==0) then
-        write(label, "('Umin =',F14.7)") Umin
-        call int2strz(nmcnow, 10, nmcstr)
-        fname = "dump."//nmcstr(1:10)//".xyz"
-        call dump_xyz(r, fname, label)
 
-        open(30, file='Z.dat')
+    write(label, "('Umin =',F14.7)") Umin
+    call int2strz(me, 3, pestr)
+    call int2strz(nmcnow, 10, nowstr)
+    call int2strz(nmcmaster, 10, masterstr)
+    fname = 'dump/pe'//pestr(1:3)//'/dump_'//masterstr(1:10)//'_'//nowstr(1:10)//'.xyz'
+    write (*,*) fname
+    call dump_xyz(r, fname, label)
+
+    if (me==0) then
+        fname = "dump/Z."//nowstr(1:10)//".dat"
+        open(30, file=fname,STATUS='REPLACE')
         write (30,'(4(ES16.8," "))') (kT(i), Cv(i), Z(i), beta(i),i=1,nprocs)
         close(30)
     endif

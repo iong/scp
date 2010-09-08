@@ -3,13 +3,14 @@ program pljmc
     use mc
     use vgw
     use xyz
+    use utils
     implicit none
     include 'mpif.h'
     real*8 :: rcmin
     character(LEN=256) :: arg, inputf, fname
-    integer :: i, j, n, NMC,mcblen,ierr
+    integer :: i, j, n, NMC,mcblen,ierr,mcburn
     character(4) :: csubme
-    namelist /ljmccfg/Natom,imass,NGAUSS,LJA,LJC,rc,rtol,atol,taumin,NMC,mcblen,ptinterval,Tmin,Tmax,outfile,rho,rcmin
+    namelist /ljmccfg/Natom,imass,NGAUSS,LJA,LJC,rc,rtol,atol,taumin,NMC,mcblen,mcburn,ptinterval,Tmin,Tmax,outfile,rho,rcmin
 
     call MPI_Init(ierr)
     call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
@@ -51,31 +52,15 @@ program pljmc
 
     !call populate_cube(bl, rcmin, r(:,:))
 
-    call int2str(me, csubme)
+    call int2strz(me, 4, csubme)
     fname = "r0."//csubme//".xyz"
     call load_xyz(r, fname)
     call vgw0(r(:,:), U0, beta(me+1), 0.0d0, y0)
 
-    call mc_burnin(10000)
-    !write (*,*) 'xstep', xstep
-    
-    !call int2str(me, csubme)
-    !fname = "r0."//csubme//".xyz"
-    !call dump_xyz(r, fname, "(pH2)_50")
+    call mc_burnin(mcburn)
 
     call mc_run_loop(NMC, mcblen, 1000)
 
-    call dump_Tmin(NMC)
     call MPI_Finalize(ierr)
-contains
-
-subroutine int2str(i, csubme)
-    integer, intent(in) :: i
-    character(4) :: csubme
-    csubme =   achar(i/1000+48) &
-           // achar(mod(i/100,10)+48) &
-           // achar(mod(i/10,10)+48) &
-           // achar(mod(i,10)+48)
-end subroutine
 end program pljmc
 ! vim:et
