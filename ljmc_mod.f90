@@ -2,16 +2,9 @@ module ljmc
     implicit none
     integer :: Natom
     integer :: me, nprocs
-    real*8 :: M_PI = 3.14159265358979323846264338327950288d0
     real*8 :: bl=1d10, bl2,rho
     real*8,allocatable :: q0(:,:), y0(:)
     character(len=256) :: outfile
-
-    interface
-    real*8 function gaussran(sigma, x0) result(y)
-        real*8, intent(in) :: sigma, x0
-    end function
-    end interface
 
     interface
     subroutine heat_capacity(N, Z, kT, Cv)
