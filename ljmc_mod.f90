@@ -12,9 +12,13 @@ module ljmc
         real*8, intent(in), dimension(N) :: Z, kT
         real*8, intent(out), dimension(N) :: Cv
     end subroutine
-    end interface
 
-    interface
+    subroutine heat_capacity2(N, Z, beta, Cv)
+        integer, intent(in) :: N
+        real*8, intent(in), dimension(N) :: Z, beta
+        real*8, intent(out), dimension(N) :: Cv
+    end subroutine
+
     subroutine populate_cube(bl, rcmin, r)
         real*8, intent(in) :: bl, rcmin
         real*8, intent(out) :: r(:,:)

@@ -208,7 +208,7 @@ subroutine mc_dump_state(nmcnow, nmclast, nmcmaster)
     call dump_xyz(r, fname, label)
 
     Zlocal = Zlocal / real(nmcnow-nmclast, 8)
-    call heat_capacity(ntau, Zlocal, taugrid, Cvlocal)
+    call heat_capacity2(ntau, Zlocal, taugrid, Cvlocal)
 
     write(fname, "('dump/pe',I3,'/Z_',I10,'_',I10,'.dat')") me, nmcmaster, nmcnow
     call replace_char(fname, ' ', '0')
