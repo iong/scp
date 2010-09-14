@@ -11,10 +11,16 @@ subroutine setup_ljmc()
         r(3,natom), rnew(3,natom), &
         rmin(3,natom), ntrials(nmoves), naccepted(nmoves),&
         stepdim(nmoves),xstep(nmoves), tpool(natom), &
-        Z(nprocs), kT(nprocs), beta(nprocs), Cv(nprocs))
+        Zlocal(ntau), U0(ntau), taugrid(ntau), kT(nprocs), beta(nprocs))
 
-    kT(1:nprocs) = (/(Tmin + (Tmax-Tmin)/(nprocs-1)*(i-1), i=1,nprocs)/)
+    call linspace(Tmin, Tmax, nprocs, kT)
     beta(1:nprocs) = 1.0/kT(1:nprocs)
+    if (me == nprocs -1) then
+        call linspace(0.5*beta(me+1), beta(me+1), ntau, taugrid)
+    else
+        call linspace(beta(me+2), beta(me+1), ntau-1, taugrid(2:ntau))
+        taugrid(1) = 2.0*taugrid(2) - taugrid(3)
+    end if
 
     stepdim=(/(1 + i*(Natom-1)/(nmoves-1),i=0,nmoves-1)/)
 

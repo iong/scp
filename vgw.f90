@@ -5,7 +5,7 @@ module vgw
     logical, allocatable :: QRC(:)
     real*8 :: MASS, RC, ATOL, RTOL, TAUMIN, IMASS
     integer :: N_atom
-    
+
 contains
 
 subroutine vgwinit(natom, boxlen)

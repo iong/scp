@@ -1,13 +1,14 @@
 SUBROUTINE vgw0(Q0, W, TAUMAX,TAUI, Y)
     use propagation
+    use utils
     IMPLICIT NONE
-    REAL*8, intent(in) :: Q0(3,N_atom), TAUMAX, TAUI
+    REAL*8, intent(in) :: Q0(3,N_atom), TAUMAX(:), TAUI
     REAL*8, intent(inout) :: Y(1+9*N_atom)
-    REAL*8, intent(out) :: W
+    REAL*8, intent(out) :: W(:)
     real*8 :: G(3,3,N_atom), G0(6), M(3,3), T, ULJ, LOGDET, DETI
     real*8 :: TSTEP=1e-3
     real*8 :: tnow
-    integer :: I, nsteps, CNT, CNT2
+    integer :: I, j, nsteps, CNT, CNT2
   
 
     if (TAUI <= 0.0) then
@@ -31,18 +32,33 @@ SUBROUTINE vgw0(Q0, W, TAUMAX,TAUI, Y)
         T = 0.5*TAUI
     endif
 
-    call mylsode(RHSS0, Y, 1+9*N_atom, TSTEP, T, TAUMAX/2.0,atol,rtol)
+    do i=1,size(TAUMAX)
+        call mylsode(RHSS0, Y, 1+9*N_atom, TSTEP, T, TAUMAX(i)/2.0,atol,rtol)
 
-    call unpackg(N_atom, y(2+3*N_atom:1+9*N_atom), G)
-    LOGDET=0.0
-    DO I=1,N_atom
-        CALL INVDET(G(:,:,I) , M, DETI)
-        LOGDET = LOGDET + LOG(DETI)
-    ENDDO
+        call unpackg(N_atom, y(2+3*N_atom:1+9*N_atom), G)
+        LOGDET=0.0
+        DO j=1,N_atom
+            CALL INVDET(G(:,:,j) , M, DETI)
+            LOGDET = LOGDET + LOG(DETI)
+        ENDDO
     
 
 
-    W=-(1/TAUMAX)*(2.0*y(1) - 0.5*LOGDET)
+        W(i)=-(1/TAUMAX(i))*(2.0*y(1) - 0.5*LOGDET - 3.0*N_atom*log(2.0*sqrt(M_PI)))
+    enddo
+END SUBROUTINE
+
+
+SUBROUTINE vgw0s(Q0, W, TAUMAX,TAUI, Y)
+    IMPLICIT NONE
+    REAL*8, intent(in) :: Q0(3,N_atom), TAUMAX, TAUI
+    REAL*8, intent(inout) :: Y(1+9*N_atom)
+    REAL*8, intent(out) :: W
+    real*8, dimension(1) :: W_, TAUMAX_
+
+    TAUMAX_(1) = TAUMAX
+    call vgw0(Q0, W_, TAUMAX_, TAUI, Y)
+    W = W_(1)
 END SUBROUTINE
 
 ! vim:et

@@ -1,12 +1,13 @@
 module mc
     use ljmc
     implicit none
-    integer, parameter :: nmoves = 4
+    integer, parameter :: nmoves = 4, ntau = 10
     real*8, allocatable :: r(:,:), rnew(:,:), rmin(:,:)
-    real*8, allocatable :: xstep(:), Z(:), kT(:), beta(:), Cv(:)
+    real*8, allocatable :: xstep(:), Z(:), kT(:), beta(:), &
+                        Zlocal(:), taugrid(:), U0(:)
     integer, allocatable :: naccepted(:), ntrials(:), tpool(:), stepdim(:)
     integer :: ptinterval
-    real*8 :: Tmin, Tmax, U0, Umin, Zlocal
+    real*8 :: Tmin, Tmax, Umin
     integer :: ptsynctag = 1, ptswaptag=2, mcblocktag = 3
 contains
 
@@ -79,11 +80,12 @@ end subroutine
 
 subroutine mc_trial(istep)
     use vgw
+    use utils
     implicit none
     integer, intent(in) :: istep
-    integer, parameter :: acceptance_trials = 1000
+    integer, parameter :: acceptance_trials = 1000, ntau = 5
     integer :: i, k, j
-    real*8 :: lUmin, Unew, p, rn
+    real*8 :: lUmin, Unew(ntau), taugrid(ntau), p, rn
 
     !write (*, '(I1$)') me
     rnew(:,:) = r(:,:)
@@ -104,8 +106,8 @@ subroutine mc_trial(istep)
         enddo
     enddo
 
-    call vgw0(rnew(:,:), Unew, beta(me+1), 0.0d0, y0)
-    p = exp( - (Unew - U0) * beta(me+1) )
+    call vgw0(rnew(:,:), Unew, taugrid, 0.0d0, y0)
+    p = exp( - (Unew(ntau) - U0(ntau)) * taugrid(ntau) )
     call random_number(rn)
 
     if (p>rn) then
@@ -114,8 +116,8 @@ subroutine mc_trial(istep)
         naccepted(istep) = naccepted(istep) + 1
     endif
 
-    if (U0 < Umin) then
-        Umin = U0
+    if (U0(ntau) < Umin) then
+        Umin = U0(ntau)
         rmin(:,:) = r(:,:)
     endif
 
@@ -129,11 +131,12 @@ subroutine mc_trial(istep)
     endif
 end subroutine
 
+
 subroutine mc_run_loop(NMC, mcblen, sublen)
     implicit none
     include 'mpif.h'
     integer, intent(in) :: NMC, mcblen, sublen
-    integer :: i, j, istep, ierr, req(nprocs), NMC2, nmcmaster, s(MPI_STATUS_SIZE)
+    integer :: i, j, istep, ierr, req(nprocs), NMC2, nmclast, nmcmaster, s(MPI_STATUS_SIZE)
     real*8 :: rn
     logical :: flag
 
@@ -142,6 +145,7 @@ subroutine mc_run_loop(NMC, mcblen, sublen)
          NMC2 = NMC*100
     end if
     Zlocal = 0.0
+    nmclast = 0
     do i=1,NMC2
          if (mod(i-1,sublen) == 0) then
             call random_number(rn)
@@ -149,7 +153,7 @@ subroutine mc_run_loop(NMC, mcblen, sublen)
         end if
 
         call mc_trial(istep)
-        Zlocal = Zlocal + exp(-beta(me+1) * U0)
+        Zlocal = Zlocal + exp(-taugrid * (U0 - U0(ntau)))
 
         call MPI_Iprobe(MPI_ANY_SOURCE, ptsynctag, MPI_COMM_WORLD, flag, s, IERR)
         if (flag) then
@@ -159,15 +163,25 @@ subroutine mc_run_loop(NMC, mcblen, sublen)
         call MPI_Iprobe(0, mcblocktag, MPI_COMM_WORLD, flag, MPI_STATUS_IGNORE, IERR)
         if (flag) then
             call MPI_Recv(nmcmaster, 1, MPI_INTEGER, 0, mcblocktag, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
-            call mc_dump_state(i, nmcmaster)
+            call mc_dump_state(i, nmclast, nmcmaster)
+            nmclast = i
+            Zlocal = 0.0
+            if (nmcmaster >= NMC) then
+                return
+            end if
         end if
 
         if (me==0 .and. mod(i,mcblen) == 0) then
-                do j=1,(nprocs-1)
-                    call MPI_Isend(i, 1, MPI_INTEGER, j, mcblocktag, MPI_COMM_WORLD, req(j+1), ierr)
-                end do
-                call MPI_Waitall(nprocs-1, req(2:nprocs), MPI_STATUS_IGNORE, ierr)
-                call mc_dump_state(i, i)
+            do j=1,(nprocs-1)
+                call MPI_Isend(i, 1, MPI_INTEGER, j, mcblocktag, MPI_COMM_WORLD, req(j+1), ierr)
+            end do
+            call MPI_Waitall(nprocs-1, req(2:nprocs), MPI_STATUS_IGNORE, ierr)
+            call mc_dump_state(i, nmclast, i)
+            nmclast = i
+            Zlocal = 0.0
+            if (nmcmaster >= NMC) then
+                return
+            end if
         endif
 
         if (me<(nprocs-1) .and. mod(i,ptinterval)==0) then
@@ -176,36 +190,33 @@ subroutine mc_run_loop(NMC, mcblen, sublen)
     enddo
 end subroutine
 
-subroutine mc_dump_state(nmcnow, nmcmaster)
+subroutine mc_dump_state(nmcnow, nmclast, nmcmaster)
     use xyz
     use utils
     implicit none
     include 'mpif.h'
-    integer, intent(in) :: nmcnow, nmcmaster
-    real*8 :: Zbuf(1)
+    integer, intent(in) :: nmcnow, nmclast, nmcmaster
+    real*8 :: Cvlocal(ntau)
     integer :: ierr, i
     character(256) :: fname, label
     character(20) :: pestr, nowstr, masterstr
  
-    call MPI_Barrier(MPI_COMM_WORLD, ierr)
-    Zbuf(1) = Zlocal / real(nmcnow, 8)
-    call MPI_Allgather(Zbuf, 1, MPI_REAL8, Z, 1, MPI_REAL8, MPI_COMM_WORLD, ierr)
-    call heat_capacity(nprocs, Z, kT, Cv)
 
-    write(label, "('Umin =',F14.7)") Umin
-    call int2strz(me, 3, pestr)
-    call int2strz(nmcnow, 10, nowstr)
-    call int2strz(nmcmaster, 10, masterstr)
-    fname = 'dump/pe'//pestr(1:3)//'/dump_'//masterstr(1:10)//'_'//nowstr(1:10)//'.xyz'
-    write (*,*) fname
+    write(label, "('U0 =',F14.7)") U0(ntau)
+    write(fname, "('dump/pe',I3,'/dump_',I10,'_',I10,'.xyz')") me, nmcmaster, nmcnow
+    call replace_char(fname, ' ', '0')
     call dump_xyz(r, fname, label)
 
-    if (me==0) then
-        fname = "dump/Z."//nowstr(1:10)//".dat"
-        open(30, file=fname,STATUS='REPLACE')
-        write (30,'(4(ES16.8," "))') (kT(i), Cv(i), Z(i), beta(i),i=1,nprocs)
-        close(30)
-    endif
+    Zlocal = Zlocal / real(nmcnow-nmclast, 8)
+    call heat_capacity(ntau, Zlocal, taugrid, Cvlocal)
+
+    write(fname, "('dump/pe',I3,'/Z_',I10,'_',I10,'.dat')") me, nmcmaster, nmcnow
+    call replace_char(fname, ' ', '0')
+    open(30, file=fname,STATUS='REPLACE')
+    write (30,'(4(ES16.8," "))') (1.0/taugrid(i), Cvlocal(i), Z(i), beta(i),i=ntau,1,-1)
+    close(30)
+
+    call MPI_Barrier(MPI_COMM_WORLD, ierr)
 end subroutine
 
 
@@ -247,13 +258,13 @@ subroutine pt_swap(ilow, ihigh)
     betalow = beta(ilow+1)
 
     if (me==ilow) then
-        U_rlow(1) = U0
-        call vgw0(r(:,:), U_rlow(2), betahigh, 0.0d0, y0)
+        U_rlow(1) = U0(ntau)
+        call vgw0s(r(:,:), U_rlow(2), betahigh, 0.0d0, y0)
         call MPI_Sendrecv(U_rlow, 2, MPI_REAL8, ihigh, ptswaptag, &
                 U_rhigh, 2, MPI_REAL8, ihigh, ptswaptag, MPI_COMM_WORLD, s, IERR)
     else
-        call vgw0(r(:,:), U_rhigh(1), betalow, 0.0d0, y0)
-        U_rhigh(2) = U0
+        call vgw0s(r(:,:), U_rhigh(1), betalow, 0.0d0, y0)
+        U_rhigh(2) = U0(ntau)
         call MPI_Sendrecv(U_rhigh, 2, MPI_REAL8, ilow, ptswaptag, &
                 U_rlow, 2, MPI_REAL8, ilow, ptswaptag, MPI_COMM_WORLD, s, IERR)
     endif

@@ -28,14 +28,42 @@ end function
 subroutine int2strz(n, w, str0)
     implicit none
     integer, intent(in) :: n, w
-    character(w), intent(out) :: str0
+    character(len=*), intent(out) :: str0
     integer :: z, n2, i
+
+    if (len(str0) < w) then
+        write (*,*) 'Number too large for string'
+        stop
+    end if
 
     n2 = n
     z=iachar('0')
     do i=w,1,-1
         str0(i:i) = achar(z + mod(n2,10))
         n2 = n2/10
+    end do
+end subroutine
+
+subroutine linspace(xmin, xmax, N, xout)
+    real*8, intent(in) :: xmin, xmax
+    integer, intent(in) :: N
+    real*8, intent(out) :: xout(N)
+    integer :: i
+    real*8:: dx
+
+    dx = (xmax - xmin) / (N-1)
+    xout = xmin + dx * (/(i,i=0,N-1)/)
+end subroutine
+
+subroutine replace_char(str, a, b)
+    character(len=*), intent(inout) :: str
+    character, intent(in) :: a, b
+    integer :: i
+
+    do i=1,len_trim(str)
+        if (str(i:i)==a) then
+            str(i:i) = b
+        end if
     end do
 end subroutine
 
