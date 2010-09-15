@@ -1,6 +1,6 @@
 CC=pgcc
 FC=pgf95
-OPTFLAGS=-fastsse -Minline
+OPTFLAGS=-fast
 DBGFLAGS=-O0 -g -Mbounds
 FDBG:=
 FFLAGS:=
