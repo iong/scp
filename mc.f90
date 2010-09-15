@@ -9,6 +9,7 @@ module mc
     integer :: ptinterval
     real*8 :: Tmin, Tmax, Umin
     integer :: ptsynctag = 1, ptswaptag=2, mcblocktag = 3
+    integer :: ptswaps = 0, ptattempts = 0
 contains
 
 subroutine pol2cart(pol, cart)
@@ -204,20 +205,26 @@ subroutine mc_dump_state(nmcnow, nmclast, nmcmaster)
     integer :: ierr, i
     character(256) :: fname, label
     character(20) :: pestr, nowstr, masterstr
- 
 
     write(label, "('U0 =',F14.7)") U0(ntau)
-    write(fname, "('dump/pe',I3,'/dump_',I10,'_',I10,'.xyz')") me, nmcmaster, nmcnow
+    write(fname, "('dump/pe',I3,'/dump_',I10,'.xyz')") me, nmcmaster
     call replace_char(fname, ' ', '0')
     call dump_xyz(r, fname, label)
 
     Zlocal = Zlocal / real(nmcnow-nmclast, 8)
     call heat_capacity2(ntau, Zlocal, taugrid, Cvlocal)
 
-    write(fname, "('dump/pe',I3,'/Z_',I10,'_',I10,'.dat')") me, nmcmaster, nmcnow
+    write(fname, "('dump/pe',I3,'/Z_',I10,'.dat')") me, nmcmaster
     call replace_char(fname, ' ', '0')
     open(30, file=fname)
-    write (30,'(4(ES16.8," "))') (1.0/taugrid(i), Cvlocal(i), Zlocal(i), beta(i),i=ntau,1,-1)
+    write (30,'(4(ES16.8," "))') (1.0/taugrid(i), Cvlocal(i), Zlocal(i), taugrid(i),i=ntau,1,-1)
+    close(30)
+
+    write(fname, "('dump/pe',I3,'/state_',I10,'.h')") me, nmcmaster
+    call replace_char(fname, ' ', '0')
+    open(30, file=fname)
+    write (30, "('nmcnow =', I10)") nmcnow
+    write (30, "('xstep =', (F8.5))") xstep
     close(30)
 
     call MPI_Barrier(MPI_COMM_WORLD, ierr)
@@ -252,6 +259,7 @@ subroutine pt_swap(ilow, ihigh)
     if (me==ilow) then
         call random_number(rn)
         call MPI_Send(rn, 1, MPI_REAL8, ihigh, ptsynctag, MPI_COMM_WORLD, ierr)
+        ptattempts = ptattempts + 1
     else if (me==ihigh) then
         call MPI_Recv(rn,1,MPI_REAL8, ilow, ptsynctag, MPI_COMM_WORLD, s, ierr)
     else
@@ -284,7 +292,8 @@ subroutine pt_swap(ilow, ihigh)
     if (p>rn) then
         dest = ilow
         if (me == ilow) then
-            write (*,*) 'swapping', ilow,ihigh, 'p=',p
+            ptswaps = ptswaps + 1
+            write (*,'("swapping ",I2,"-",I2,5X,"p =",F8.5)') ilow, ihigh, real(ptswaps)/real(ptattempts)
             dest=ihigh
         end if
         call MPI_Sendrecv(reshape(r, (/3*Natom/)), 3*Natom, MPI_REAL8, dest, &
