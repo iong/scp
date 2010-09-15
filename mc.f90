@@ -3,7 +3,7 @@ module mc
     implicit none
     integer, parameter :: nmoves = 4, ntau = 10
     real*8, allocatable :: r(:,:), rnew(:,:), rmin(:,:)
-    real*8, allocatable :: xstep(:), Z(:), kT(:), beta(:), &
+    real*8, allocatable :: xstep(:), kT(:), beta(:), &
                         Zlocal(:), taugrid(:), U0(:)
     integer, allocatable :: naccepted(:), ntrials(:), tpool(:), stepdim(:)
     integer :: ptinterval
@@ -114,6 +114,10 @@ subroutine mc_trial(istep)
         U0 = Unew
         r(:,:) = rnew(:,:)
         naccepted(istep) = naccepted(istep) + 1
+        !if (me/=nprocs-1 .and. abs(U0(ntau) - U0(1)) > 100) then
+        !    write (*,*) 'On PE', me
+        !    write (*,"((2F14.7))") (taugrid(i), U0(i),i=1,ntau)
+        !endif
     endif
 
     if (U0(ntau) < Umin) then
@@ -212,8 +216,8 @@ subroutine mc_dump_state(nmcnow, nmclast, nmcmaster)
 
     write(fname, "('dump/pe',I3,'/Z_',I10,'_',I10,'.dat')") me, nmcmaster, nmcnow
     call replace_char(fname, ' ', '0')
-    open(30, file=fname,STATUS='REPLACE')
-    write (30,'(4(ES16.8," "))') (1.0/taugrid(i), Cvlocal(i), Z(i), beta(i),i=ntau,1,-1)
+    open(30, file=fname)
+    write (30,'(4(ES16.8," "))') (1.0/taugrid(i), Cvlocal(i), Zlocal(i), beta(i),i=ntau,1,-1)
     close(30)
 
     call MPI_Barrier(MPI_COMM_WORLD, ierr)
@@ -236,6 +240,7 @@ end subroutine
 
 subroutine pt_swap(ilow, ihigh)
     use vgw
+    use utils
     implicit none
     include 'mpif.h'
     integer, intent(in) :: ilow, ihigh
@@ -259,26 +264,35 @@ subroutine pt_swap(ilow, ihigh)
 
     if (me==ilow) then
         U_rlow(1) = U0(ntau)
-        call vgw0s(r(:,:), U_rlow(2), betahigh, 0.0d0, y0)
+        call vgw0s(r, U_rlow(2), betahigh, 0.0d0, y0)
+        !call vgw0(r, U_rlow, (/betahigh, betalow/), 0.0d0, y0)
+        !call fliplr(U_rlow)
         call MPI_Sendrecv(U_rlow, 2, MPI_REAL8, ihigh, ptswaptag, &
                 U_rhigh, 2, MPI_REAL8, ihigh, ptswaptag, MPI_COMM_WORLD, s, IERR)
     else
-        call vgw0s(r(:,:), U_rhigh(1), betalow, 0.0d0, y0)
+        call vgw0s(r, U_rhigh(1), betalow, 0.0d0, y0)
         U_rhigh(2) = U0(ntau)
+        !call vgw0(r, U_rhigh, (/betahigh, betalow/), 0.0d0, y0)
+        !call fliplr(U_rhigh)
         call MPI_Sendrecv(U_rhigh, 2, MPI_REAL8, ilow, ptswaptag, &
                 U_rlow, 2, MPI_REAL8, ilow, ptswaptag, MPI_COMM_WORLD, s, IERR)
     endif
     
     p = exp(-betalow*(U_rhigh(1) - U_rlow(1))-betahigh*(U_rlow(2) - U_rhigh(2)))
+    !if (me==ilow) write (*,*) me, 'p =', p
+    !write (*,*) betalow, betahigh, U_rhigh, U_rlow, U0(ntau)
     if (p>rn) then
-        write (*,*) 'swapping', ilow,ihigh, 'p=',p
         dest = ilow
-        if (me == ilow) dest=ihigh
+        if (me == ilow) then
+            write (*,*) 'swapping', ilow,ihigh, 'p=',p
+            dest=ihigh
+        end if
         call MPI_Sendrecv(reshape(r, (/3*Natom/)), 3*Natom, MPI_REAL8, dest, &
             ptswaptag, &
             rbuf, 3*Natom, MPI_REAL8, dest, ptswaptag, &
             MPI_COMM_WORLD, s, IERR)
         r = reshape(rbuf, (/3, Natom/) )
+        call vgw0(r, U0, taugrid, 0.0d0, y0)
     endif
 end subroutine
 

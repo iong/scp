@@ -67,4 +67,17 @@ subroutine replace_char(str, a, b)
     end do
 end subroutine
 
+subroutine fliplr(v)
+    real*8, intent(inout) :: v(:)
+    real*8 :: x
+    integer :: i, N
+
+    N = size(v)
+    do i=1,N/2
+        x = v(N-i+1)
+        v(N-i+1) = v(i)
+        v(i) = x
+    end do
+end subroutine
+
 end module utils
