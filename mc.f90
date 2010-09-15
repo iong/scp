@@ -83,9 +83,9 @@ subroutine mc_trial(istep)
     use utils
     implicit none
     integer, intent(in) :: istep
-    integer, parameter :: acceptance_trials = 1000, ntau = 5
+    integer, parameter :: acceptance_trials = 1000
     integer :: i, k, j
-    real*8 :: lUmin, Unew(ntau), taugrid(ntau), p, rn
+    real*8 :: lUmin, Unew(ntau), p, rn
 
     !write (*, '(I1$)') me
     rnew(:,:) = r(:,:)
