@@ -24,7 +24,7 @@ VGW:=utils propagation vgw unpackg\
        interaction_lists dlsode vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03
 VGW:=$(addsuffix .o,$(VGW))
 
-LJMC:=xyz ljmc_mod mc setup_ljmc ljmc dump_Tmin heat_capacity rng load_defaults populate_cube
+LJMC:=xyz ljmc_mod mc setup_ljmc ljmc heat_capacity load_defaults populate_cube
 LJMC:=$(addsuffix .o,$(LJMC))
 
 all: ljmc
