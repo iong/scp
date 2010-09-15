@@ -4,11 +4,11 @@ module mc
     integer, parameter :: nmoves = 4, ntau = 10
     real*8, allocatable :: r(:,:), rnew(:,:), rmin(:,:)
     real*8, allocatable :: xstep(:), kT(:), beta(:), &
-                        Zlocal(:), taugrid(:), U0(:)
+                        Z(:), taugrid(:), U0(:)
     integer, allocatable :: naccepted(:), ntrials(:), tpool(:), stepdim(:)
-    integer :: ptinterval
+    integer :: ptinterval, dumpinterval
     real*8 :: Tmin, Tmax, Umin
-    integer :: ptsynctag = 1, ptswaptag=2, mcblocktag = 3
+    integer :: ptsynctag = 1, ptswaptag=2, dumptag = 3
     integer :: ptswaps = 0, ptattempts = 0
 contains
 
@@ -138,7 +138,7 @@ subroutine mc_run_loop(NMC, mcblen, sublen)
     if (me /= 0) then
          NMC2 = NMC*100
     end if
-    Zlocal = 0.0
+    Z = 0.0
     nmclast = 0
     do i=1,NMC2
          if (mod(i-1,sublen) == 0) then
@@ -147,32 +147,36 @@ subroutine mc_run_loop(NMC, mcblen, sublen)
         end if
 
         call mc_trial(istep)
-        Zlocal = Zlocal + exp(-taugrid * (U0 - U0(ntau)))
+        Z = Z + exp(-taugrid * (U0 - U0(ntau)))
 
         call MPI_Iprobe(MPI_ANY_SOURCE, ptsynctag, MPI_COMM_WORLD, flag, s, IERR)
         if (flag) then
             call pt_swap(s(MPI_SOURCE), me)
         end if
 
-        call MPI_Iprobe(0, mcblocktag, MPI_COMM_WORLD, flag, MPI_STATUS_IGNORE, IERR)
+        call MPI_Iprobe(0, dumptag, MPI_COMM_WORLD, flag, MPI_STATUS_IGNORE, IERR)
         if (flag) then
-            call MPI_Recv(nmcmaster, 1, MPI_INTEGER, 0, mcblocktag, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
+            call MPI_Recv(nmcmaster, 1, MPI_INTEGER, 0, dumptag, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
             call mc_dump_state(i, nmclast, nmcmaster)
-            nmclast = i
-            Zlocal = 0.0
+            if (mod(nmcmaster,mcblen) == 0) then 
+                nmclast = i
+                Z = 0.0
+            end if
             if (nmcmaster >= NMC) then
                 return
             end if
         end if
 
-        if (me==0 .and. mod(i,mcblen) == 0) then
+        if (me==0 .and. mod(i,dumpinterval) == 0) then
             do j=1,(nprocs-1)
-                call MPI_Isend(i, 1, MPI_INTEGER, j, mcblocktag, MPI_COMM_WORLD, req(j+1), ierr)
+                call MPI_Isend(i, 1, MPI_INTEGER, j, dumptag, MPI_COMM_WORLD, req(j+1), ierr)
             end do
             call MPI_Waitall(nprocs-1, req(2:nprocs), MPI_STATUS_IGNORE, ierr)
             call mc_dump_state(i, nmclast, i)
-            nmclast = i
-            Zlocal = 0.0
+            if (mod(nmcmaster,mcblen) == 0) then 
+                nmclast = i
+                Z = 0.0
+            end if
             if (nmcmaster >= NMC) then
                 return
             end if
@@ -190,7 +194,7 @@ subroutine mc_dump_state(nmcnow, nmclast, nmcmaster)
     implicit none
     include 'mpif.h'
     integer, intent(in) :: nmcnow, nmclast, nmcmaster
-    real*8 :: Cvlocal(ntau)
+    real*8 :: Cv(ntau)
     integer :: ierr, i
     character(256) :: fname, label
     character(20) :: pestr, nowstr, masterstr
@@ -200,13 +204,12 @@ subroutine mc_dump_state(nmcnow, nmclast, nmcmaster)
     call replace_char(fname, ' ', '0')
     call dump_xyz(r, fname, label)
 
-    Zlocal = Zlocal / real(nmcnow-nmclast, 8)
-    call heat_capacity2(ntau, Zlocal, taugrid, Cvlocal)
+    call heat_capacity2(ntau, Z, taugrid, Cv)
 
     write(fname, "('dump/pe',I3,'/Z_',I10,'.dat')") me, nmcmaster
     call replace_char(fname, ' ', '0')
     open(30, file=fname)
-    write (30,'(4(ES16.8," "))') (1.0/taugrid(i), Cvlocal(i), Zlocal(i), taugrid(i),i=ntau,1,-1)
+    write (30,'(4(ES16.8," "))') (1.0/taugrid(i), Cv(i), Z(i), taugrid(i),i=ntau,1,-1)
     close(30)
 
     write(fname, "('dump/pe',I3,'/state_',I10,'.h')") me, nmcmaster

@@ -10,21 +10,21 @@ program pljmc
     character(LEN=256) :: arg, inputf, fname
     integer :: i, j, n, NMC,mcblen,ierr,mcburn
     character(4) :: csubme
-    namelist /ljmccfg/Natom,imass,NGAUSS,LJA,LJC,rc,rtol,atol,taumin,NMC,mcblen,mcburn,ptinterval,Tmin,Tmax,outfile,rho,rcmin
+    namelist /ljmccfg/Natom,imass,NGAUSS,LJA,LJC,rc,rtol,atol,taumin,NMC,mcblen,mcburn,ptinterval,dumpinterval,Tmin,Tmax,outfile,rho,rcmin
 
     call MPI_Init(ierr)
     call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
     call MPI_Comm_size(MPI_COMM_WORLD, nprocs, ierr)
 
-    if (command_argument_count() == 0) then
+    !if (command_argument_count() == 0) then
         inputf='pH2.in'
-    else if (command_argument_count() == 1) then
-        call get_command_argument(1, arg)
-        inputf=trim(arg)
-    else
-        write (*,*) 'too many arguments'
-        stop
-    endif
+    !else if (command_argument_count() == 1) then
+    !    call get_command_argument(1, arg)
+    !    inputf=trim(arg)
+    !else
+    !    write (*,*) command_argument_count(), ', too many arguments'
+    !    stop
+    !endif
 
 
     call load_defaults()

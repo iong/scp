@@ -11,7 +11,7 @@ subroutine setup_ljmc()
         r(3,natom), rnew(3,natom), &
         rmin(3,natom), ntrials(nmoves), naccepted(nmoves),&
         stepdim(nmoves),xstep(nmoves), tpool(natom), &
-        Zlocal(ntau), U0(ntau), taugrid(ntau), kT(nprocs), beta(nprocs))
+        Z(ntau), U0(ntau), taugrid(ntau), kT(nprocs), beta(nprocs))
 
     call linspace(Tmin, Tmax, nprocs, kT)
     beta(1:nprocs) = 1.0/kT(1:nprocs)
