@@ -1,10 +1,10 @@
-VPATH=$(dir $(shell readlink $(shell pwd)/$(firstword $(MAKEFILE_LIST))))
+VPATH:=$(dir $(shell readlink $(shell pwd)/Makefile))
 
 #DBG=1
-COMPILER:=gcc
+COMPILER:=pgi
 
 OS=$(shell uname -s)
-include config/$(COMPILER).mk
+include $(VPATH)/config/$(COMPILER).mk
 CC:=mpicc
 FC:=mpif90
 
