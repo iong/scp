@@ -25,6 +25,18 @@ real*8 function gaussran(sigma, x0) result(y)
     y = y*sigma + x0
 end function
 
+subroutine pol2cart(pol, cart)
+    real*8, intent(in) :: pol(3)
+    real*8, intent(out) :: cart(3)
+    real*8 :: rxy
+
+    rxy = pol(1) * sin(pol(2))
+    cart(1) = rxy * cos(pol(3))
+    cart(2) = rxy * sin(pol(3))
+    cart(3) = pol(1) * cos(pol(2))
+end subroutine
+
+
 subroutine int2strz(n, w, str0)
     implicit none
     integer, intent(in) :: n, w

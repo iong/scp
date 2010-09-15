@@ -12,17 +12,6 @@ module mc
     integer :: ptswaps = 0, ptattempts = 0
 contains
 
-subroutine pol2cart(pol, cart)
-    real*8, intent(in) :: pol(3)
-    real*8, intent(out) :: cart(3)
-    real*8 :: rxy
-
-    rxy = pol(1) * sin(pol(2))
-    cart(1) = rxy * cos(pol(3))
-    cart(2) = rxy * sin(pol(3))
-    cart(3) = pol(1) * cos(pol(2))
-end subroutine
-
 subroutine mc_move_atom(x, rad)
     use utils
     implicit none
