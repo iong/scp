@@ -1,5 +1,7 @@
 *.o
 *.mod
+*.xyz
+*.dat
 
 # xcode noise
 build/*
