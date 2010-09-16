@@ -1,4 +1,4 @@
-VPATH:=$(dir $(shell readlink $(shell pwd)/Makefile))
+VPATH:=$(dir $(realpath Makefile))
 
 #DBG=1
 COMPILER:=pgi
