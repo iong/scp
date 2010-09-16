@@ -2,14 +2,16 @@ module xyz
 contains
 subroutine dump_xyz(r, fname, molname)
     real*8, intent(in) :: r(:,:)
-    character(256), intent(in) :: fname, molname
+    character(len=*), intent(in) :: fname, molname
     integer :: i, j, N
 
     N = size(r, 2)
-    open(33,file=fname)
+    open(33,file=fname,status='REPLACE')
     write(33,'(I10)') N
-    write(33,*) trim(molname)
-    write(33,"(('Ne ', 3(F12.5, ' ')))") ((r(i, j), i=1,3), j=1,N)
+    write(33,"(A)") trim(molname)
+    do j=1,N
+        write(33,"('Ne ', 3(F14.8, ' '))") r(:, j)
+    end do
     close(33)
 end subroutine
 

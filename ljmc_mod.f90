@@ -7,16 +7,14 @@ module ljmc
     character(len=256) :: outfile
 
     interface
-    subroutine heat_capacity(N, Z, kT, Cv)
-        integer, intent(in) :: N
-        real*8, intent(in), dimension(N) :: Z, kT
-        real*8, intent(out), dimension(N) :: Cv
+    subroutine heat_capacity(Z, kT, Cv)
+        real*8, intent(in), dimension(:) :: Z, kT
+        real*8, intent(out), dimension(:) :: Cv
     end subroutine
 
-    subroutine heat_capacity2(N, Z, beta, Cv)
-        integer, intent(in) :: N
-        real*8, intent(in), dimension(N) :: Z, beta
-        real*8, intent(out), dimension(N) :: Cv
+    subroutine heat_capacity2(Z, beta, Cv)
+        real*8, intent(in), dimension(:) :: Z, beta
+        real*8, intent(out), dimension(:) :: Cv
     end subroutine
 
     subroutine populate_cube(bl, rcmin, r)

@@ -191,6 +191,7 @@ end subroutine
 subroutine mc_dump_state(nmcnow, nmclast, nmcmaster)
     use xyz
     use utils
+    use ljmc
     implicit none
     include 'mpif.h'
     integer, intent(in) :: nmcnow, nmclast, nmcmaster
@@ -204,7 +205,7 @@ subroutine mc_dump_state(nmcnow, nmclast, nmcmaster)
     call replace_char(fname, ' ', '0')
     call dump_xyz(r, fname, label)
 
-    call heat_capacity2(ntau, Z, taugrid, Cv)
+    call heat_capacity2(Z(1:ntau), taugrid(1:ntau), Cv(1:ntau))
 
     write(fname, "('dump/pe',I3,'/Z_',I10,'.dat')") me, nmcmaster
     call replace_char(fname, ' ', '0')

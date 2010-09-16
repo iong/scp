@@ -1,11 +1,11 @@
-subroutine heat_capacity(N, Z, kT, Cv)
+subroutine heat_capacity(Z, kT, Cv)
     implicit none
-    integer, intent(in) :: N
-    real*8, intent(in), dimension(N) :: Z, kT
-    real*8, intent(out), dimension(N) :: Cv
-    integer :: j
-    real*8, dimension(N) :: dT, Tmid, dlogZ, dlogZdT
+    real*8, intent(in), dimension(:) :: Z, kT
+    real*8, intent(out), dimension(:) :: Cv
+    integer :: j, N
+    real*8, dimension(size(Z)) :: dT, Tmid, dlogZ, dlogZdT
 
+    N = size(Z)
     dT(1:N-1) = kT(2:N) - kT(1:(N-1))
     Tmid(1:N-1) = 0.5*(kT(2:N) + kT(1:N-1))
     dlogZ(1:N-1) = log(Z(2:N) / Z(1:N-1))
@@ -19,20 +19,21 @@ subroutine heat_capacity(N, Z, kT, Cv)
     Cv(N) = Cv(N-1)
 end subroutine
 
-subroutine heat_capacity2(N, Z, beta, Cv)
+subroutine heat_capacity2(Z, beta, Cv)
     implicit none
-    integer, intent(in) :: N
     real*8, intent(in) :: Z(:), beta(:)
     real*8, intent(out) :: Cv(:)
-    real*8, dimension(N) :: dbeta, dlogZ, dlogZ_dbeta, d2logZ_dbeta2
+    real*8, dimension(size(Z)) :: dbeta, dlogZ, dlogZ_dbeta, d2logZ_dbeta2
+    integer :: N
 
+    N = size(Z)
     dbeta(1:N-1) = beta(2:N) - beta(1:N-1)
     dlogZ(1:N-1) = log(Z(2:N) / Z(1:N-1))
 
     dlogZ_dbeta(1:N-1) = dlogZ(1:N-1)/dbeta(1:N-1)
-    d2logZ_dbeta2 = 2.0 * (dlogZ_dbeta(2:N-1) - dlogZ_dbeta(1:N-2))/(beta(3:N) - beta(1:N-2))
+    d2logZ_dbeta2(2:N-1) = 2.0 * (dlogZ_dbeta(2:N-1) - dlogZ_dbeta(1:N-2))/(beta(3:N) - beta(1:N-2))
 
-    Cv(2:N-1) = beta(2:N-1)**2*d2logZ_dbeta2
+    Cv(2:N-1) = beta(2:N-1)**2*d2logZ_dbeta2(2:N-1)
     Cv(1) = Cv(2)
     Cv(N) = Cv(N-1)
 end subroutine
