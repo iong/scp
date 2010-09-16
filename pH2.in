@@ -18,6 +18,7 @@ NMC=100000000
 mcburn = 1000
 mcblen = 1000000
 ptinterval = 100
+dumpinterval = 100000
 Tmin=15
 Tmax=50
 outfile='liquid_H2_23K.xyz'
