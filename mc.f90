@@ -169,15 +169,15 @@ subroutine mc_run_loop(NMC, mcblen, sublen)
 
         if (me==0 .and. mod(i,dumpinterval) == 0) then
             do j=1,(nprocs-1)
-                call MPI_Isend(i, 1, MPI_INTEGER, j, dumptag, MPI_COMM_WORLD, req(j+1), ierr)
+                call MPI_Isend(i, 1, MPI_INTEGER, j, dumptag, MPI_COMM_WORLD, req(j), ierr)
             end do
-            call MPI_Waitall(nprocs-1, req(2:nprocs), MPI_STATUS_IGNORE, ierr)
+            call MPI_Waitall(nprocs-1, req, MPI_STATUSES_IGNORE, ierr)
             call mc_dump_state(i, nmclast, i)
-            if (mod(nmcmaster,mcblen) == 0) then 
+            if (mod(i,mcblen) == 0) then 
                 nmclast = i
                 Z = 0.0
             end if
-            if (nmcmaster >= NMC) then
+            if (i >= NMC) then
                 return
             end if
         endif
@@ -198,7 +198,6 @@ subroutine mc_dump_state(nmcnow, nmclast, nmcmaster)
     real*8 :: Cv(ntau)
     integer :: ierr, i
     character(256) :: fname, label
-    character(20) :: pestr, nowstr, masterstr
 
     write(label, "('U0 =',F14.7)") U0(ntau)
     write(fname, "('dump/pe',I3,'/dump_',I10,'.xyz')") me, nmcmaster
@@ -213,7 +212,7 @@ subroutine mc_dump_state(nmcnow, nmclast, nmcmaster)
     write (30,'(4(ES16.8," "))') (1.0/taugrid(i), Cv(i), Z(i), taugrid(i),i=ntau,1,-1)
     close(30)
 
-    write(fname, "('dump/pe',I3,'/state_',I10,'.h')") me, nmcmaster
+    write(fname, "('dump/pe',I3,'/state_',I10,'.dat')") me, nmcmaster
     call replace_char(fname, ' ', '0')
     open(30, file=fname)
     write (30, "('nmcnow =', I10)") nmcnow
