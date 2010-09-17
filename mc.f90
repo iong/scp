@@ -130,7 +130,8 @@ subroutine mc_run_loop(NMC, mcblen, sublen)
     implicit none
     include 'mpif.h'
     integer, intent(in) :: NMC, mcblen, sublen
-    integer :: i, j, istep, ierr, req(nprocs), NMC2, nmclast, nmcmaster, s(MPI_STATUS_SIZE)
+    integer :: i, j, istep, ierr, req(nprocs), NMC2, nmclast, nmcmaster
+    integer :: s(MPI_STATUS_SIZE), statuses(MPI_STATUS_SIZE,nprocs)
     real*8 :: rn
     logical :: flag
 
@@ -171,7 +172,7 @@ subroutine mc_run_loop(NMC, mcblen, sublen)
             do j=1,(nprocs-1)
                 call MPI_Isend(i, 1, MPI_INTEGER, j, dumptag, MPI_COMM_WORLD, req(j), ierr)
             end do
-            call MPI_Waitall(nprocs-1, req, MPI_STATUSES_IGNORE, ierr)
+            call MPI_Waitall(nprocs-1, req, statuses, ierr)
             call mc_dump_state(i, nmclast, i)
             if (mod(i,mcblen) == 0) then 
                 nmclast = i
