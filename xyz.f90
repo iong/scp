@@ -1,6 +1,7 @@
 module xyz
 contains
 subroutine dump_xyz(r, fname, molname)
+    implicit none
     real*8, intent(in) :: r(:,:)
     character(len=*), intent(in) :: fname, molname
     integer :: i, j, N
@@ -16,6 +17,7 @@ subroutine dump_xyz(r, fname, molname)
 end subroutine
 
 subroutine load_xyz(r, fname)
+    implicit none
     real*8, intent(out) :: r(:,:)
     character(256), intent(in) :: fname
     character(256):: molname
