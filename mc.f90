@@ -148,7 +148,7 @@ subroutine mc_run_loop(NMC, mcblen, sublen)
         end if
 
         call mc_trial(istep)
-        Z = Z + exp(-taugrid * (U0 - U0(ntau)))
+        Z = Z + exp(-taugrid * U0 + taugrid(ntau)*U0(ntau))
 
         call MPI_Iprobe(MPI_ANY_SOURCE, ptsynctag, MPI_COMM_WORLD, flag, s, IERR)
         if (flag) then
