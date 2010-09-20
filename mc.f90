@@ -220,7 +220,7 @@ subroutine mc_dump_state(nmcnow, nmclast, nmcmaster)
     write (30, "('xstep =', (F8.5))") xstep
     close(30)
 
-    call MPI_Barrier(MPI_COMM_WORLD, ierr)
+    !call MPI_Barrier(MPI_COMM_WORLD, ierr)
 end subroutine
 
 
