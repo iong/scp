@@ -55,7 +55,7 @@ program pljmc
     call int2strz(me, 4, csubme)
     fname = "r0."//csubme//".xyz"
     call load_xyz(r, fname)
-    call vgw0(r(:,:), U0, taugrid, 0.0d0, y0)
+    call vgw0(r, U0, taugrid, 0.0d0, y0)
 
     call mc_burnin(mcburn)
 
