@@ -38,6 +38,9 @@ all: ljmc
 ljmc: $(VGW) $(LJMC)
 	$(FC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
+diag: diag.o rs.o utils.o
+	$(FC) $(LDFLAGS) -o $@ $^ $(LIBS)
+
 clean:
 	$(RM) *.o *.mod
 
