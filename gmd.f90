@@ -7,7 +7,7 @@ program gmd
     implicit none
     integer :: NMCp, ndtout, ndt
     real*8 :: v3(3), Ueff0, rmserr, p3(3)
-    real*8, allocatable :: r(:,:), v(:,:), a(:,:), WW(:), dr(:,:)
+    real*8, allocatable :: r(:,:), p(:,:), f(:,:), WW(:), dr(:,:)
 
     character(LEN=256) :: cfgfile, fname, coords
     integer :: i, j, k, n
@@ -32,7 +32,7 @@ program gmd
                 ekin(0:ndt), epot(0:ndt), etot(0:ndt), Cvv(0:ndt), WW(0:ndt), &
                 Meff0(3,3,natom), invMeff0(3,3,natom), Qnk0(3,3,natom), &
                 Meff(3,3,natom), invMeff(3,3,natom), &
-                r(3,natom), v(3,natom), a(3,natom), dr(3,natom))
+                r(3,natom), p(3,natom), f(3,natom), dr(3,natom))
 
     call load_xyz(r0, coords)
     call seed_rng()
@@ -48,19 +48,9 @@ program gmd
 
     mass = mass*0.020614788876D0
     call vgwinit(natom, bl)
-    call vgw1(r0, Ueff0, 1.0/kT, 0.0d0, y, Meff, invMeff)
+    call vgw1(r0, Ueff0, 1.0/kT, 0.0d0, y, Meff0, invMeff0)
     call unpack_Qnk(y, Qnk0)
-    Meff0 = Meff
-    invMeff0 = invMeff
 
-
-    do i=1,Natom
-        !Meff0(:,:,i) = 0.1*reshape((/1d0,0d0,0d0,0d0,1d0,0d0,0d0,0d0,1d0/)*mass, (/3,3/))
-        !invMeff0(:,:,i) = 10*reshape((/1d0,0d0,0d0,0d0,1d0,0d0,0d0,0d0,1d0/)/mass, (/3,3/))
-        write (1,*) matmul(Meff0(:,:,i), invMeff0(:,:,i))
-    end do
-    write (1,*) 'xxx'
-    flush(1)
 
     do n=1,NMCp
         if (mod(n,2) == 0) then
@@ -71,39 +61,40 @@ program gmd
         do i=1,Natom
             v3 = matmul(invMeff0(:,:,i), p0(:,i))
             vtau0(:,i) = matmul(Qnk0(:,:,i), v3)
-            v(:,i) = v3
         end do
 
         !qp(1:3*Natom) = reshape(r0, (/ 3*Natom /) )
         !qp(1+3*Natom:6*Natom) = reshape(p0, (/ 3*Natom /) )
 
         r = r0
+        p = p0
         call vgw1(r, Ueff0, 1.0/kT, 0.0d0, y, Meff, invMeff)
-        do j=1,Natom
-            a(:,j)=2.0*kT*matmul(invMeff0(:,:,j), y(2+18*Natom+3*(j-1):1+18*Natom+3*j))
-        end do
+        call unpack_f(y, kT, f)
         !call update_TCF(0)
         WW = 0.0d0
         do i=1,ndt
             !call eulerstep(RHS_Veff, qp, dt, atol, rtol, rmserr)
-            v = v + 0.5*dt*a
-            dr = v*dt
-            r = r + dr
-            WW(i) = WW(i-1) + kT*dot_product(reshape(dr, (/3*Natom/)), y(2+18*Natom:1+21*Natom))
-
-            call vgw1(r, Ueff0, 1.0/kT, 0.0d0, y, Meff, invMeff)
-            WW(i) = WW(i) + kT*dot_product(reshape(dr, (/3*Natom/)), y(2+18*Natom:1+21*Natom))
+            p = p + 0.5*dt*f
             do j=1,Natom
-                a(:,j)=2.0*kT*matmul(invMeff0(:,:,j), y(2+18*Natom+3*(j-1):1+18*Natom+3*j))
+                dr(:,j)=dt*matmul(invMeff(:,:,j), p(:,j))
             end do
-            v = v + 0.5*dt*a
+
+            WW(i) = WW(i-1) + 0.5*sum(reshape(dr*f, (/3*Natom/)))
+
+            r = r + dr
+            call vgw1(r, Ueff0, 1.0/kT, 0.0d0, y, Meff, invMeff)
+            call unpack_f(y, kT, f)
+
+            WW(i) = WW(i) + 0.5*sum(reshape(dr*f, (/3*Natom/)))
+
+            p = p + 0.5*dt*f
 
             
             epot(i) = -2.0*kT*y(1)
             ekin(i) = 0
             do j=1,Natom
-                p3 = matmul(Meff0(:,:,j), v(:,j))
-                ekin(i) = ekin(i) + dot_product(p3, v(:,j))
+                v3 = matmul(invMeff(:,:,j), p(:,j))
+                ekin(i) = ekin(i) + dot_product(p(:,j), v3)
             end do
             ekin(i) = ekin(i)*0.5
 
