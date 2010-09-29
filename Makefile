@@ -5,8 +5,6 @@ COMPILER:=pgi
 
 OS=$(shell uname -s)
 include $(VPATH)/config/$(COMPILER).mk
-CC:=mpicc
-FC:=mpif90
 
 ifdef DBG
 	CFLAGS:=$(CFLAGS) $(DBGFLAGS)
@@ -24,10 +22,10 @@ VGW:=utils propagation vgw unpackg\
        interaction_lists dlsode vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03
 VGW:=$(addsuffix .o,$(VGW))
 
-LJMC:=xyz ljmc_mod mc setup_ljmc ljmc heat_capacity load_defaults populate_cube
-LJMC:=$(addsuffix .o,$(LJMC))
+GMD:=xyz gmd_mod gmd
+GMD:=$(addsuffix .o,$(GMD))
 
-all: ljmc
+all: gmd
 
 %.o : %.f90
 	$(FC) $(FFLAGS) -c $^
@@ -35,7 +33,7 @@ all: ljmc
 %.o : %.f
 	$(FC) $(FFLAGS) -c $^
 
-ljmc: $(VGW) $(LJMC)
+gmd: $(VGW) $(GMD)
 	$(FC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 diag: diag.o rs.o utils.o
