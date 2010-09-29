@@ -81,62 +81,59 @@ subroutine rk4(F, x, NEQ, dt, nsteps)
     enddo
 end subroutine rk4
 
-subroutine euler(F, x, NEQ, dt, tstart, tstop,atol, rtol)
+subroutine euler(F, x, dt, tstart, tstop,atol, rtol)
     implicit none
-    integer, intent(in) :: NEQ
-    REAL*8, intent(inout) :: x(NEQ)
+    REAL*8, intent(inout) :: x(:)
     real*8, intent(in) :: tstart, tstop, atol, rtol
     real*8, intent(inout) :: dt
-    REAL*8 :: x1(NEQ), rmserr, t
+    REAL*8 :: x1(size(x)), rmserr, t
     external F
 
     t = tstart
+    x1 = x
     do while (t<tstop)
-        call eulerstep(F, x, x1, NEQ, dt, atol, rtol, rmserr)
+        call eulerstep(F, x1, dt, atol, rtol, rmserr)
         !write (*,*) t, dt, rmserr
         if (rmserr <= 1.0) then
+            x=x1
             if (t + dt > tstop) then
                 exit
             endif
             t = t + dt
-            x=x1
             if (rmserr <=0.1) then
               dt = dt * 1.52799165273419
             endif
         else
             dt = dt/1.90779652734191
+            x1 = x
         endif
     enddo
-    call eulerstep(F, x, x1, NEQ, tstop-t, atol, rtol, rmserr)
-    x=x1
-    return
+    call eulerstep(F, x, tstop-t, atol, rtol, rmserr)
 end subroutine
 
 
 
-subroutine eulerstep(F, x, x1, NEQ, dt, atol, rtol, rmserr)
+subroutine eulerstep(F, x, dt, atol, rtol, rmserr)
     implicit none
-    integer, intent(in) :: NEQ
-    REAL*8, intent(in) :: x(NEQ)
-    REAL*8, intent(out) :: x1(NEQ)
+    REAL*8, intent(in) :: x(:)
     real*8, intent(in) :: dt, atol, rtol
     real*8, intent(out) :: rmserr
     integer, parameter :: p=2
-    REAL*8 :: xp(NEQ,p), xe(NEQ)
+    REAL*8 :: x1(size(x)), xp(size(x),p), xe(size(x))
+    integer :: NEQ
     external F
 
+    NEQ = size(x)
     call F(NEQ, dt, x, xp(:,1))
     x1 = x + dt*xp(:,1)
     call F(NEQ, dt, x1, xp(:,2))
 
-    x1 = x + 0.5*dt*(xp(:,1) + xp(:,2))
+    x = x + 0.5*dt*(xp(:,1) + xp(:,2))
     xe = 0.5*dt*(xp(:,1) - xp(:,2))
 
     xe = xe / (abs(rtol*x) + atol)
     rmserr = sqrt( sum(xe**2) / NEQ )
-    
-    return
-   end subroutine
+end subroutine
 
 subroutine rk45(F, x, NEQ, dt, tstart, tstop,atol, rtol)
     implicit none
