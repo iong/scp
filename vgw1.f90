@@ -1,9 +1,9 @@
-SUBROUTINE vgw1(Q0, W, TAUMAX,TAUI, Y)
+SUBROUTINE vgw1(Q0, W, TAUMAX,TAUI, Y, Meff, invMeff)
     use propagation
     IMPLICIT NONE
     REAL*8, intent(in) :: Q0(3,N_atom), TAUMAX, TAUI
     REAL*8, intent(inout) :: Y(1+21*N_atom)
-    REAL*8, intent(out) :: W
+    REAL*8, intent(out) :: W, Meff(3,3,N_atom), invMeff(3,3,N_atom)
     real*8 :: G(3,3,N_atom), G0(6), M(3,3), T, ULJ, LOGDET, DETI
     real*8 :: TSTEP=1e-3
     real*8 :: tnow
@@ -23,7 +23,7 @@ SUBROUTINE vgw1(Q0, W, TAUMAX,TAUI, Y)
         Y(2:1+3*N_atom)=reshape(Q0, (/3*N_atom/))
         Y(2+18*N_atom:1+21*N_atom) = Y(2+18*N_atom:1+21*N_atom) * T
 
-        G0=T*MASS*(/1,0,0,1,0,1/)
+        G0=T*invmass*(/1,0,0,1,0,1/)
         CNT=2+3*N_atom
         CNT2=2+9*N_atom
         DO I=1,N_atom
@@ -38,17 +38,19 @@ SUBROUTINE vgw1(Q0, W, TAUMAX,TAUI, Y)
 
     call mylsode(RHSS1, Y, 1+21*N_atom, TSTEP, T, TAUMAX/2.0,atol,rtol)
 
-    call unpackg(N_atom, y(2+3*N_atom:1+9*N_atom), G)
+    call unpack_g(y, G)
+
     LOGDET=0.0
     DO I=1,N_atom
         CALL INVDET(G(:,:,I) , M, DETI)
         LOGDET = LOGDET + LOG(DETI)
+        invMeff(:,:,i) = M/DETI
     ENDDO
-    
-
-
     W=-(1/TAUMAX)*(2.0*y(1) - 0.5*LOGDET)
-    return
+
+    Meff = G*2.0*mass**2/TAUMAX
+    invMeff = invMeff*TAUMAX/(2.0*mass**2)
+
 END SUBROUTINE
 
 ! vim:et
