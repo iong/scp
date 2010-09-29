@@ -10,7 +10,7 @@ program pljmc
     character(LEN=256) :: arg, inputf, fname
     integer :: i, j, n, NMC,mcblen,ierr,mcburn
     character(4) :: csubme
-    namelist /ljmccfg/Natom,imass,NGAUSS,LJA,LJC,rc,rtol,atol,taumin,NMC,mcblen,mcburn,ptinterval,dumpinterval,Tmin,Tmax,outfile,rho,rcmin
+    namelist /ljmccfg/Natom,mass,NGAUSS,LJA,LJC,rc,rtol,atol,taumin,NMC,mcblen,mcburn,ptinterval,dumpinterval,Tmin,Tmax,outfile,rho,rcmin
 
     call MPI_Init(ierr)
     call MPI_Comm_rank(MPI_COMM_WORLD, me, ierr)
@@ -47,7 +47,7 @@ program pljmc
         stop
     endif
 
-    IMASS = IMASS*0.020614788876D0
+    mass = mass*0.020614788876D0
     call vgwinit(natom, bl)
 
     !call populate_cube(bl, rcmin, r(:,:))
@@ -55,7 +55,7 @@ program pljmc
     call int2strz(me, 4, csubme)
     fname = "r0."//csubme//".xyz"
     call load_xyz(r, fname)
-    call vgw0(r, U0, taugrid, 0.0d0, y0)
+    call vgw0(reshape(r, (/3*Natom/)), U0, taugrid, 0.0d0, y0)
 
     call mc_burnin(mcburn)
 
