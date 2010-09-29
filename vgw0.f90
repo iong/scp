@@ -21,7 +21,7 @@ SUBROUTINE vgw0(Q0, W, TAUMAX,TAUI, Y)
         Y(1) = -T*ULJ
         Y(2:1+3*N_atom)=reshape(Q0, (/3*N_atom/))
 
-        G0=T*MASS*(/1,0,0,1,0,1/)
+        G0=T*invmass*(/1,0,0,1,0,1/)
         CNT=2+3*N_atom
         DO I=1,N_atom
             Y(CNT:CNT+5) = G0

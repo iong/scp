@@ -33,7 +33,7 @@ SUBROUTINE RHSS0(NEQ, T, y, yprime)
         ENDDO
       ENDDO
 
-      TRMG = TRMG*MASS
+      TRMG = TRMG*invmass
 
       U=0.0D0
       call rzero(3*N_atom,UPV)
@@ -157,7 +157,7 @@ SUBROUTINE RHSS0(NEQ, T, y, yprime)
               GUG=GUG-GU(I,K)*BLKC(K,J,I1)
             ENDDO
             IF(I == J) THEN
-              GUG=GUG+MASS
+              GUG=GUG+invmass
             ENDIF
             YPRIME(CNT)=GUG
             CNT=CNT+1

@@ -20,19 +20,8 @@ SUBROUTINE RHSS1(NEQ, T, y, yprime)
     BL2=BL/2
 
     Q = reshape(y(2:1+3*N_atom), (/3, N_atom/) )
-    call unpackg(N_atom, y(2+3*N_atom:1+9*N_atom), BLKC)
-
-    CNT = 2+9*N_atom
-    DO I=1,N_atom
-        DO J=1,3
-            DO K=1,3
-                QNK(J,K,I)=Y(CNT)
-                CNT=CNT+1
-            ENDDO
-        ENDDO
-    ENDDO
-
-
+    call unpack_g(y, BLKC)
+    call unpack_Qnk(y, QNK)
 
     TRMG=0.0D0
     DO I=1,N_atom
@@ -44,7 +33,7 @@ SUBROUTINE RHSS1(NEQ, T, y, yprime)
         ENDDO
     ENDDO
 
-    TRMG = TRMG*MASS
+    TRMG = TRMG*invmass
 
     U=0.0D0
     UPV=0.0
@@ -168,7 +157,7 @@ SUBROUTINE RHSS1(NEQ, T, y, yprime)
               GUG=GUG-GU(I,K)*BLKC(K,J,I1)
             ENDDO
             IF(I == J) THEN
-              GUG=GUG+MASS
+              GUG=GUG+invmass
             ENDIF
             YPRIME(CNT)=GUG
             CNT=CNT+1
