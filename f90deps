@@ -1,0 +1,24 @@
+#!/bin/bash
+
+for f in $@; do
+    obj=${f%.*}.o
+    mods=$(sed -n -e "/^[[:space:]]*module[[:space:]]/s/[[:space:]]*module[[:space:]]//gp" "$f")
+    if [ x"$mods" != x ]; then
+        mods=${mods//module/}
+        for m in $mods; do
+            echo "$m.mod: $obj"
+        done
+    fi
+
+    used=$(sed -n -e "/[[:space:]]*use[[:space:]]/s/use//p" "$f" | sort -u)
+    if [ x"$used" != x ]; then
+        echo -n "$obj:"
+        used=${used//module/}
+        for u in $used; do
+            echo -n " $u.mod"
+        done
+        echo
+    fi
+done
+
+
