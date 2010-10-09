@@ -83,4 +83,4 @@ subroutine update_TCF(i)
     etot(i) = ekin(i) + epot(i)
 end subroutine
 
-end module gmd_mod
+end module spine

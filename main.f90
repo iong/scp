@@ -100,15 +100,12 @@ program gmd
             dqp = qp - dqp
             WW(i) = WW(i-1) + 2.0*kT*dot_product(dqp(1:3*Natom), y(2+18*Natom:1+21*Natom))
 
-            write (*,*) 'rmserr =', rmserr
+            write (*,*) 't = ', dt*i*t0fs, 'rmserr =', rmserr
             call update_TCF(i)
             write(30,'(6F18.7)') dt*i*t0fs, ekin(i), epot(i), etot(i), WW(i),Cvv(i)
 
-            forall (k=1:3*Natom, qp(k) >bl2)
-                qp(k) = qp(k) - bl
-            end forall
-            forall (k=1:3*Natom, qp(k) <-bl2)
-                qp(k) = qp(k) + bl
+            forall (k=1:3*Natom, abs(qp(k)) >bl2)
+                qp(k) = qp(k) - sign(bl, qp(k))
             end forall
         end do
 

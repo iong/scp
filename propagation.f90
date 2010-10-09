@@ -115,7 +115,7 @@ end subroutine
 
 subroutine eulerstep(F, x, dt, atol, rtol, rmserr)
     implicit none
-    REAL*8, intent(in) :: x(:)
+    REAL*8, intent(inout) :: x(:)
     real*8, intent(in) :: dt, atol, rtol
     real*8, intent(out) :: rmserr
     integer, parameter :: p=2
