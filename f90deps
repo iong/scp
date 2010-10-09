@@ -1,6 +1,9 @@
 #!/bin/bash
 
 for f in $@; do
+    if [ ! -f "$f" ]; then
+        continue
+    fi
     obj=${f%.*}.o
     mods=$(sed -n -e "/^[[:space:]]*module[[:space:]]/s/[[:space:]]*module[[:space:]]//gp" "$f")
     if [ x"$mods" != x ]; then

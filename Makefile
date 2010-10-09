@@ -20,26 +20,30 @@ LIBS:= $(LIBS) $(LAPACK) -lm
 
 VGW:=utils propagation vgw unpackg\
        interaction_lists dlsode vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03
-VGW:=$(addsuffix .o,$(VGW))
 
-GMD:=xyz gmd_mod gmd
-GMD:=$(addsuffix .o,$(GMD))
+GMD:=xyz spine main
 
 all: gmd
 
+include deps.mk
+
+deps.mk:
+	./f90deps $(addsuffix .f90,$(VGW) $(GMD)) > $@
+
+
 %.o : %.f90
-	$(FC) $(FFLAGS) -c $^
+	$(FC) $(FFLAGS) -c $<
 
 %.o : %.f
-	$(FC) $(FFLAGS) -c $^
+	$(FC) $(FFLAGS) -c $<
 
-gmd: $(VGW) $(GMD)
+gmd: $(addsuffix .o,$(VGW) $(GMD))
 	$(FC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 diag: diag.o rs.o utils.o
 	$(FC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 clean:
-	$(RM) *.o *.mod
+	$(RM) *.o *.mod deps.mk
 
 .PHONY: libpepc
