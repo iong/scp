@@ -1,6 +1,6 @@
 VPATH:=$(dir $(realpath Makefile))
 
-#DBG=1
+DBG=1
 COMPILER:=pgi
 
 OS=$(shell uname -s)
@@ -22,13 +22,14 @@ VGW:=utils propagation vgw unpackg\
        interaction_lists dlsode vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03
 
 GMD:=xyz spine main
+MERGECVV= xyz mergecvv
 
-all: gmd
+all: gmd mergecvv
 
 include deps.mk
 
 deps.mk:
-	./f90deps $(addsuffix .f90,$(VGW) $(GMD)) > $@
+	./f90deps  $(addsuffix .f90,$(VGW) $(GMD) $(MERGECVV)) > $@
 
 
 %.o : %.f90
@@ -38,6 +39,9 @@ deps.mk:
 	$(FC) $(FFLAGS) -c $<
 
 gmd: $(addsuffix .o,$(VGW) $(GMD))
+	$(FC) $(LDFLAGS) -o $@ $^ $(LIBS)
+
+mergecvv: $(addsuffix .o,$(VGW) $(MERGECVV))
 	$(FC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 diag: diag.o rs.o utils.o
