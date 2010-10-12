@@ -89,6 +89,8 @@ program gmd
         write(fname, "('dump/',A,'_',I5,'.dat')") coords(1:ixyz-1), n
         call replace_char(fname, ' ', '0')
         open(30,file=fname)
+        write(30,'(6F18.7)') 0.0d0, ekin(0), epot(0), etot(0), WW(0),Cvv(0)
+
 
         etot = 0.d0
         epot = 0.0d0
