@@ -25,7 +25,7 @@ GMD:=xyz spine main
 
 all: gmd
 
-include deps.mk
+include $(VPATH)/deps.mk
 
 deps.mk:
 	./f90deps $(addsuffix .f90,$(VGW) $(GMD)) > $@
