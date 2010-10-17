@@ -12,14 +12,16 @@ subroutine seed_rng()
         call random_seed(PUT=seed(1:seed_size))
 end subroutine
 
-real*8 function gaussran(sigma, x0) result(y)
+pure real*8 function gaussran(sigma, x0) result(y)
     implicit none
     real*8, intent(in) :: sigma, x0
-    real*8 :: x(2), M_PI = 3.14159265358979323846264338327950288
-    call random_number(x)
-    do while (x(1) == 0)
+    real*8 :: x(2)
+    do
         call random_number(x)
+       if (x(1) /= 0.0d0) exit
     enddo
+     !   write (*,*) x
+
     y = sqrt( -2.0 * log(x(1))) * cos(2*M_PI*x(2))
 
     y = y*sigma + x0
