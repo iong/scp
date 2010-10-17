@@ -1,0 +1,31 @@
+dt=1d-3 rtol=1d-4
+
+real    0m35.946s
+user    0m35.236s
+sys 0m0.084s
+dt=1d-3 rtol=1d-5
+
+real    0m49.653s
+user    0m47.664s
+sys 0m0.137s
+dt=1d-3 rtol=1d-6
+
+real    0m53.946s
+user    0m52.652s
+sys 0m0.088s
+dt=1d-4 rtol=1d-4
+
+real    5m56.269s
+user    5m51.373s
+sys 0m0.594s
+dt=1d-4 rtol=1d-5
+
+real    8m5.115s
+user    7m56.762s
+sys 0m0.660s
+dt=1d-4 rtol=1d-6
+
+real    8m44.613s
+user    8m38.517s
+sys 0m0.607s
+
