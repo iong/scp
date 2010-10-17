@@ -37,24 +37,6 @@ subroutine  JAC()
 end subroutine
 
     
-subroutine verlet(F, x, NEQ, dt, nsteps)
-    implicit none
-    integer, intent(in) :: NEQ
-    REAL*8, intent(inout) :: x(NEQ)
-    real*8, intent(in) :: dt!, tstart, tstop
-    integer, intent(in) :: nsteps
-    REAL*8 :: x1(NEQ), xp(NEQ)
-    integer :: i
-    external F
-
-    do i = 1, nsteps
-            call F(NEQ, dt, x, xp)
-            x1 = x + 0.5*dt*xp
-            call F(NEQ, dt, x1, xp)
-            x = x + dt*xp
-    enddo
-end subroutine verlet
-
 subroutine rk4(F, x, NEQ, dt, nsteps)
     implicit none
     integer, intent(in) :: NEQ
@@ -81,7 +63,7 @@ subroutine rk4(F, x, NEQ, dt, nsteps)
     enddo
 end subroutine rk4
 
-subroutine euler(F, x, dt, tstart, tstop,atol, rtol)
+subroutine ek(F, x, dt, tstart, tstop,atol, rtol)
     implicit none
     REAL*8, intent(inout) :: x(:)
     real*8, intent(in) :: tstart, tstop, atol, rtol
@@ -92,7 +74,7 @@ subroutine euler(F, x, dt, tstart, tstop,atol, rtol)
     t = tstart
     x1 = x
     do while (t<tstop)
-        call eulerstep(F, x1, dt, atol, rtol, rmserr)
+        call ekstep(F, x1, dt, atol, rtol, rmserr)
         !write (*,*) t, dt, rmserr
         if (rmserr <= 1.0) then
             x=x1
@@ -108,12 +90,11 @@ subroutine euler(F, x, dt, tstart, tstop,atol, rtol)
             x1 = x
         endif
     enddo
-    call eulerstep(F, x, tstop-t, atol, rtol, rmserr)
+    call ekstep(F, x, tstop-t, atol, rtol, rmserr)
 end subroutine
 
 
-
-subroutine eulerstep(F, x, dt, atol, rtol, rmserr)
+subroutine ekstep(F, x, dt, atol, rtol, rmserr)
     implicit none
     REAL*8, intent(inout) :: x(:)
     real*8, intent(in) :: dt, atol, rtol
@@ -134,6 +115,7 @@ subroutine eulerstep(F, x, dt, atol, rtol, rmserr)
     xe = xe / (abs(rtol*x) + atol)
     rmserr = sqrt( sum(xe**2) / NEQ )
 end subroutine
+
 
 subroutine rk45(F, x, NEQ, dt, tstart, tstop,atol, rtol)
     implicit none
