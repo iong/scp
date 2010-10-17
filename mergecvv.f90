@@ -73,8 +73,8 @@ program mergecvv
 
             Cvv = Cvv / Natom
 
-            Cvvavg = Cvvavg + Cvv/sqrt(detg(i))
-            Z = Z + 1.0d0/sqrt(detg(i))
+            Cvvavg = Cvvavg + Cvv
+            Z = Z + 1.0d0
         end do
     end do
     Cvvavg = Cvvavg / Z
@@ -95,7 +95,7 @@ program mergecvv
 
             Cvv = Cvv / Natom
 
-            Cvvstd = Cvvstd + (Cvvavg - Cvv)**2/sqrt(detg(i))
+            Cvvstd = Cvvstd + (Cvvavg - Cvv)**2
         end do
     end do
     Cvvstd = sqrt(Cvvstd / Z)
