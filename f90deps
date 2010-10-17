@@ -13,7 +13,7 @@ for f in $@; do
         done
     fi
 
-    used=$(sed -n -e "/[[:space:]]*use[[:space:]]/s/use//p" "$f" | sort -u)
+    used=$(sed -n -e "/^[[:space:]]*use[[:space:]]/s/use//p" "$f" | sort -u)
     if [ x"$used" != x ]; then
         echo -n "$obj:"
         used=${used//module/}
