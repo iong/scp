@@ -27,7 +27,7 @@ LJ:=xyz utils  lj
 
 all: gmd mergecvv
 
-include deps.mk
+include $(VPATH)/deps.mk
 
 deps.mk:
 	./f90deps  $(addsuffix .f90,$(VGW) $(GMD) $(MERGECVV) $(LJ)) > $@
