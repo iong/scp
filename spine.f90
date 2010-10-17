@@ -4,7 +4,7 @@ module spine
     integer :: Natom, Nbath
     real*8 :: rcmin, tstart, tstop, dtout, dt, bl, bl2,rho, kT
     real*8, dimension(:), allocatable :: qp, y, ekin, epot, etot, Cvv, Qbath
-    real*8, dimension(:,:), allocatable :: r0, p0, vtau0, v0
+    real*8, dimension(:,:), allocatable :: r0, p0, vtau0, v0, r(:,:), p(:,:)
     real*8, dimension(:,:,:), allocatable :: Meff0, invMeff0, Qnk0, Meff, invMeff
     real*8 :: lastepot
 contains
@@ -64,6 +64,27 @@ subroutine RHS_Veff(NEQ, dt, x, xp)
     xp(Nqp+Nbath) = x(Nqp+Nbath-1)**2/Qbath(Nbath-1) - kT
 end subroutine 
 
+subroutine verletstep(r, p, f, dt)
+    use vgw
+    implicit none
+    real*8, intent(in) :: dt
+    real*8, intent(inout) ::r(:,:), p(:,:), f(:,:)
+    real*8 :: Ueff, v3(3), p3(3), Ekin
+    integer :: i, Nq, Nqp
+
+
+    Natom = size(r, 2)
+    p = p + 0.5*dt*f
+    do i=1,Natom
+        r(:,i) = r(:,i) + dt*matmul(invMeff(:,:,i), p(:,i))
+    end do
+    call vgw1(r, Ueff, 1.0/kT, 0.0d0, y, Meff, invMeff)
+    f = reshape( 2.0*kT*y(2+18*Natom:1+21*Natom), (/ 3, Natom /))
+    p = p + 0.5*dt*f
+
+    lastepot = -2.0*kT*y(1)
+end subroutine 
+
 subroutine update_TCF(i)
     implicit none
     integer, intent(in) :: i
@@ -72,15 +93,14 @@ subroutine update_TCF(i)
 
     ekin(i) = 0
     do j=1,Natom
-        p3 = qp(1+3*(Natom+j-1):3*(Natom+j))
-        v3 = matmul(invMeff(:,:,j), p3)
+        !p3 = qp(1+3*(Natom+j-1):3*(Natom+j))
+        v3 = matmul(invMeff(:,:,j), p(:,j))
         Cvv(i) = Cvv(i) + dot_product(vtau0(:,j), v3)
-        ekin(i) = ekin(i) + dot_product(p3, v3)
+        ekin(i) = ekin(i) + dot_product(p(:,j), v3)
         epot(i) = lastepot
     end do
     ekin(i) = 0.5*ekin(i)
 
     etot(i) = ekin(i) + epot(i)
 end subroutine
-
 end module spine

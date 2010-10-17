@@ -6,8 +6,8 @@ program gmd
     use propagation
     implicit none
     integer :: NMCp, ndtout, ndt
-    real*8 :: v3(3), Ueff0, rmserr, p3(3), Vmin_curvature
-    real*8, allocatable :: r(:,:), p(:,:), f(:,:), WW(:), dr(:,:), dqp(:), pnh0(:)
+    real*8 :: v3(3), Ueff0, rmserr, p3(3), Vmin_curvature, sumf(3), sump(3)
+    real*8, allocatable :: f(:,:), WW(:), dr(:,:), dqp(:), pnh0(:)
 
     character(LEN=256) :: cfgfile, fname, coords
     integer :: i, j, k, n, ixyz
@@ -70,6 +70,10 @@ program gmd
             p0 = -p0
         else
             call initial_momenta(kT, Meff0, p0)
+            sump =  sum(p0, 2)/Natom
+            do i=1,Natom
+                p0(:,i) = p0(:,i) - sump
+            end do
         end if
         do i=1,Natom
             v3 = matmul(invMeff0(:,:,i), p0(:,i))
@@ -82,14 +86,17 @@ program gmd
             qp(1+6*Natom:6*Natom+Nbath) = pnh0
         end if
 
-        call update_TCF(0)
-        WW = 0.0d0
+        r = r0
+        p = p0
+        f = 0.0d0
+        call verletstep(r, p, f, 0.0d0)
 
         ixyz = index(coords, '.xyz', .TRUE.)
         write(fname, "('dump/',A,'_',I5,'.dat')") coords(1:ixyz-1), n
         call replace_char(fname, ' ', '0')
         open(30,file=fname)
-        write(30,'(6F18.7)') 0.0d0, ekin(0), epot(0), etot(0), WW(0),Cvv(0)
+        call update_TCF(0)
+        write(30,'(6F18.7)') 0.0d0, ekin(0), epot(0), etot(0), Cvv(0)
 
 
         etot = 0.d0
@@ -97,22 +104,26 @@ program gmd
         ekin = 0.0d0
         Cvv = 0.0d0
         do i=1,ndt
-            dqp=qp
-            call eulerstep(RHS_Veff, qp, dt, atol, rtol, rmserr)
-            dqp = qp - dqp
-            WW(i) = WW(i-1) + 2.0*kT*dot_product(dqp(1:3*Natom), y(2+18*Natom:1+21*Natom))
+            !dqp=qp
+            call verletstep(r, p, f, dt)
 
-            write (*,*) 't = ', dt*i*t0fs, 'rmserr =', rmserr
             call update_TCF(i)
-            write(30,'(6F18.7)') dt*i*t0fs, ekin(i), epot(i), etot(i), WW(i),Cvv(i)
+            write(30,'(6F18.7)') dt*i*t0fs, ekin(i), epot(i), etot(i), Cvv(i)
 
-            forall (k=1:3*Natom, abs(qp(k)) >bl2)
-                qp(k) = qp(k) - sign(bl, qp(k))
-            end forall
+            write(31,*) reshape(r, (/3*Natom/))
+
+            do j=1,Natom
+                do k=1,3
+                    if (abs(r(k, j)) >bl2) then
+                        r(k, j) = r(k, j) - sign(bl, r(k, j))
+                    end if
+                end do
+            end do
+
+            !forall (k=1:3*Natom, abs(qp(k)) >bl2)
+            !    qp(k) = qp(k) - sign(bl, qp(k))
+            !end forall
         end do
-
-        
-        !write(30,'(6F14.7)') (dt*i*t0fs, ekin(i), epot(i), etot(i), WW(i),Cvv(i),i=0,ndt)
         close(30)
     end do
 end program gmd
