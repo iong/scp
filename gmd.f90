@@ -5,14 +5,14 @@ program gmd
     use utils
     use propagation
     implicit none
-    integer :: NMCp, ndtout, ndt
+    integer :: npstart, npstop, ndtout, ndt
     real*8 :: v3(3), Ueff0, rmserr, p3(3), Vmin_curvature, sumf(3), sump(3)
     real*8, allocatable :: f(:,:), WW(:), dr(:,:), dqp(:), pnh0(:)
 
     character(LEN=256) :: cfgfile, fname, coords
     integer :: i, j, k, n, ixyz
     namelist /gmdcfg/Natom,mass,NGAUSS,LJA,LJC,rc,rtol,atol,taumin,kT,rho, &
-            rcmin, NMCp,coords,tstart,tstop,dtout,dt,Nbath,Vmin_curvature
+            rcmin, npstart,npstop,coords,tstart,tstop,dtout,dt,Nbath,Vmin_curvature
 
     cfgfile='pH2.in'
     taumin = 1.0e-6
@@ -65,7 +65,7 @@ program gmd
         end do
     end if
 
-    do n=1,NMCp
+    do n=npstart,npstop
         if (mod(n,2) == 0) then
             p0 = -p0
         else

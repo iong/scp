@@ -1,7 +1,7 @@
 VPATH:=$(dir $(realpath Makefile))
 
 #DBG=1
-COMPILER:=pgi
+COMPILER:=intel
 
 OS=$(shell uname -s)
 include $(VPATH)/config/$(COMPILER).mk

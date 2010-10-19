@@ -12,7 +12,7 @@ subroutine seed_rng()
         call random_seed(PUT=seed(1:seed_size))
 end subroutine
 
-pure real*8 function gaussran(sigma, x0) result(y)
+real*8 function gaussran(sigma, x0) result(y)
     implicit none
     real*8, intent(in) :: sigma, x0
     real*8 :: x(2)
