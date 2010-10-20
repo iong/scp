@@ -5,14 +5,15 @@ program gmd
     use utils
     use propagation
     implicit none
-    integer :: NMCp, ndtout, ndt
-    real*8 :: v3(3), Ueff0, rmserr, p3(3), Vmin_curvature, sumf(3), sump(3)
-    real*8, allocatable :: f(:,:), WW(:), dr(:,:), dqp(:), pnh0(:)
+    integer :: NMCp, ndtout, ndt, ne
+    real*8 :: v3(3), Ueff0, rmserr, p3(3), Q1nhc, sumf(3), sump(3)
+    real*8, allocatable :: f(:,:), WW(:), dr(:,:), dqp(:), pbath0(:)
+    real*8 :: Ekin ,Epot, Cvv
 
     character(LEN=256) :: cfgfile, fname, coords
     integer :: i, j, k, n, ixyz
     namelist /gmdcfg/Natom,mass,NGAUSS,LJA,LJC,rc,rtol,atol,taumin,kT,rho, &
-            rcmin, NMCp,coords,tstart,tstop,dtout,dt,Nbath,Vmin_curvature
+            rcmin, NMCp,coords,tstart,tstop,dtout,dt,Nbath,Q1nhc,ne
 
     cfgfile='pH2.in'
     taumin = 1.0e-6
@@ -34,8 +35,7 @@ program gmd
     ndt = (tstop - tstart) / dt
     ndtout = dtout/dt
     
-    allocate (y(1+21*natom), r0(3,natom), p0(3,natom), vtau0(3,natom),qp(6*natom+Nbath), dqp(6*natom+Nbath),&
-                ekin(0:ndt), epot(0:ndt), etot(0:ndt), Cvv(0:ndt), WW(0:ndt), &
+    allocate (y(1+21*natom), r0(3,natom), p0(3,natom), vtau0(3,natom), &
                 Meff0(3,3,natom), invMeff0(3,3,natom), Qnk0(3,3,natom), &
                 Meff(3,3,natom), invMeff(3,3,natom), &
                 r(3,natom), p(3,natom), f(3,natom), dr(3,natom))
@@ -56,13 +56,15 @@ program gmd
     call vgw1(r0, Ueff0, 1.0/kT, 0.0d0, y, Meff0, invMeff0)
     call unpack_Qnk(y, Qnk0)
 
-    if (Nbath>0) then
-        allocate(Qbath(Nbath), pnh0(Nbath))
-        Qbath = kT*mass/Vmin_curvature
+    if (Nbath>=2) then
+        allocate(Qbath(Nbath),  xi(Nbath), vxi(Nbath))
+        Qbath = kT*Q1nhc
         Qbath(1) = 3*Natom*Qbath(1)
         do i=1,Nbath
-            pnh0(i) = gaussran(sqrt(kT*Qbath(i)), 0.0d0)
+            vxi(i) = gaussran(sqrt(kT/Qbath(i)), 0.0d0)
         end do
+        xi = 0.0d0
+        vxi = 0.0d0
     end if
 
     do n=1,NMCp
@@ -70,47 +72,53 @@ program gmd
             p0 = -p0
         else
             call initial_momenta(kT, Meff0, p0)
-            sump =  sum(p0, 2)/Natom
-            do i=1,Natom
-                p0(:,i) = p0(:,i) - sump
-            end do
+            !sump =  sum(p0, 2)/Natom
+            !do i=1,Natom
+            !    p0(:,i) = p0(:,i) - sump
+            !end do
         end if
         do i=1,Natom
             v3 = matmul(invMeff0(:,:,i), p0(:,i))
             vtau0(:,i) = matmul(Qnk0(:,:,i), v3)
         end do
 
-        qp(1:3*Natom) = reshape(r0, (/ 3*Natom /) )
-        qp(1+3*Natom:6*Natom) = reshape(p0, (/ 3*Natom /) )
-        if (Nbath>0) then
-            qp(1+6*Natom:6*Natom+Nbath) = pnh0
-        end if
-
         r = r0
         p = p0
         f = 0.0d0
-        call verletstep(r, p, f, 0.0d0)
+
+        call total_ekin(Ekin)
+        if (Nbath > 0) then
+            call nose_hoover_chain(p, Ekin, kT, xi, vxi, Qbath, 0.0d0, ne)
+        end if
+        call verletstep(r, p, f, Epot, 0.0d0)
+        if (Nbath > 0) then
+            call nose_hoover_chain(p, Ekin, kT, xi, vxi, Qbath, 0.0d0, ne)
+        end if
+
 
         ixyz = index(coords, '.xyz', .TRUE.)
         write(fname, "('dump/',A,'_',I5,'.dat')") coords(1:ixyz-1), n
         call replace_char(fname, ' ', '0')
         open(30,file=fname)
-        call update_TCF(0)
-        write(30,'(6F18.7)') 0.0d0, ekin(0), epot(0), etot(0), Cvv(0)
+        call velocity_autocorrelation(Cvv)
+        write(30,'(6F18.7)') 0.0d0, ekin, epot, ekin+epot, Cvv
 
-
-        etot = 0.d0
-        epot = 0.0d0
-        ekin = 0.0d0
-        Cvv = 0.0d0
         do i=1,ndt
             !dqp=qp
-            call verletstep(r, p, f, dt)
+            if (Nbath > 0) then
+                call nose_hoover_chain(p, Ekin, kT, xi, vxi, Qbath, dt, ne)
+            end if
 
-            call update_TCF(i)
-            write(30,'(6F18.7)') dt*i*t0fs, ekin(i), epot(i), etot(i), Cvv(i)
+            call verletstep(r, p, f, Epot, dt)
+            call total_ekin(Ekin)
 
-            write(31,*) reshape(r, (/3*Natom/))
+            if (Nbath > 0) then
+                call nose_hoover_chain(p, Ekin, kT, xi, vxi, Qbath, dt, ne)
+                write(31,*) vxi
+            end if
+
+            call velocity_autocorrelation(Cvv)
+            write(30,'(6F18.7)') dt*i*t0fs,Ekin, Epot,Ekin+Epot, Cvv
 
             do j=1,Natom
                 do k=1,3

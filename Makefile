@@ -1,4 +1,7 @@
 VPATH:=$(dir $(realpath Makefile))
+ifeq "$(VPATH)" ""
+    VPATH:=.
+endif
 
 #DBG=1
 COMPILER:=pgi
@@ -21,16 +24,16 @@ LIBS:= $(LIBS) $(LAPACK) -lm
 VGW:=utils propagation vgw unpackg\
        interaction_lists dlsode vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03
 
-GMD:=xyz spine gmd
+GMD:=xyz spine gmd nose_hoover_chain
 MERGECVV= xyz mergecvv
 LJ:=xyz utils  lj
 
 all: gmd mergecvv
 
-include $(VPATH)/deps.mk
+include deps.mk
 
 deps.mk:
-	./f90deps  $(addsuffix .f90,$(VGW) $(GMD) $(MERGECVV) $(LJ)) > $@
+	$(VPATH)/f90deps  $(addsuffix .f90,$(VGW) $(GMD) $(MERGECVV) $(LJ)) > $@
 
 
 %.o : %.f90
