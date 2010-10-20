@@ -5,7 +5,7 @@ program gmd
     use utils
     use propagation
     implicit none
-    integer :: NMCp, ndtout, ndt, ne
+    integer :: npstart, npstop, ndtout, ndt
     real*8 :: v3(3), Ueff0, rmserr, p3(3), Q1nhc, sumf(3), sump(3)
     real*8, allocatable :: f(:,:), WW(:), dr(:,:), dqp(:), pbath0(:)
     real*8 :: Ekin ,Epot, Cvv
@@ -14,6 +14,7 @@ program gmd
     integer :: i, j, k, n, ixyz
     namelist /gmdcfg/Natom,mass,NGAUSS,LJA,LJC,rc,rtol,atol,taumin,kT,rho, &
             rcmin, NMCp,coords,tstart,tstop,dtout,dt,Nbath,Q1nhc,ne
+
 
     cfgfile='pH2.in'
     taumin = 1.0e-6
@@ -67,7 +68,7 @@ program gmd
         vxi = 0.0d0
     end if
 
-    do n=1,NMCp
+    do n=npstart,npstop
         if (mod(n,2) == 0) then
             p0 = -p0
         else

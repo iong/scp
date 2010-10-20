@@ -32,7 +32,7 @@ program mergecvv
     read(cmd, '(I)') nr0stop
 
     nr0 = (nr0stop - nr0start) / nr0step + 1
-    ndt = (tstop - tstart) / dt
+    ndt = (tstop - tstart) / dt  + 1
 
     allocate (y(1+21*natom), r0(3,natom), G(3,3,natom), &
             ekin(0:ndt), epot(0:ndt), etot(0:ndt), Cvv(0:ndt), WW(0:ndt), &
@@ -68,13 +68,13 @@ program mergecvv
             write(fname,'("dump/r0_",I10,"_",I5,".dat")') (i-1)*nr0step + nr0start, j
             call replace_char(fname, ' ', '0')
             open(30,file=fname)
-            read(30,*) (t(k), Ekin(k), Epot(k), Etot(k), WW(k), Cvv(k), k=1,ndt)
+            read(30,*) (t(k), Ekin(k), Epot(k), Etot(k), Cvv(k), k=1,ndt)
             close(30)
 
             Cvv = Cvv / Natom
 
-            Cvvavg = Cvvavg + Cvv/sqrt(detg(i))
-            Z = Z + 1.0d0/sqrt(detg(i))
+            Cvvavg = Cvvavg + Cvv
+            Z = Z + 1.0d0
         end do
     end do
     Cvvavg = Cvvavg / Z
@@ -90,12 +90,12 @@ program mergecvv
             write(fname,'("dump/r0_",I10,"_",I5,".dat")') (i-1)*nr0step + nr0start, j
             call replace_char(fname, ' ', '0')
             open(30,file=fname)
-            read(30,*) (t(k), Ekin(k), Epot(k), Etot(k), WW(k), Cvv(k), k=1,ndt)
+            read(30,*) (t(k), Ekin(k), Epot(k), Etot(k), Cvv(k), k=1,ndt)
             close(30)
 
             Cvv = Cvv / Natom
 
-            Cvvstd = Cvvstd + (Cvvavg - Cvv)**2/sqrt(detg(i))
+            Cvvstd = Cvvstd + (Cvvavg - Cvv)**2
         end do
     end do
     Cvvstd = sqrt(Cvvstd / Z)

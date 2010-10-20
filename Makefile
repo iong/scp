@@ -4,7 +4,7 @@ ifeq "$(VPATH)" ""
 endif
 
 #DBG=1
-COMPILER:=pgi
+COMPILER:=intel
 
 OS=$(shell uname -s)
 include $(VPATH)/config/$(COMPILER).mk
