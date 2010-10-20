@@ -76,7 +76,7 @@ program gmd
             ekin = 0.5*sum(sum(p**2, 2))/mass
             Cvv = sum(sum(p*p0, 2))/mass**2
 
-            write(30,'(5F18.7)') dt*i*t0fs, ekin, epot, ekin+epot, Cvv
+            write(30,'(5ES20.7)') dt*i*t0fs, ekin, epot, ekin+epot, Cvv
             write(31,*) reshape(r, (/ 3*Natom /))
 
             do j=1,Natom
