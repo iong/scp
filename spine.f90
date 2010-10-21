@@ -4,8 +4,8 @@ module spine
     integer :: Natom, Nbath
     real*8 :: rcmin, tstart, tstop, dtout, dt, bl, bl2,rho, kT
     real*8, dimension(:), allocatable :: y, Qbath, xi, vxi
-    real*8, dimension(:,:), allocatable :: r0, p0, vtau0, v0, r(:,:), p(:,:)
-    real*8, dimension(:,:,:), allocatable :: Meff0, invMeff0, Qnk0, Meff, invMeff
+    real*8, dimension(:,:), allocatable :: r0, p0, vtau0, v0, r(:,:), p(:,:), rshift(:,:), r0equil(:,:)
+    real*8, dimension(:,:,:), allocatable :: Meff0, invMeff0, Qnk0, Qnk, Meff, invMeff
     real*8 :: lastepot
 
     interface
@@ -77,7 +77,7 @@ end subroutine
 subroutine velocity_autocorrelation(Cvv)
     implicit none
     real*8, intent(out) :: Cvv
-    real*8 :: v3(3), p3(3)
+    real*8 :: v3(3)
     integer :: j
 
     Cvv = 0.0d0
@@ -86,5 +86,11 @@ subroutine velocity_autocorrelation(Cvv)
         Cvv = Cvv + dot_product(vtau0(:,j), v3)
     end do
     Cvv = Cvv / Natom
+end subroutine
+
+subroutine mean_sq_disp(dxsq)
+    real*8, intent(out) :: dxsq
+
+    dxsq = sum(sum((r - r0equil - rshift)**2, 1))/Natom
 end subroutine
 end module spine

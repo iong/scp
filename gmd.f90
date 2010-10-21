@@ -5,15 +5,15 @@ program gmd
     use utils
     use propagation
     implicit none
-    integer :: npstart, npstop, ndtout, ndt
+    integer :: npstart, npstop, ndtout, ndt, ne, nequil
     real*8 :: v3(3), Ueff0, rmserr, p3(3), Q1nhc, sumf(3), sump(3)
     real*8, allocatable :: f(:,:), WW(:), dr(:,:), dqp(:), pbath0(:)
-    real*8 :: Ekin ,Epot, Cvv
+    real*8 :: Ekin ,Epot, Cvv, tequil, dxsq
 
     character(LEN=256) :: cfgfile, fname, coords
     integer :: i, j, k, n, ixyz
     namelist /gmdcfg/Natom,mass,NGAUSS,LJA,LJC,rc,rtol,atol,taumin,kT,rho, &
-            rcmin, NMCp,coords,tstart,tstop,dtout,dt,Nbath,Q1nhc,ne
+            rcmin, npstart,npstop,coords,tstart,tstop,dtout,dt,Nbath,Q1nhc,ne,tequil
 
 
     cfgfile='pH2.in'
@@ -35,11 +35,13 @@ program gmd
 
     ndt = (tstop - tstart) / dt
     ndtout = dtout/dt
+    nequil = tequil / dt
     
     allocate (y(1+21*natom), r0(3,natom), p0(3,natom), vtau0(3,natom), &
                 Meff0(3,3,natom), invMeff0(3,3,natom), Qnk0(3,3,natom), &
-                Meff(3,3,natom), invMeff(3,3,natom), &
-                r(3,natom), p(3,natom), f(3,natom), dr(3,natom))
+                Qnk(3,3,natom), Meff(3,3,natom), invMeff(3,3,natom), &
+                r(3,natom), p(3,natom), f(3,natom), dr(3,natom),&
+                r0equil(3,natom),rshift(3,natom))
     call load_xyz(r0, coords)
     call seed_rng()
 
@@ -78,10 +80,6 @@ program gmd
             !    p0(:,i) = p0(:,i) - sump
             !end do
         end if
-        do i=1,Natom
-            v3 = matmul(invMeff0(:,:,i), p0(:,i))
-            vtau0(:,i) = matmul(Qnk0(:,:,i), v3)
-        end do
 
         r = r0
         p = p0
@@ -101,8 +99,8 @@ program gmd
         write(fname, "('dump/',A,'_',I5,'.dat')") coords(1:ixyz-1), n
         call replace_char(fname, ' ', '0')
         open(30,file=fname)
-        call velocity_autocorrelation(Cvv)
-        write(30,'(6F18.7)') 0.0d0, ekin, epot, ekin+epot, Cvv
+        !call velocity_autocorrelation(Cvv)
+        !write(30,'(6F18.7)') 0.0d0, ekin, epot, ekin+epot, Cvv
 
         do i=1,ndt
             !dqp=qp
@@ -118,13 +116,27 @@ program gmd
                 write(31,*) vxi
             end if
 
-            call velocity_autocorrelation(Cvv)
-            write(30,'(6F18.7)') dt*i*t0fs,Ekin, Epot,Ekin+Epot, Cvv
+            if (i == nequil) then
+                call unpack_Qnk(y, Qnk)
+                do j=1,Natom
+                    v3 = matmul(invMeff(:,:,j), p(:,j))
+                    vtau0(:,j) = matmul(Qnk(:,:,j), v3)
+                end do
+                r0equil = r
+                rshift = 0
+            end if
+
+            if (i>=nequil) then
+                call velocity_autocorrelation(Cvv)
+                call mean_sq_disp(dxsq)
+                write(30,'(6F18.7)') dt*(i-nequil)*t0fs,Ekin, Epot,Ekin+Epot, Cvv, dxsq
+            end if
 
             do j=1,Natom
                 do k=1,3
                     if (abs(r(k, j)) >bl2) then
                         r(k, j) = r(k, j) - sign(bl, r(k, j))
+                        rshift(k, j) = rshift(k, j) + sign(bl, r(k, j))
                     end if
                 end do
             end do
