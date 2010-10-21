@@ -25,7 +25,7 @@ VGW:=utils propagation vgw unpackg\
        interaction_lists dlsode vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03
 
 GMD:=xyz spine gmd nose_hoover_chain
-MERGECVV= xyz mergecvv
+MERGECVV= utils mergecvv
 LJ:=xyz utils  lj
 
 all: gmd mergecvv
@@ -45,7 +45,7 @@ deps.mk:
 gmd: $(addsuffix .o,$(VGW) $(GMD))
 	$(FC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
-mergecvv: $(addsuffix .o,$(VGW) $(MERGECVV))
+mergecvv: $(addsuffix .o, $(MERGECVV))
 	$(FC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 lj: $(addsuffix .o, $(LJ))
