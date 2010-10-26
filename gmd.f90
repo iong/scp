@@ -5,15 +5,16 @@ program gmd
     use utils
     use propagation
     implicit none
-    integer :: npstart, npstop, ndtout, ndt, ne, nequil
+    integer :: iostat
+    integer :: ndtout, ndt, ne, nequil
     real*8 :: v3(3), Ueff0, rmserr, p3(3), Q1nhc, sumf(3), sump(3)
-    real*8, allocatable :: f(:,:), WW(:), dr(:,:), dqp(:), pbath0(:)
-    real*8 :: Ekin ,Epot, Cvv, tequil, dxsq
+    real*8, allocatable :: f(:,:)
+    real*8 :: Ekin ,Epot, Cvv, tequil, dxsq,tlen
 
-    character(LEN=256) :: cfgfile, fname, coords
+    character(LEN=256) :: cfgfile, coords
     integer :: i, j, k, n, ixyz
     namelist /gmdcfg/Natom,mass,NGAUSS,LJA,LJC,rc,rtol,atol,taumin,kT,rho, &
-            rcmin, npstart,npstop,coords,tstart,tstop,dtout,dt,Nbath,Q1nhc,ne,tequil
+            rcmin,coords,tstart,tstop,dtout,dt,Nbath,Q1nhc,ne,tequil,tlen
 
 
     cfgfile='pH2.in'
@@ -36,12 +37,16 @@ program gmd
     ndt = (tstop - tstart) / dt
     ndtout = dtout/dt
     nequil = tequil / dt
+    window_width = tlen / dt
+
+    naccumulated = 0
+    ncvvout = 0
     
-    allocate (y(1+21*natom), r0(3,natom), p0(3,natom), vtau0(3,natom), &
-                Meff0(3,3,natom), invMeff0(3,3,natom), Qnk0(3,3,natom), &
+    allocate (y(1+21*natom), r0(3,natom), p0(3,natom), &
                 Qnk(3,3,natom), Meff(3,3,natom), invMeff(3,3,natom), &
-                r(3,natom), p(3,natom), f(3,natom), dr(3,natom),&
-                r0equil(3,natom),rshift(3,natom))
+                r(3,natom), p(3,natom), f(3,natom), v(3,natom),&
+                r0equil(3,natom),rshift(3,natom),&
+                v0tau(3,natom,window_width), Cvvcur(window_width), Cvvold(window_width))
     call load_xyz(r0, coords)
     call seed_rng()
 
@@ -56,8 +61,6 @@ program gmd
 
     mass = mass*0.020614788876D0
     call vgwinit(natom, bl)
-    call vgw1(r0, Ueff0, 1.0/kT, 0.0d0, y, Meff0, invMeff0)
-    call unpack_Qnk(y, Qnk0)
 
     if (Nbath>=2) then
         allocate(Qbath(Nbath),  xi(Nbath), vxi(Nbath))
@@ -70,82 +73,59 @@ program gmd
         vxi = 0.0d0
     end if
 
-    do n=npstart,npstop
-        if (mod(n,2) == 0) then
-            p0 = -p0
-        else
-            call initial_momenta(kT, Meff0, p0)
-            !sump =  sum(p0, 2)/Natom
-            !do i=1,Natom
-            !    p0(:,i) = p0(:,i) - sump
-            !end do
+    p0 = 0.0d0
+    call verletstep(r0, p0, f, Epot, 0.0d0) ! compute Meff
+    call initial_momenta(kT, Meff, p0)
+
+    r = r0
+    p = p0
+    f = 0.0d0
+    v0tau = 0.0d0
+    Cvvold = 0.0d0
+    Cvvcur = 0.0d0
+
+    call total_ekin(Ekin)
+    if (Nbath > 0) then
+        call nose_hoover_chain(p, Ekin, kT, xi, vxi, Qbath, 0.0d0, ne)
+    end if
+    call verletstep(r, p, f, Epot, 0.0d0)
+    if (Nbath > 0) then
+        call nose_hoover_chain(p, Ekin, kT, xi, vxi, Qbath, 0.0d0, ne)
+    end if
+
+
+    ixyz = index(coords, '.xyz', .TRUE.)
+    write (*,*) coords(1:ixyz-1), ixyz
+    stem = 'dump/'//coords(1:ixyz-1)
+    write (*,*) stem
+    open(eout,file=trim(stem)//'_energy.dat')
+
+    write(eout,'(6F18.7)') 0.0d0,Ekin, Epot,Ekin+Epot
+    do i=1,ndt
+        if (Nbath > 0) then
+            call nose_hoover_chain(p, Ekin, kT, xi, vxi, Qbath, dt, ne)
         end if
-
-        r = r0
-        p = p0
-        f = 0.0d0
-
+        call verletstep(r, p, f, Epot, dt)
         call total_ekin(Ekin)
         if (Nbath > 0) then
-            call nose_hoover_chain(p, Ekin, kT, xi, vxi, Qbath, 0.0d0, ne)
-        end if
-        call verletstep(r, p, f, Epot, 0.0d0)
-        if (Nbath > 0) then
-            call nose_hoover_chain(p, Ekin, kT, xi, vxi, Qbath, 0.0d0, ne)
+            call nose_hoover_chain(p, Ekin, kT, xi, vxi, Qbath, dt, ne)
         end if
 
+        if (i>=nequil) then
+            call velocity_autocorrelation()
+        end if
+        write(eout,'(6F18.7)') dt*i*t0fs,Ekin, Epot,Ekin+Epot
 
-        ixyz = index(coords, '.xyz', .TRUE.)
-        write(fname, "('dump/',A,'_',I5,'.dat')") coords(1:ixyz-1), n
-        call replace_char(fname, ' ', '0')
-        open(30,file=fname)
-        !call velocity_autocorrelation(Cvv)
-        !write(30,'(6F18.7)') 0.0d0, ekin, epot, ekin+epot, Cvv
 
-        do i=1,ndt
-            !dqp=qp
-            if (Nbath > 0) then
-                call nose_hoover_chain(p, Ekin, kT, xi, vxi, Qbath, dt, ne)
-            end if
-
-            call verletstep(r, p, f, Epot, dt)
-            call total_ekin(Ekin)
-
-            if (Nbath > 0) then
-                call nose_hoover_chain(p, Ekin, kT, xi, vxi, Qbath, dt, ne)
-                write(31,*) vxi
-            end if
-
-            if (i == nequil) then
-                call unpack_Qnk(y, Qnk)
-                do j=1,Natom
-                    v3 = matmul(invMeff(:,:,j), p(:,j))
-                    vtau0(:,j) = matmul(Qnk(:,:,j), v3)
-                end do
-                r0equil = r
-                rshift = 0
-            end if
-
-            if (i>=nequil) then
-                call velocity_autocorrelation(Cvv)
-                call mean_sq_disp(dxsq)
-                write(30,'(6F18.7)') dt*(i-nequil)*t0fs,Ekin, Epot,Ekin+Epot, Cvv, dxsq
-            end if
-
-            do j=1,Natom
-                do k=1,3
-                    if (abs(r(k, j)) >bl2) then
-                        r(k, j) = r(k, j) - sign(bl, r(k, j))
-                        rshift(k, j) = rshift(k, j) + sign(bl, r(k, j))
-                    end if
-                end do
+        do j=1,Natom
+            do k=1,3
+                if (abs(r(k, j)) >bl2) then
+                    r(k, j) = r(k, j) - sign(bl, r(k, j))
+                    rshift(k, j) = rshift(k, j) + sign(bl, r(k, j))
+                end if
             end do
-
-            !forall (k=1:3*Natom, abs(qp(k)) >bl2)
-            !    qp(k) = qp(k) - sign(bl, qp(k))
-            !end forall
         end do
-        close(30)
     end do
+    close(eout)
 end program gmd
 ! vim:et

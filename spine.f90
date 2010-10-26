@@ -1,12 +1,14 @@
 module spine
     implicit none
     real*8, parameter :: t0 = 7.6382d-12, t0fs = 7638.2d0
-    integer :: Natom, Nbath
+    integer, parameter :: eout = 30, cvvout = 31
+    integer :: Natom, Nbath, naccumulated, window_width, ncvvout
     real*8 :: rcmin, tstart, tstop, dtout, dt, bl, bl2,rho, kT
-    real*8, dimension(:), allocatable :: y, Qbath, xi, vxi
-    real*8, dimension(:,:), allocatable :: r0, p0, vtau0, v0, r(:,:), p(:,:), rshift(:,:), r0equil(:,:)
-    real*8, dimension(:,:,:), allocatable :: Meff0, invMeff0, Qnk0, Qnk, Meff, invMeff
+    real*8, dimension(:), allocatable :: y, Qbath, xi, vxi, Cvvcur, Cvvold
+    real*8, dimension(:,:), allocatable :: r0, p0,  r, p, v, rshift, r0equil
+    real*8, dimension(:,:,:), allocatable :: Qnk, Meff, invMeff, v0tau
     real*8 :: lastepot
+    character(256) :: stem
 
     interface
         subroutine nose_hoover_chain(p, Ekin, kT, xi, vxi, Q, dt, ne)
@@ -45,8 +47,6 @@ subroutine verletstep(r, p, f, epot, dt)
     real*8 :: Ueff, v3(3), p3(3), Ekin
     integer :: i, Nq, Nqp
 
-
-    Natom = size(r, 2)
     p = p + 0.5*dt*f
     do i=1,Natom
         r(:,i) = r(:,i) + dt*matmul(invMeff(:,:,i), p(:,i))
@@ -74,23 +74,59 @@ subroutine total_ekin(ekin)
     ekin = 0.5*ekin
 end subroutine
 
-subroutine velocity_autocorrelation(Cvv)
+subroutine velocity_autocorrelation()
+    use vgw
     implicit none
-    real*8, intent(out) :: Cvv
-    real*8 :: v3(3)
-    integer :: j
+    integer :: i,j
 
-    Cvv = 0.0d0
     do j=1,Natom
-        v3 = matmul(invMeff(:,:,j), p(:,j))
-        Cvv = Cvv + dot_product(vtau0(:,j), v3)
+        v(:,j) = matmul(invMeff(:,:,j), p(:,j))
     end do
-    Cvv = Cvv / Natom
+
+    naccumulated = naccumulated + 1
+    call unpack_Qnk(y, Qnk)
+    do j=1,Natom
+        v0tau(:,j,naccumulated) = matmul(Qnk(:,:,j), v(:,j))
+    end do
+
+    do i=1,naccumulated
+        Cvvcur(naccumulated-i+1) = Cvvcur(naccumulated-i+1) + sum(sum(v0tau(:,:,i)*v, 1))
+    end do
+
+    j = window_width
+    do i=naccumulated+1,window_width
+        Cvvold(j) =  Cvvold(j) + sum(sum(v0tau(:,:,i)*v, 1))
+        j = j - 1
+    end do
+
+    if (naccumulated == window_width) then
+        if (Cvvold(1) /= 0.0d0 ) then
+            Cvvold = Cvvold / (Natom * window_width)
+            call dump_cvv(Cvvold)
+        end if
+        Cvvold = Cvvcur
+        Cvvcur = 0.0d0
+        naccumulated = 0
+    end if
 end subroutine
 
 subroutine mean_sq_disp(dxsq)
     real*8, intent(out) :: dxsq
 
     dxsq = sum(sum((r - r0equil - rshift)**2, 1))/Natom
+end subroutine
+
+subroutine dump_cvv(Cvv)
+    use utils
+    implicit none
+    real*8, intent(in) :: Cvv (:)
+    integer :: i
+    character(4) :: cdump
+
+    ncvvout = ncvvout + 1
+    call int2strz(ncvvout, 4, cdump)
+    open(cvvout, file=trim(stem)//'_Cvv_'//cdump//'.dat')
+    write(cvvout,'(6F18.7)') (dt*(i-1)*t0fs, Cvv(i), i=1,size(Cvv))
+    close(cvvout)
 end subroutine
 end module spine
