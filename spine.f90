@@ -126,7 +126,7 @@ subroutine dump_cvv(Cvv)
     ncvvout = ncvvout + 1
     call int2strz(ncvvout, 4, cdump)
     open(cvvout, file=trim(stem)//'_Cvv_'//cdump//'.dat')
-    write(cvvout,'(6F18.7)') (dt*(i-1)*t0fs, Cvv(i), i=1,size(Cvv))
+    write(cvvout,'(2F18.7)') (dt*(i-1)*t0fs, Cvv(i), i=1,size(Cvv))
     close(cvvout)
 end subroutine
 end module spine
