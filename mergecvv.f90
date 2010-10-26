@@ -1,18 +1,17 @@
 program mergecvv
     use utils
     implicit none
+    integer :: iostat
     character(len=256) :: fname, cmd, cfgfile, coords
-    integer :: Natom, nr0, NMCp, ndt, nr0start, nr0stop, nr0step, i, j, k, Nbath,npstart,npstop, NGAUSS,ne,nequil
+    integer :: nr0, ndt, nr0start, nr0stop, nr0step, i, j, k,nequil
     logical :: fexists
-    real*8 :: M(3,3), Ueff, detgj, Q1nhc, Z,tequil
-    real*8 :: rcmin, tstart, tstop, dtout, dt, bl, bl2,rho, kT, mass, LJA(20), LJC(20), rc, rtol, atol,taumin
-    real*8, dimension(:), allocatable :: y, ekin, epot, etot, Cvv, Cvvavg, Cvvstd, detg, WW, t
+    real*8 :: tstart, tstop, dt,tequil,Z
+    real*8, dimension(:), allocatable :: ekin, epot, etot, Cvv, Cvvavg, Cvvstd, t
     real*8, allocatable :: r0(:,:), dxsq(:), dxsqavg(:)
-    namelist /gmdcfg/Natom,mass,NGAUSS,LJA,LJC,rc,rtol,atol,taumin,kT,rho, &
-            rcmin, npstart,npstop,coords,tstart,tstop,dtout,dt,Nbath,Q1nhc,ne,tequil
+    namelist /gmdcfg/tstart,tstop,dt,tequil
 
     open(30,file='pH2.in')
-    read(30,NML=gmdcfg)
+    read(30,NML=gmdcfg,IOSTAT=iostat)
     close(30)
 
     call get_command_argument(1, cmd)
@@ -26,7 +25,7 @@ program mergecvv
     ndt = (tstop - tstart) / dt
     nequil = tequil / dt
 
-    allocate ( ekin(0:ndt), epot(0:ndt), etot(0:ndt), Cvv(0:ndt), WW(0:ndt), &
+    allocate ( ekin(0:ndt), epot(0:ndt), etot(0:ndt), Cvv(0:ndt), &
             Cvvavg(0:ndt), Cvvstd(0:ndt), t(0:ndt), dxsq(0:ndt), dxsqavg(0:ndt))
 
     Cvvavg = 0.0d0
