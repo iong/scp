@@ -29,6 +29,7 @@ MERGECVV= utils mergecvv
 LJ:=xyz utils  lj
 
 all: gmd mergecvv
+deps: deps.mk
 
 include deps.mk
 
@@ -55,6 +56,6 @@ diag: diag.o rs.o utils.o
 	$(FC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 clean:
-	$(RM) *.o *.mod deps.mk
+	$(RM) *.o *.mod
 
-.PHONY: libpepc
+.PHONY: libpepc deps
