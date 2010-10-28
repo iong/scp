@@ -30,7 +30,7 @@ function matsqrt(M)
     N = size(M,1)
     call RS(N,N,M,W,1,U,FV1,FV2,ierr)
     U1 = transpose(U)
-    do i=1,N
+    do j=1,N
         U1(:,j) = sqrt(W)*U1(:,j)
     end do
     matsqrt = matmul(U, U1)
@@ -98,7 +98,7 @@ subroutine velocity_autocorrelation()
 
     do j=1,Natom
         v(:,j) = matmul(invMeff(:,:,j), p(:,j))
-        vs(:,j) = matmul(matsqrt(invMeff(:,:,j)), p(:,j))
+        vs(:,j) = matmul(matsqrt(invMeff(:,:,j)), p(:,j))/sqrt(mass)
     end do
 
     naccumulated = naccumulated + 1
@@ -150,7 +150,7 @@ subroutine dump_cvv(Cvv)
     ncvvout = ncvvout + 1
     call int2strz(ncvvout, 4, cdump)
     open(cvvout, file=trim(stem)//'_Cvv_'//cdump//'.dat')
-    write(cvvout,'(4F18.7)') (dt*(i-1)*t0fs, Cvv(1:3,i), i=1,size(Cvv))
+    write(cvvout,'(4F18.7)') (dt*(i-1)*t0fs, Cvv(1:3,i), i=1,size(Cvv,2))
     close(cvvout)
 end subroutine
 end module spine
