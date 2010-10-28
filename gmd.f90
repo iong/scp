@@ -9,7 +9,7 @@ program gmd
     integer :: ndtout, ndt, ne, nequil
     real*8 :: v3(3), Ueff0, rmserr, p3(3), Q1nhc, sumf(3), sump(3)
     real*8, allocatable :: f(:,:)
-    real*8 :: Ekin ,Epot, Cvv, tequil, dxsq,tlen
+    real*8 :: Ekin ,Epot, Cvv, tequil, dxsq,tlen, pcm(3)
 
     character(LEN=256) :: cfgfile, coords
     integer :: i, j, k, n, ixyz
@@ -78,6 +78,10 @@ program gmd
     p = 0.0d0
     call verletstep(r0, p, f, Epot, 0.0d0) ! compute Meff
     call initial_momenta(kT, Meff, p)
+    pcm = sum(p, 2)/Natom
+    do i=1,Natom
+        p(:,i) = p(:,i) - pcm
+    end do
 
     r = r0
     f = 0.0d0

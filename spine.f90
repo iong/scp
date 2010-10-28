@@ -60,7 +60,7 @@ subroutine verletstep(r, p, f, epot, dt)
     real*8, intent(in) :: dt
     real*8, intent(inout) ::r(:,:), p(:,:), f(:,:)
     real*8, intent(out) :: epot
-    real*8 :: Ueff, v3(3), p3(3), Ekin
+    real*8 :: Ueff, v3(3), p3(3), Ekin,fcm(3)
     integer :: i, Nq, Nqp
 
     p = p + 0.5*dt*f
@@ -69,6 +69,10 @@ subroutine verletstep(r, p, f, epot, dt)
     end do
     call vgw1(r, Ueff, 1.0/kT, 0.0d0, y, Meff, invMeff)
     f = reshape( 2.0*kT*y(2+18*Natom:1+21*Natom), (/ 3, Natom /))
+    fcm = sum(f,2)/Natom
+    do i=1,Natom
+        f(:,i) = f(:,i) - fcm
+    end do
     p = p + 0.5*dt*f
 
     epot = -2.0*kT*y(1)
