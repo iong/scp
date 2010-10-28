@@ -4,9 +4,9 @@ module spine
     integer, parameter :: eout = 30, cvvout = 31
     integer :: Natom, Nbath, naccumulated, window_width, ncvvout
     real*8 :: rcmin, tstart, tstop, dtout, dt, bl, bl2,rho, kT
-    real*8, dimension(:), allocatable :: y, Qbath, xi, vxi, Cvvcur, Cvvold
-    real*8, dimension(:,:), allocatable :: r0, p0,  r, p, v, rshift, r0equil
-    real*8, dimension(:,:,:), allocatable :: Qnk, Meff, invMeff, v0tau
+    real*8, dimension(:), allocatable :: y, Qbath, xi, vxi
+    real*8, dimension(:,:), allocatable :: r0,  r, p, v, rshift, r0equil,  Cvvcur, Cvvold
+    real*8, dimension(:,:,:), allocatable :: Qnk, Meff, invMeff, v0tau, v0s, p0
     real*8 :: lastepot
     character(256) :: stem
 
@@ -19,6 +19,22 @@ module spine
     end interface
 contains
 
+function matsqrt(M)
+    use utils
+    implicit none
+    real*8, intent(in) :: M(:,:)
+    real*8 :: matsqrt(size(M,1),size(M,2))
+    real*8 :: U(size(M,1),size(M,1)), U1(size(M,1),size(M,1)), W(size(M,1)), FV1(size(M,1)), FV2(size(M,1))
+    integer :: i, j, ierr, N
+
+    N = size(M,1)
+    call RS(N,N,M,W,1,U,FV1,FV2,ierr)
+    U1 = transpose(U)
+    do i=1,N
+        U1(:,j) = sqrt(W)*U1(:,j)
+    end do
+    matsqrt = matmul(U, U1)
+end function
 
 subroutine initial_momenta(kT, Meff, p)
     use utils
@@ -78,9 +94,11 @@ subroutine velocity_autocorrelation()
     use vgw
     implicit none
     integer :: i,j
+    real * 8 :: vs(3,Natom)
 
     do j=1,Natom
         v(:,j) = matmul(invMeff(:,:,j), p(:,j))
+        vs(:,j) = matmul(matsqrt(invMeff(:,:,j)), p(:,j))
     end do
 
     naccumulated = naccumulated + 1
@@ -88,19 +106,25 @@ subroutine velocity_autocorrelation()
     do j=1,Natom
         v0tau(:,j,naccumulated) = matmul(Qnk(:,:,j), v(:,j))
     end do
+    v0s(:,:,naccumulated) = vs
+    p0(:,:,naccumulated) = p/mass
 
     do i=1,naccumulated
-        Cvvcur(naccumulated-i+1) = Cvvcur(naccumulated-i+1) + sum(sum(v0tau(:,:,i)*v, 1))
+        Cvvcur(1,naccumulated-i+1) = Cvvcur(1,naccumulated-i+1) + sum(v0tau(:,:,i)*v)
+        Cvvcur(2,naccumulated-i+1) = Cvvcur(2,naccumulated-i+1) + sum(v0s(:,:,i)*vs)
+        Cvvcur(3,naccumulated-i+1) = Cvvcur(3,naccumulated-i+1) + sum(p0(:,:,i)*v)
     end do
 
     j = window_width
     do i=naccumulated+1,window_width
-        Cvvold(j) =  Cvvold(j) + sum(sum(v0tau(:,:,i)*v, 1))
+        Cvvold(1,j) =  Cvvold(1,j) + sum(v0tau(:,:,i)*v)
+        Cvvold(2,j) =  Cvvold(2,j) + sum(v0s(:,:,i)*vs)
+        Cvvold(3,j) =  Cvvold(3,j) + sum(p0(:,:,i)*v)
         j = j - 1
     end do
 
     if (naccumulated == window_width) then
-        if (Cvvold(1) /= 0.0d0 ) then
+        if (Cvvold(1,1) /= 0.0d0 ) then
             Cvvold = Cvvold / (Natom * window_width)
             call dump_cvv(Cvvold)
         end if
@@ -113,20 +137,20 @@ end subroutine
 subroutine mean_sq_disp(dxsq)
     real*8, intent(out) :: dxsq
 
-    dxsq = sum(sum((r - r0equil - rshift)**2, 1))/Natom
+    dxsq = sum((r - r0equil - rshift)**2)/Natom
 end subroutine
 
 subroutine dump_cvv(Cvv)
     use utils
     implicit none
-    real*8, intent(in) :: Cvv (:)
+    real*8, intent(in) :: Cvv (:,:)
     integer :: i
     character(4) :: cdump
 
     ncvvout = ncvvout + 1
     call int2strz(ncvvout, 4, cdump)
     open(cvvout, file=trim(stem)//'_Cvv_'//cdump//'.dat')
-    write(cvvout,'(2F18.7)') (dt*(i-1)*t0fs, Cvv(i), i=1,size(Cvv))
+    write(cvvout,'(4F18.7)') (dt*(i-1)*t0fs, Cvv(1:3,i), i=1,size(Cvv))
     close(cvvout)
 end subroutine
 end module spine

@@ -42,11 +42,13 @@ program gmd
     naccumulated = 0
     ncvvout = 0
     
-    allocate (y(1+21*natom), r0(3,natom), p0(3,natom), &
+    allocate (y(1+21*natom), r0(3,natom), &
                 Qnk(3,3,natom), Meff(3,3,natom), invMeff(3,3,natom), &
                 r(3,natom), p(3,natom), f(3,natom), v(3,natom),&
                 r0equil(3,natom),rshift(3,natom),&
-                v0tau(3,natom,window_width), Cvvcur(window_width), Cvvold(window_width))
+                v0tau(3,natom,window_width), v0s(3,natom,window_width), &
+                p0(3,natom,window_width), &
+                Cvvcur(3,window_width), Cvvold(3,window_width))
     call load_xyz(r0, coords)
     call seed_rng()
 
@@ -73,12 +75,11 @@ program gmd
         vxi = 0.0d0
     end if
 
-    p0 = 0.0d0
-    call verletstep(r0, p0, f, Epot, 0.0d0) ! compute Meff
-    call initial_momenta(kT, Meff, p0)
+    p = 0.0d0
+    call verletstep(r0, p, f, Epot, 0.0d0) ! compute Meff
+    call initial_momenta(kT, Meff, p)
 
     r = r0
-    p = p0
     f = 0.0d0
     v0tau = 0.0d0
     Cvvold = 0.0d0
