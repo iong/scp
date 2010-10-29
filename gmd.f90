@@ -100,9 +100,7 @@ program gmd
 
 
     ixyz = index(coords, '.xyz', .TRUE.)
-    write (*,*) coords(1:ixyz-1), ixyz
     stem = 'dump/'//coords(1:ixyz-1)
-    write (*,*) stem
     open(eout,file=trim(stem)//'_energy.dat')
 
     write(eout,'(6F18.7)') 0.0d0,Ekin, Epot,Ekin+Epot

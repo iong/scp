@@ -20,7 +20,6 @@ module spine
 contains
 
 function matsqrt(M)
-    use utils
     implicit none
     real*8, intent(in) :: M(:,:)
     real*8 :: matsqrt(size(M,1),size(M,2))
