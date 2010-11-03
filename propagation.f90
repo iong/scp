@@ -17,8 +17,8 @@ subroutine  init_mylsode(NEQ)
     ISTATE=1
 
     IWORK(5:10)=(/4, 100000, 0, 0, 0, 0/)
-    !RWORK(7) = HMIN
     RWORK(5:10)=0.0D0
+    !RWORK(7) = HMIN
 end subroutine
 
 subroutine mylsode(F, x, NEQ, dt, tstart, tstop, atol, rtol)
