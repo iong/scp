@@ -59,8 +59,6 @@ subroutine init_track(trackno, ndt, vs)
     v0s(:,:,trackno) = vs
     p0(:,:,trackno) = p/mass
     call kubo(r, v, 1.0d0/kT, 200, xk, vkubo(:,:,trackno))
-    write(31,*)  p0(:,:,trackno)
-    write(32,*)  vkubo(:,:,trackno)
 
     track(:,:,trackno) = 0.0d0
     trackstart(trackno) = ndt
