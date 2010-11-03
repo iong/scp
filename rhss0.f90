@@ -7,14 +7,14 @@ SUBROUTINE RHSS0(NEQ, T, y, yprime)
       INTEGER I,J,K,I1,I2,IG,CNT,CNT2
       REAL*8 AG(3,3),GU(3,3),&
            DETA,DETAG,GUG,QP,TRUXXGI,FACTOR,U,UX,UXX,QZQ,EXPAV, &
-           TRMG,DETS,DETI,LJS,LJE,GUQ, &
+           TRMG,DETS,DETI, &
            BL2,M(3,3),A(3,3), &
            R(3), Z(3,3),Q12(3)
       REAL*8 UPV(3,N_atom), UPM(3,3,N_atom)
 
     if (NEQ /= (1+9*N_atom) ) then
         write (*,*) 'NEQ != 1+9*N_atom', NEQ, 1+9*N_atom
-	stop
+        stop
     endif
 
     Q = reshape(y(2:1+3*N_atom), (/3, N_atom/) )

@@ -18,14 +18,14 @@ real*8 function gaussran(sigma, x0) result(y)
     real*8 :: x(2)
     do
         call random_number(x)
-       if (x(1) /= 0.0d0) exit
+        if (x(1) /= 0.0d0) exit
     enddo
-     !   write (*,*) x
+    !   write (*,*) x
 
     y = sqrt( -2.0 * log(x(1))) * cos(2*M_PI*x(2))
 
     y = y*sigma + x0
-end function
+end function gaussran
 
 subroutine pol2cart(pol, cart)
     real*8, intent(in) :: pol(3)
@@ -36,7 +36,7 @@ subroutine pol2cart(pol, cart)
     cart(1) = rxy * cos(pol(3))
     cart(2) = rxy * sin(pol(3))
     cart(3) = pol(1) * cos(pol(2))
-end subroutine
+end subroutine pol2cart
 
 
 subroutine int2strz(n, w, str0)
@@ -56,7 +56,7 @@ subroutine int2strz(n, w, str0)
         str0(i:i) = achar(z + mod(n2,10))
         n2 = n2/10
     end do
-end subroutine
+end subroutine int2strz
 
 subroutine linspace(xmin, xmax, N, xout)
     real*8, intent(in) :: xmin, xmax
@@ -67,7 +67,7 @@ subroutine linspace(xmin, xmax, N, xout)
 
     dx = (xmax - xmin) / (N-1)
     xout = xmin + dx * (/(i,i=0,N-1)/)
-end subroutine
+end subroutine linspace
 
 subroutine replace_char(str, a, b)
     character(len=*), intent(inout) :: str
@@ -79,7 +79,7 @@ subroutine replace_char(str, a, b)
             str(i:i) = b
         end if
     end do
-end subroutine
+end subroutine replace_char
 
 subroutine fliplr(v)
     real*8, intent(inout) :: v(:)
@@ -92,6 +92,25 @@ subroutine fliplr(v)
         v(N-i+1) = v(i)
         v(i) = x
     end do
-end subroutine
+end subroutine fliplr
+
+subroutine detminvm(A, DETA, INVA)
+    implicit none
+    real*8, intent(in) :: A(3,3)
+    real*8, intent(out) :: DETA, INVA(3,3)
+
+    INVA(1,1) = A(2,2)*A(3,3)-A(2,3)*A(3,2)
+    INVA(2,1) = -A(1,2)*A(3,3)+A(1,3)*A(3,2)
+    INVA(3,1) = A(1,2)*A(2,3)-A(1,3)*A(2,2)
+    INVA(1,2) = INVA(2,1)
+    INVA(2,2) = A(1,1)*A(3,3)-A(1,3)*A(3,1)
+    INVA(3,2) = -A(1,1)*A(2,3)+A(1,3)*A(2,1)
+    INVA(1,3) = INVA(3,1)
+    INVA(2,3) = INVA(3,2)
+    INVA(3,3) = A(1,1)*A(2,2)-A(1,2)*A(2,1)
+
+    DETA = INVA(1,1)*A(1,1)+INVA(2,1)*A(2,1)+INVA(3,1)*A(3,1)
+    INVA = INVA / DETA
+end subroutine detminvm
 
 end module utils

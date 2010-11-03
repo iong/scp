@@ -14,4 +14,4 @@ subroutine unpackg(N_atom, y, G)
 	    enddo
 	enddo
     enddo
-end subroutine
+end subroutine unpackg

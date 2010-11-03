@@ -158,7 +158,7 @@ subroutine rk45step(F, x, x1, NEQ, dt, atol, rtol, rmserr)
     real*8, intent(out) :: rmserr
     integer, parameter :: p=6
     REAL*8 :: xp(NEQ,p), xe(NEQ)
-    integer :: i, j, k
+    integer :: j, k
     real*8 :: c(6) = (/ 0.0, 1.0/4.0, 3.0/8.0, 12.0/13.0, 1.0, 1.0/2.0/)
     real*8 :: b(6) = (/902880.0/7618050.0, 0.0, 3953664.0/7618050.0, &
         3855735.0/7618050.0, -1371249.0/7618050.0, 277020.0/7618050.0 /)

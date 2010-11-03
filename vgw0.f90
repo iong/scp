@@ -7,15 +7,14 @@ SUBROUTINE vgw0(Q0, W, TAUMAX,TAUI, Y)
     REAL*8, intent(out) :: W(:)
     real*8 :: G(3,3,N_atom), G0(6), M(3,3), T, ULJ, LOGDET, DETI
     real*8 :: TSTEP=1e-3
-    real*8 :: tnow
-    integer :: I, j, nsteps, CNT, CNT2
+    integer :: I, j, CNT, CNT2
   
 
     if (TAUI <= 0.0) then
         T = TAUMIN
 
         call interaction_lists(Q0,N_atom,RC,BL, QRC) !Determine which particles
-        call Upot_tau0(Q0,N_atom,ULJ)
+        call Upot_tau0(Q0,ULJ)
         call init_mylsode(1+9*N_atom)
 
         Y(1) = -T*ULJ
@@ -43,8 +42,9 @@ SUBROUTINE vgw0(Q0, W, TAUMAX,TAUI, Y)
         ENDDO
     
 
-
-        W(i)=-(1/TAUMAX(i))*(2.0*y(1) - 0.5*LOGDET - 3.0*N_atom*log(2.0*sqrt(M_PI)))
+!The constant should be irrelevant for MC and FX. don't forget to add it to the Cv
+!        W(i)=-(1/TAUMAX(i))*(2.0*y(1) - 0.5*LOGDET - 3.0*N_atom*log(2.0*sqrt(M_PI)))
+        W(i)=-(1/TAUMAX(i))*(2.0*y(1) - 0.5*LOGDET)
     enddo
 END SUBROUTINE
 

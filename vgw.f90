@@ -37,6 +37,15 @@ subroutine unpack_Qnk(y, Qnk)
     ENDDO
 end subroutine
 
+subroutine unpack_q(y, q)
+    real*8, intent(in) :: y(:)
+    real*8, intent(out) :: q(:,:)
+    integer :: Natom
+
+    Natom = size(q,2)
+    q = reshape(y(2:1+3*Natom), (/3, Natom/) )
+end subroutine
+
 subroutine unpack_g(y, G)
     real*8, intent(in) :: y(:)
     real*8, intent(out) :: G(:,:,:)
@@ -62,6 +71,34 @@ subroutine unpack_f(y, kT, f)
 
     Natom = size(f,2)
     f = 2.0*kT*reshape(y(2+18*Natom:1+21*Natom), (/3, Natom/) )
+end subroutine
+
+subroutine init_gaussians(q0, tau, y)
+    use propagation
+    REAL*8, intent(in) :: Q0(3,N_atom), tau
+    REAL*8, intent(inout) :: Y(:)
+    real*8 :: ULJ, G0(6), E3(9)
+    integer :: NY
+
+    NY = size(y)
+
+    call interaction_lists(Q0,N_atom,RC,BL, QRC) !Determine which particles
+    call Upot_tau0(Q0,ULJ)
+
+    Y(1) = -tau*ULJ
+    Y(2:1+3*N_atom)=reshape(Q0, (/3*N_atom/))
+
+    G0=tau*invmass*(/1.0,0.0,0.0,1.0,0.0,1.0/)
+    Y(2+3*N_atom:1+9*N_atom) = reshape(spread(G0, 1, N_atom), (/ 9*N_atom /) )
+
+    E3 = (/1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0/)
+    if (NY == 1 + 21*N_atom) then
+        Y(2+9*N_atom:1+18*N_atom) = reshape( &
+                spread(E3, 1, N_atom), (/ 9*N_atom /) )
+
+        Y(2+18*N_atom:1+21*N_atom) =reshape( Ux_tau0(Q0), (/ 3*N_atom /) )
+        Y(2+18*N_atom:1+21*N_atom) = Y(2+18*N_atom:1+21*N_atom) * tau
+    end if
 end subroutine
        
 include 'potential_energy.f90'
