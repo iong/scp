@@ -6,15 +6,14 @@ program gmd
     use propagation
     implicit none
     integer :: iostat
-    integer :: ndtout, ndt, ne, nequil
-    real*8 :: v3(3), Ueff0, rmserr, p3(3), Q1nhc, sumf(3), sump(3)
+    integer :: ndt, ne, nequil
     real*8, allocatable :: f(:,:)
-    real*8 :: Ekin ,Epot, Cvv, tequil, dxsq,tlen, pcm(3)
+    real*8 :: Ekin ,Epot,tequil, tsep, tlen, pcm(3), Q1nhc
 
     character(LEN=256) :: cfgfile, coords
-    integer :: i, j, k, n, ixyz
+    integer :: i, j, k, ixyz
     namelist /gmdcfg/Natom,mass,NGAUSS,LJA,LJC,rc,rtol,atol,taumin,kT,rho, &
-            rcmin,coords,tstart,tstop,dtout,dt,Nbath,Q1nhc,ne,tequil,tlen
+            rcmin,coords,tstart,tstop,dt,Nbath,Q1nhc,ne,tequil,tlen,tsep
 
 
     cfgfile='pH2.in'
@@ -35,20 +34,18 @@ program gmd
 
 
     ndt = (tstop - tstart) / dt
-    ndtout = dtout/dt
     nequil = tequil / dt
-    window_width = tlen / dt
+    tracksep = tsep / dt
+    seglen = tlen / dt
+    ntracks = tlen / tsep
 
-    naccumulated = 0
-    ncvvout = 0
-    
     allocate (y(1+21*natom), r0(3,natom), &
                 Qnk(3,3,natom), Meff(3,3,natom), invMeff(3,3,natom), &
                 r(3,natom), p(3,natom), f(3,natom), v(3,natom),&
                 r0equil(3,natom),rshift(3,natom),&
-                v0tau(3,natom,window_width), v0s(3,natom,window_width), &
-                p0(3,natom,window_width), &
-                Cvvcur(3,window_width), Cvvold(3,window_width))
+                v0tau(3,natom,ntracks), v0s(3,natom,ntracks), &
+                p0(3,natom,ntracks), vkubo(3,natom,ntracks), &
+                track(4,seglen,ntracks), trackstart(ntracks))
     call load_xyz(r0, coords)
     call seed_rng()
 
@@ -84,10 +81,10 @@ program gmd
     end do
 
     r = r0
-    f = 0.0d0
     v0tau = 0.0d0
-    Cvvold = 0.0d0
-    Cvvcur = 0.0d0
+    vkubo = 0.0d0
+    track = 0.0d0
+    trackstart = (/ (tracksep*i + 1, i=0,ntracks-1) /)
 
     call total_ekin(Ekin)
     if (Nbath > 0) then
@@ -115,7 +112,7 @@ program gmd
         end if
 
         if (i>=nequil) then
-            call velocity_autocorrelation()
+            call correlations(i-nequil)
         end if
         write(eout,'(6F18.7)') dt*i*t0fs,Ekin, Epot,Ekin+Epot
 

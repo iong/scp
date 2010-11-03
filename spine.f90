@@ -2,11 +2,12 @@ module spine
     implicit none
     real*8, parameter :: t0 = 7.6382d-12, t0fs = 7638.2d0
     integer, parameter :: eout = 30, cvvout = 31
-    integer :: Natom, Nbath, naccumulated, window_width, ncvvout
-    real*8 :: rcmin, tstart, tstop, dtout, dt, bl, bl2,rho, kT
+    integer :: Natom, Nbath, ntracks, tracksep, seglen
+    real*8 :: rcmin, tstart, tstop, dt, bl, bl2,rho, kT
     real*8, dimension(:), allocatable :: y, Qbath, xi, vxi
-    real*8, dimension(:,:), allocatable :: r0,  r, p, v, rshift, r0equil,  Cvvcur, Cvvold
-    real*8, dimension(:,:,:), allocatable :: Qnk, Meff, invMeff, v0tau, v0s, p0
+    real*8, dimension(:,:), allocatable :: r0,  r, p, v, rshift, r0equil
+    real*8, dimension(:,:,:), allocatable :: Qnk, Meff, invMeff, v0tau, v0s, p0, vkubo, track
+    integer, allocatable :: trackstart(:)
     real*8 :: lastepot
     character(256) :: stem
 
@@ -16,6 +17,18 @@ module spine
             real*8, intent(in) :: kT, Q(:), dt
             integer, intent(in) :: ne
         end subroutine nose_hoover_chain
+        subroutine kubo(q0, v, beta, nsteps, xk, vk)
+            real*8, intent(in) :: q0(:,:), v(:,:), beta
+            integer, intent(in) :: nsteps
+            real*8, intent(out) :: xk(:,:), vk(:,:)
+        end subroutine kubo
+        subroutine correlations(ndt)
+            integer, intent(in) :: ndt
+        end subroutine correlations
+        subroutine dump_track(track, trackno)
+            real*8, intent(in) :: track (:,:)
+            integer, intent(in) :: trackno
+        end subroutine dump_track
     end interface
 contains
 
@@ -91,69 +104,5 @@ subroutine total_ekin(ekin)
         ekin = ekin + dot_product(p(:,j), v3)
     end do
     ekin = 0.5*ekin
-end subroutine
-
-subroutine velocity_autocorrelation()
-    use vgw
-    implicit none
-    integer :: i,j
-    real * 8 :: vs(3,Natom)
-
-    do j=1,Natom
-        v(:,j) = matmul(invMeff(:,:,j), p(:,j))
-        vs(:,j) = matmul(matsqrt(invMeff(:,:,j)), p(:,j))/sqrt(mass)
-    end do
-
-    naccumulated = naccumulated + 1
-    call unpack_Qnk(y, Qnk)
-    do j=1,Natom
-        v0tau(:,j,naccumulated) = matmul(Qnk(:,:,j), v(:,j))
-    end do
-    v0s(:,:,naccumulated) = vs
-    p0(:,:,naccumulated) = p/mass
-
-    do i=1,naccumulated
-        Cvvcur(1,naccumulated-i+1) = Cvvcur(1,naccumulated-i+1) + sum(v0tau(:,:,i)*v)
-        Cvvcur(2,naccumulated-i+1) = Cvvcur(2,naccumulated-i+1) + sum(v0s(:,:,i)*vs)
-        Cvvcur(3,naccumulated-i+1) = Cvvcur(3,naccumulated-i+1) + sum(p0(:,:,i)*v)
-    end do
-
-    j = window_width
-    do i=naccumulated+1,window_width
-        Cvvold(1,j) =  Cvvold(1,j) + sum(v0tau(:,:,i)*v)
-        Cvvold(2,j) =  Cvvold(2,j) + sum(v0s(:,:,i)*vs)
-        Cvvold(3,j) =  Cvvold(3,j) + sum(p0(:,:,i)*v)
-        j = j - 1
-    end do
-
-    if (naccumulated == window_width) then
-        if (Cvvold(1,1) /= 0.0d0 ) then
-            Cvvold = Cvvold / (Natom * window_width)
-            call dump_cvv(Cvvold)
-        end if
-        Cvvold = Cvvcur
-        Cvvcur = 0.0d0
-        naccumulated = 0
-    end if
-end subroutine
-
-subroutine mean_sq_disp(dxsq)
-    real*8, intent(out) :: dxsq
-
-    dxsq = sum((r - r0equil - rshift)**2)/Natom
-end subroutine
-
-subroutine dump_cvv(Cvv)
-    use utils
-    implicit none
-    real*8, intent(in) :: Cvv (:,:)
-    integer :: i
-    character(4) :: cdump
-
-    ncvvout = ncvvout + 1
-    call int2strz(ncvvout, 4, cdump)
-    open(cvvout, file=trim(stem)//'_Cvv_'//cdump//'.dat')
-    write(cvvout,'(4F18.7)') (dt*(i-1)*t0fs, Cvv(1:3,i), i=1,size(Cvv,2))
-    close(cvvout)
 end subroutine
 end module spine

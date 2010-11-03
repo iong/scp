@@ -24,11 +24,17 @@ LIBS:= $(LIBS) $(LAPACK) -lm
 VGW:=utils propagation vgw unpackg\
        interaction_lists dlsode vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03
 
-GMD:=xyz spine gmd nose_hoover_chain
+GMD:=xyz spine gmd nose_hoover_chain kubo correlations
 MERGECVV= utils mergecvv
 LJ:=xyz utils  lj
 
 all: gmd mergecvv
+
+dbg: dbg.gmd
+
+dbg.%:
+	$(MAKE) DBG=1 $*
+
 deps: deps.mk
 
 include deps.mk
@@ -58,4 +64,4 @@ diag: diag.o rs.o utils.o
 clean:
 	$(RM) *.o *.mod
 
-.PHONY: libpepc deps
+.PHONY: libpepc deps dbg
