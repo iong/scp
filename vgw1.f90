@@ -11,8 +11,9 @@ subroutine vgw1(Q0, W, TAUMAX,TAUI, Y, Meff, invMeff)
     external RHSS
 
 
-    if (TAUI <= 0.0) then
-        call init_gaussians(q0, TAUMIN, y)
+    if (TAUI <= 0.0d0) then
+        call interaction_lists(Q0,N_atom,RC,BL, QRC) !Determine which particles
+        call init_gaussians(Q0, TAUMIN, y)
         call init_mylsode(1 + 21*N_atom)
 
         T = TAUMIN
@@ -20,6 +21,7 @@ subroutine vgw1(Q0, W, TAUMAX,TAUI, Y, Meff, invMeff)
         T = 0.5*TAUI
     endif
 
+    write(*,*) y(2+3*N_atom:1+9*N_atom)
     if (TAUMAX > TAUI) then
         call mylsode(RHSS1, Y, 1+21*N_atom, TSTEP, T, TAUMAX/2.0,atol,rtol)
     end if
