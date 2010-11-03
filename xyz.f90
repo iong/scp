@@ -23,7 +23,7 @@ subroutine load_xyz(r, fname)
     character(256):: molname
     integer :: j, N
 
-    open(33,file=fname)
+    open(33,file=fname,STATUS='OLD')
     read(33,*) N
     if (N /= size(r, 2)) then
         write (*,*) "N /= size(r, 2)", N, size(r, 2)
