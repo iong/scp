@@ -47,27 +47,18 @@ SUBROUTINE RHSS0(NEQ, T, y, yprime)
               IF(Q12(I) > BL2) Q12(I)=Q12(I)-BL
               IF(Q12(I) < -BL2) Q12(I)=Q12(I)+BL
             ENDDO
-            DO J=1,3
-              DO K=J,3
-                A(J,K)=BLKC(J,K,I1)+BLKC(J,K,I2)
-              ENDDO
-            ENDDO
+
+            A=BLKC(:,:,I1)+BLKC(:,:,I2)
 
             CALL INVDET(A,M,DETI)
             DETA=1.0D0/DETI
 
-            DO J=1,3
-              DO K=J,3
-                A(J,K)=M(J,K)*DETA
-              ENDDO
-            ENDDO
+            A=M*DETA
 
             DO IG=1,NGAUSS      ! BEGIN SUMMATION OVER GAUSSIANS
+              AG = A
               DO J=1,3
-                AG(J,J)=LJA(IG)+A(J,J)
-                DO K=J+1,3
-                  AG(J,K)=A(J,K)
-                ENDDO
+                AG(J,J)=LJA(IG)+AG(J,J)
               ENDDO
 
               CALL INVDET(AG,M,DETAG)
