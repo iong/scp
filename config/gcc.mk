@@ -5,7 +5,7 @@ DBGFLAGS=-O0 -ggdb -Wall
 
 CFLAGS=
 FFLAGS=-fdefault-real-8 -fdefault-double-8 -ffree-line-length-0 -ffixed-line-length-0 -fimplicit-none
-FDBG:=-fbounds-check 
+FDBG:=-fbounds-check -ffpe-trap=invalid,zero,overflow,denormal
 
 LAPACK=-lf77blas -lcblas -latlas
 
