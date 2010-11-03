@@ -21,7 +21,6 @@ subroutine vgw1(Q0, W, TAUMAX,TAUI, Y, Meff, invMeff)
         T = 0.5*TAUI
     endif
 
-    write(*,*) y(2+3*N_atom:1+9*N_atom)
     if (TAUMAX > TAUI) then
         call mylsode(RHSS1, Y, 1+21*N_atom, TSTEP, T, TAUMAX/2.0,atol,rtol)
     end if
