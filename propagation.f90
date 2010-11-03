@@ -1,4 +1,5 @@
 module propagation
+    save
     integer, parameter :: LIW=20, MF=10
     integer :: ITASK,IOPT,ISTATE,LRW,ITOL,IWORK(LIW),IERR
     real*8, allocatable :: RWORK(:)
