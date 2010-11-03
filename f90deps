@@ -7,21 +7,29 @@ for f in $@; do
     obj=${f%.*}.o
     mods=$(sed -n -e "/^[[:space:]]*module[[:space:]]/s/[[:space:]]*module[[:space:]]//gp" "$f")
     if [ x"$mods" != x ]; then
-        mods=${mods//module/}
         for m in $mods; do
             echo "$m.mod: $obj"
         done
     fi
 
+    deps=""
     used=$(sed -n -e "/^[[:space:]]*use[[:space:]]/s/use//p" "$f" | sort -u)
     if [ x"$used" != x ]; then
-        echo -n "$obj:"
-        used=${used//module/}
         for u in $used; do
-            echo -n " $u.mod"
+            deps="$deps $u.mod"
         done
-        echo
     fi
+
+    includes=$(sed -n -e "/^[[:space:]]*include[[:space:]]/s/include//gp" "$f" | sed "s/\'//gp" | sort -u)
+    if [ x"$includes" != x ]; then
+        for f in $includes; do
+            deps="$deps $f"
+        done
+    fi
+    if [ x"$deps" != x ]; then
+        echo "$obj: $deps"
+    fi
+
 done
 
 

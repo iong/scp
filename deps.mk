@@ -1,14 +1,15 @@
 utils.mod: utils.o
 propagation.mod: propagation.o
 vgw.mod: vgw.o
+vgw.o:  propagation.mod potential_energy.f90 rhss0.f90 rhss1.f90 vgw0.f90 vgw1.f90
 xyz.mod: xyz.o
 spine.mod: spine.o
-spine.o: utils.mod vgw.mod
-gmd.o: propagation.mod spine.mod utils.mod vgw.mod xyz.mod
-kubo.o: spine.mod utils.mod vgw.mod
-correlations.o: spine.mod utils.mod vgw.mod
+spine.o:  utils.mod vgw.mod
+gmd.o:  propagation.mod spine.mod utils.mod vgw.mod xyz.mod
+kubo.o:  spine.mod utils.mod vgw.mod
+correlations.o:  spine.mod utils.mod vgw.mod
 utils.mod: utils.o
-mergecvv.o: utils.mod
+mergecvv.o:  utils.mod
 xyz.mod: xyz.o
 utils.mod: utils.o
-lj.o: utils.mod xyz.mod
+lj.o:  utils.mod xyz.mod
