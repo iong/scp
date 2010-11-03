@@ -72,8 +72,8 @@ subroutine verletstep(r, p, f, epot, dt)
     real*8, intent(in) :: dt
     real*8, intent(inout) ::r(:,:), p(:,:), f(:,:)
     real*8, intent(out) :: epot
-    real*8 :: Ueff, v3(3), p3(3), Ekin,fcm(3)
-    integer :: i, Nq, Nqp
+    real*8 :: Ueff, fcm(3)
+    integer :: i
 
     p = p + 0.5*dt*f
     do i=1,Natom
@@ -94,7 +94,7 @@ end subroutine
 subroutine total_ekin(ekin)
     implicit none
     real*8, intent(out) :: ekin
-    real*8 :: v3(3), p3(3)
+    real*8 :: v3(3)
     integer :: j
 
     ekin = 0
