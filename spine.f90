@@ -5,8 +5,8 @@ module spine
     integer :: Natom, Nbath, ntracks, tracksep, seglen
     real*8 :: rcmin, tstart, tstop, dt, bl, bl2,rho, kT
     real*8, dimension(:), allocatable :: y, Qbath, xi, vxi
-    real*8, dimension(:,:), allocatable :: r0,  r, p, v, rshift, r0equil
-    real*8, dimension(:,:,:), allocatable :: Qnk, Meff, invMeff, v0tau, v0s, p0, vkubo, track
+    real*8, dimension(:,:), allocatable :: r0,  r, p, v, rshift
+    real*8, dimension(:,:,:), allocatable :: Qnk, Meff, invMeff, v0tau, v0s, p0, vkubo, track, r0corr
     integer, allocatable :: trackstart(:)
     real*8 :: lastepot
     character(256) :: stem
