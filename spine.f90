@@ -80,7 +80,7 @@ subroutine verletstep(r, p, f, epot, dt)
         r(:,i) = r(:,i) + dt*matmul(invMeff(:,:,i), p(:,i))
     end do
     call vgw1(r, Ueff, 1.0/kT, 0.0d0, y, Meff, invMeff)
-    f = reshape( 2.0*kT*y(2+18*Natom:1+21*Natom), (/ 3, Natom /))
+    f = 2.0*kT*unpack_f(y)
     fcm = sum(f,2)/Natom
     do i=1,Natom
         f(:,i) = f(:,i) - fcm
@@ -91,18 +91,14 @@ subroutine verletstep(r, p, f, epot, dt)
 end subroutine
 
 
-subroutine total_ekin(ekin)
+real*8 function kinetic_energy() result(ekin)
     implicit none
-    real*8, intent(out) :: ekin
-    real*8 :: v3(3)
     integer :: j
 
-    ekin = 0
+    ekin = 0.0d0
     do j=1,Natom
-        !p3 = qp(1+3*(Natom+j-1):3*(Natom+j))
-        v3 = matmul(invMeff(:,:,j), p(:,j))
-        ekin = ekin + dot_product(p(:,j), v3)
+        ekin = ekin + dot_product(p(:,j), matmul(invMeff(:,:,j), p(:,j)))
     end do
     ekin = 0.5*ekin
-end subroutine
+end function
 end module spine

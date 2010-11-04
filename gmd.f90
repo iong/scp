@@ -90,7 +90,7 @@ program gmd
     track = 0.0d0
     trackstart = (/ (tracksep*i + 1, i=0,ntracks-1) /)
 
-    call total_ekin(Ekin)
+    Ekin = kinetic_energy()
     if (Nbath > 0) then
         call nose_hoover_chain(p, Ekin, kT, xi, vxi, Qbath, 0.0d0, ne)
     end if
@@ -110,12 +110,12 @@ program gmd
             call nose_hoover_chain(p, Ekin, kT, xi, vxi, Qbath, dt, ne)
         end if
         call verletstep(r, p, f, Epot, dt)
-        call total_ekin(Ekin)
+        Ekin = kinetic_energy()
         if (Nbath > 0) then
             call nose_hoover_chain(p, Ekin, kT, xi, vxi, Qbath, dt, ne)
         end if
 
-        if (i>=nequil) then
+        if (i>nequil) then
             call correlations(i-nequil)
         end if
         write(eout,'(6F18.7)') dt*i*t0fs,Ekin, Epot,Ekin+Epot

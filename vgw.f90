@@ -19,23 +19,7 @@ subroutine vgwinit(natom, boxlen)
     allocate(QRC(natom*natom))
 end subroutine
 
-subroutine unpack_Qnk(y, Qnk)
-    real*8, intent(in) :: y(:)
-    real*8, intent(out) :: Qnk(:,:,:)
-    integer :: i, j, k, CNT, N
 
-    N = size(Qnk, 3)
-
-    CNT = 2+9*N
-    DO I=1,N
-        DO J=1,3
-            DO K=1,3
-                QNK(J,K,I)=Y(CNT)
-                CNT=CNT+1
-            ENDDO
-        ENDDO
-    ENDDO
-end subroutine
 
 subroutine unpack_q(y, q)
     real*8, intent(in) :: y(:)
@@ -64,14 +48,31 @@ subroutine unpack_g(y, G)
     enddo
 end subroutine
 
-subroutine unpack_f(y, kT, f)
-    real*8, intent(in) :: y(:), kT
-    real*8, intent(out) :: f(:,:)
+subroutine unpack_Qnk(y, Qnk)
+    real*8, intent(in) :: y(:)
+    real*8, intent(out) :: Qnk(:,:,:)
+    integer :: i, j, k, CNT, N
+
+    N = size(Qnk, 3)
+
+    CNT = 2+9*N
+    DO I=1,N
+        DO J=1,3
+            DO K=1,3
+                QNK(J,K,I)=Y(CNT)
+                CNT=CNT+1
+            ENDDO
+        ENDDO
+    ENDDO
+end subroutine
+
+function unpack_f(y) result(f)
+    real*8, intent(in) :: y(:)
+    real*8 :: f(3,N_atom)
     integer :: Natom
 
-    Natom = size(f,2)
-    f = 2.0*kT*reshape(y(2+18*Natom:1+21*Natom), (/3, Natom/) )
-end subroutine
+    f = reshape(y(2+18*N_atom:1+21*N_atom), (/3, N_atom/) )
+end function
 
 subroutine init_gaussians(q0, tau, y)
     use propagation
