@@ -42,10 +42,10 @@ program gmd
     allocate (y(1+21*natom), r0(3,natom), &
                 Qnk(3,3,natom), Meff(3,3,natom), invMeff(3,3,natom), &
                 r(3,natom), p(3,natom), f(3,natom), v(3,natom),&
-                r0corr(3,natom,ntracks), rshift(3,natom),&
+                r0corr(3,natom,ntracks), rshift(3,natom),r0k(3,natom,ntracks),r0shift(3,natom,ntracks), &
                 v0tau(3,natom,ntracks), v0s(3,natom,ntracks), &
                 p0(3,natom,ntracks), vkubo(3,natom,ntracks), &
-                track(5,seglen,ntracks), trackstart(ntracks))
+                track(6,seglen,ntracks), trackstart(ntracks))
     call load_xyz(r0, coords)
     call seed_rng()
 

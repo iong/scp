@@ -41,6 +41,8 @@ subroutine correlations(ndt)
         track(3, trackpos, i) =  track(3, trackpos, i) + sum(p0(:,:,i)*v)
         track(4, trackpos, i) =  track(4, trackpos, i) + sum(vkubo(:,:,i)*v)
         track(5, trackpos, i) =  track(5, trackpos, i) + sum((r0corr(:,:,i) - r - rshift)**2)
+        track(6, trackpos, i) =  track(6, trackpos, i) + sum(r0k(:,:,i)*(r+rshift - r0shift(:,:,i)))
+
     end do
 end subroutine
 
@@ -60,8 +62,9 @@ subroutine init_track(trackno, ndt, vs)
     v0s(:,:,trackno) = vs
     p0(:,:,trackno) = p/mass
     
-    call kubo(r, v, 1.0d0/kT, 200,  xk, vkubo(:,:,trackno))
+    call kubo(r, v, 1.0d0/kT, 200,  r0k(:,:,trackno), vkubo(:,:,trackno))
     r0corr(:,:,trackno) = r + rshift
+    r0shift(:,:,trackno) = rshift
 
     track(:,:,trackno) = 0.0d0
     trackstart(trackno) = ndt
@@ -78,6 +81,6 @@ subroutine dump_track(tr, trackno)
 
     call int2strz(trackno, 4, cdump)
     open(cvvout, file=trim(stem)//'_Cvv_'//cdump//'.dat')
-    write(cvvout,'(6F18.7)') (dt*(i-1)*t0fs, tr(1:5,i), i=1,seglen)
+    write(cvvout,'(7F18.7)') (dt*(i-1)*t0fs, tr(1:6,i), i=1,seglen)
     close(cvvout)
 end subroutine
