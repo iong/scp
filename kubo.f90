@@ -40,6 +40,8 @@ subroutine kubo(q0, v0, beta, nsteps, xk, vk)
         call unpack_q(yl(:,nsteps-i), qr)
         call unpack_g(yl(:,nsteps-i), gr)
         call unpack_qnk(yl(:,nsteps-i), Qnkr)
+
+        ! trapeze integration
         if (i==0) then
             w = 1.0d0
         else
@@ -64,7 +66,6 @@ subroutine kubo(q0, v0, beta, nsteps, xk, vk)
         vk = vk + dvk*w
     end do
     write (*,*) beta, (qlqrint * exp(beta*Ueffbeta + 1.5d0*Natom*log(2.0d0)) + 1.0d0)/nsteps
-    !write (*,*) 'qlqrint =',qlqrint/nsteps * exp(beta*Ueffbeta + 1.5d0*Natom*log(2.0d0))
 
     call unpack_q(yl(:,nsteps/2), ql)
     call unpack_qnk(yl(:,nsteps/2), Qnkl)
