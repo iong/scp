@@ -8,7 +8,7 @@ program gmd
     integer :: iostat
     integer :: ndt, ne, nequil
     real*8, allocatable :: f(:,:)
-    real*8 :: Ekin ,Epot,tequil, tsep, tlen, pcm(3), Q1nhc
+    real*8 :: Ekin ,Epot,tequil, tsep, tlen, pcm(3), Q1nhc, Ueff
 
     character(LEN=256) :: cfgfile, coords
     integer :: i, j, k, ixyz
@@ -73,7 +73,9 @@ program gmd
     end if
 
     p = 0.0d0
-    call verletstep(r0, p, f, Epot, 0.0d0) ! compute Meff
+    call vgw1(r0, Ueff, 1.0/kT, 0.0d0, y, Meff, invMeff)
+    !call kubo(r0, p,  1.0/kT, 200, r, p)
+    !stop
     call initial_momenta(kT, Meff, p)
     pcm = sum(p, 2)/Natom
     do i=1,Natom

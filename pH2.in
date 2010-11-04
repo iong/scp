@@ -11,9 +11,9 @@ LJC(2) =  -282.50951658104
 LJC(3) =  -9.27807987319189
 !the rest
 rtol = 1d-4
-atol=1d-4
+atol = 1d-4
 taumin=1d-4
-kT=25
+kT = 25
 coords='dump_0000100000.xyz'
 rho=0.0190
 rcmin=3.05

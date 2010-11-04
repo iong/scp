@@ -33,15 +33,17 @@ subroutine kubo(q0, v0, beta, nsteps, xk, vk)
     xk = 0.0d0
     vk = 0.0d0
     qlqrint = 0.0d0
-    do i=0,nsteps
+    do i=0,nsteps/2-1
         call unpack_q(yl(:,i), ql)
         call unpack_g(yl(:,i), gl)
+        call unpack_qnk(yl(:,i), Qnkl)
         call unpack_q(yl(:,nsteps-i), qr)
         call unpack_g(yl(:,nsteps-i), gr)
+        call unpack_qnk(yl(:,nsteps-i), Qnkr)
         if (i==0) then
             w = 1.0d0
         else
-            w = 1.0d0
+            w = 2.0d0
         end if
 
         qGq = 0.0d0
@@ -55,15 +57,14 @@ subroutine kubo(q0, v0, beta, nsteps, xk, vk)
             vnkl = matmul(Qnkl(:,:,j), v0(:,j))
             vnkr = matmul(Qnkr(:,:,j), v0(:,j))
             dvk(:,j) = matmul(invglr, matmul(gr(:,:,j), vnkl) + matmul(gl(:,:,j), vnkr))
-            
         end do
         qlqr = exp(yl(1, i) + yl(1, nsteps-i) - 0.5*(qGq + logdet))
         qlqrint = qlqrint + w*qlqr
-        xk = xk + dxk * qlqr
-        vk = vk + dvk * qlqr
-        write (*,*) qlqr * exp(beta*Ueffbeta + 1.5d0*Natom*log(2.0d0))
+        xk = xk + dxk*w
+        vk = vk + dvk*w
     end do
-    write (*,*) 'qlqrint =',qlqrint/nsteps * exp(beta*Ueffbeta + 1.5d0*Natom*log(2.0d0))
+    write (*,*) beta, (qlqrint * exp(beta*Ueffbeta + 1.5d0*Natom*log(2.0d0)) + 1.0d0)/nsteps
+    !write (*,*) 'qlqrint =',qlqrint/nsteps * exp(beta*Ueffbeta + 1.5d0*Natom*log(2.0d0))
 
     call unpack_q(yl(:,nsteps/2), ql)
     call unpack_qnk(yl(:,nsteps/2), Qnkl)
@@ -71,6 +72,6 @@ subroutine kubo(q0, v0, beta, nsteps, xk, vk)
         dvk(:,j) = matmul(Qnkl(:,:,j), v0(:,j))
     end do
     
-    xk = (exp(beta*Ueffbeta) * xk + ql) / nsteps
-    vk = (exp(beta*Ueffbeta) * vk + dvk) / nsteps
+    xk = (xk + ql) / nsteps
+    vk = (vk + dvk) / nsteps
 end subroutine
