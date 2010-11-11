@@ -1,27 +1,16 @@
-&ljmccfg
-Natom=48
-imass=2
-! Gauss expansion of the potential, pH2 Silvera-Goldman
-NGAUSS = 4
-LJA(1) = 1.038252215127D0
-LJA(2) =  0.5974039109464D0
-LJA(3) =  0.196476572277834D0
-LJA(4) =  0.06668611771781D0
-LJC(1) = 96609.488289873d0
-LJC(2) =  14584.62075507514d0
-LJC(3) =  -365.460614956589d0
-LJC(4) =  -19.5534697800036d0
-!the rest
-rc=10
-rtol=1d-4
-atol=1d-4
-taumin=1d-4
-NMC=1000000
-mcblen = 5000
-ptinterval = 10
-Tmin=15
-Tmax=45
-outfile='liquid_H2_23K.xyz'
+&gmdcfg
+Natom=108
+mass=2
+kT = 25
+coords='dump_0000100000.xyz'
 rho=0.0190
-rcmin=3.05
+tstart=0
+tstop=38.005
+dt = 1d-3
+Nbath=10
+Q1nhc = 3d-4
+ne = 40
+tequil=0.0
+tlen = 0.1
+tsep = 0.05
 /

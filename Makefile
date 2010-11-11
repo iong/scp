@@ -26,7 +26,7 @@ VGW:=utils propagation vgw unpackg\
 
 GMD:=xyz spine gmd nose_hoover_chain kubo correlations
 MERGECVV= utils mergecvv
-LJ:=xyz utils  lj
+LJ:=xyz utils nose_hoover_chain lj
 
 all: gmd mergecvv
 
