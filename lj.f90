@@ -126,11 +126,12 @@ program lj
         do j=1,Natom
             do k=1,3
                 if (abs(r(k, j)) > bl2) then
-                    r(k, j) = r(k, j) - sign(bl, r(k, j))
                     rshift(k, j) = rshift(k, j) + sign(bl, r(k, j))
+                    r(k, j) = r(k, j) - sign(bl, r(k, j))
                 end if
             end do
         end do
+        write(eout,'(6F18.7)') i*t0fs,Ekin, Epot,Ekin+Epot
     end do
 contains
 
@@ -224,8 +225,8 @@ subroutine update_track(trackno, trackpos, r, p)
     real*8, dimension(3,Natom), intent(in) :: r, p
 
     track(1, trackpos, trackno) =  track(1, trackpos, trackno) + sum(pt0(:,:,trackno)*p)/mass**2
-    track(2, trackpos, trackno) =  track(2, trackpos, trackno) + sum(rt0(:,:,trackno)*p)/mass
-    track(3, trackpos, trackno) =  track(3, trackpos, trackno) + sum(rt0(:,:,trackno)*(r - r0shift(:,:,trackno)))
+    track(2, trackpos, trackno) =  track(2, trackpos, trackno) + sum((rt0(:,:,trackno) + r0shift(:,:,trackno))*p)/mass
+    track(3, trackpos, trackno) =  track(3, trackpos, trackno) + sum((rt0(:,:,trackno) + r0shift(:,:,trackno))*r)
 end subroutine update_track
 
 
