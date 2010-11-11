@@ -1,13 +1,13 @@
 module spine
     implicit none
     real*8, parameter :: t0 = 7.6382d-12, t0fs = 7638.2d0
-    integer, parameter :: eout = 30, cvvout = 31
-    integer :: Natom, Nbath, ntracks, tracksep, seglen
+    integer, parameter :: eout = 30, cvvout = 31, track_width = 8
+    integer :: Natom, Nbath, ntracks, tracksep, seglen, ringpos = 1
     real*8 :: rcmin, tstart, tstop, dt, bl, bl2,rho, kT
     real*8, dimension(:), allocatable :: y, Qbath, xi, vxi
     real*8, dimension(:,:), allocatable :: r0,  r, p, v, rshift
-    real*8, dimension(:,:,:), allocatable :: Qnk, Meff, invMeff, v0tau, v0s, p0, vkubo, track, r0corr, r0shift, r0k
-    integer, allocatable :: trackstart(:)
+    real*8, dimension(:,:,:), allocatable :: Qnk, Meff, invMeff, v0tau, v0s, p0, vkubo, track, q0tau, r0shift, r0k, rprev, vprev, vsprev
+    integer, allocatable :: trackstart(:), timestamp(:)
     real*8 :: lastepot
     character(256) :: stem
 
@@ -66,14 +66,14 @@ subroutine initial_momenta(kT, Meff, p)
 end subroutine
 
 
-subroutine verletstep(r, p, f, epot, dt)
+subroutine verletstep(dt, Epot)
     use vgw
     implicit none
     real*8, intent(in) :: dt
-    real*8, intent(inout) ::r(:,:), p(:,:), f(:,:)
-    real*8, intent(out) :: epot
+    real*8, intent(out) :: Epot
     real*8 :: Ueff, fcm(3)
-    integer :: i
+    real*8 :: f(3, Natom)
+    integer :: i, k
 
     p = p + 0.5*dt*f
     do i=1,Natom
@@ -87,7 +87,7 @@ subroutine verletstep(r, p, f, epot, dt)
     end do
     p = p + 0.5*dt*f
 
-    epot = -2.0*kT*y(1)
+    Epot = -2.0*kT*y(1)
 end subroutine
 
 

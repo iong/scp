@@ -7,10 +7,16 @@ subroutine correlations(ndt)
     integer :: i,j, trackpos
     real * 8 :: vs(3,Natom)
 
+    
     do j=1,Natom
         v(:,j) = matmul(invMeff(:,:,j), p(:,j))
         vs(:,j) = matmul(matsqrt(invMeff(:,:,j)), p(:,j))/sqrt(mass)
     end do
+
+    vprev(:,:,ringpos) = v
+    vsprev(:,:,ringpos) = vs
+    rprev(:,:,ringpos) = r + rshift
+    timestamp(ringpos) = ndt
 
     do i=1,ntracks
         if (ndt == trackstart(i)) then
@@ -27,23 +33,17 @@ subroutine correlations(ndt)
     end do
 
     if (ndt - trackstart(ntracks) == seglen) then
-        track(:,:,ntracks) = track(:,:,ntracks) / (Natom * ntracks)
-        call dump_track(track(:,:,ntracks), ndt/seglen)
+        track(:,:,ntracks) = track(:,:,ntracks) / (2*Natom * ntracks)
+        call dump_track(track(:,:,ntracks), ndt/seglen - 1)
         call init_track(ntracks, ndt, vs)
     end if
-
+    
     do i=1,ntracks
         if (trackstart(i) > ndt) cycle
         trackpos = ndt - trackstart(i) + 1
-
-        track(1, trackpos, i) =  track(1, trackpos, i) + sum(v0tau(:,:,i)*v)
-        track(2, trackpos, i) =  track(2, trackpos, i) + sum(v0s(:,:,i)*vs)
-        track(3, trackpos, i) =  track(3, trackpos, i) + sum(p0(:,:,i)*v)
-        track(4, trackpos, i) =  track(4, trackpos, i) + sum(vkubo(:,:,i)*v)
-        track(5, trackpos, i) =  track(5, trackpos, i) + sum((r0corr(:,:,i) - r - rshift)**2)
-        track(6, trackpos, i) =  track(6, trackpos, i) + sum(r0k(:,:,i)*(r+rshift - r0shift(:,:,i)))
-
+        call update_track(i, trackpos, r+rshift, v, vs)
     end do
+    ringpos  = mod(ringpos, seglen) + 1
 end subroutine
 
 subroutine init_track(trackno, ndt, vs)
@@ -52,23 +52,49 @@ subroutine init_track(trackno, ndt, vs)
     implicit none
     integer, intent(in) :: trackno, ndt
     real*8, intent(in) :: vs(3,Natom)
-    real*8 :: xk(3,Natom)
+    real*8 :: Ueff
     integer :: j
 
+
+    call vgw1(r, Ueff, 1.0d0/kT, 0.0d0, y)
     call unpack_Qnk(y, Qnk)
     do j=1,Natom
         v0tau(:,j,trackno) = matmul(Qnk(:,:,j), v(:,j))
     end do
     v0s(:,:,trackno) = vs
     p0(:,:,trackno) = p/mass
-    
+
+
+    call unpack_q(y, q0tau(:,:,trackno))
     call kubo(r, v, 1.0d0/kT, 200,  r0k(:,:,trackno), vkubo(:,:,trackno))
-    r0corr(:,:,trackno) = r + rshift
     r0shift(:,:,trackno) = rshift
 
     track(:,:,trackno) = 0.0d0
     trackstart(trackno) = ndt
+
+    do j=1,seglen
+        call update_track(trackno, ndt - timestamp(j) + 1, &
+                rprev(:,:,j), vprev(:,:,j), vsprev(:,:,j))
+
+    end do
+    track((/ 7, 8 /), :, trackno) = -track((/ 7, 8 /), :, trackno)
 end subroutine init_track
+
+subroutine update_track(trackno, trackpos, r, v, vs)
+    use spine
+    integer, intent(in) :: trackno, trackpos
+    real*8, dimension(3,Natom), intent(in) :: r, v, vs
+
+    track(1, trackpos, trackno) =  track(1, trackpos, trackno) + sum(v0tau(:,:,trackno)*v)
+    track(2, trackpos, trackno) =  track(2, trackpos, trackno) + sum(v0s(:,:,trackno)*vs)
+    track(3, trackpos, trackno) =  track(3, trackpos, trackno) + sum(p0(:,:,trackno)*v)
+    track(4, trackpos, trackno) =  track(4, trackpos, trackno) + sum(vkubo(:,:,trackno)*v)
+    track(5, trackpos, trackno) =  track(5, trackpos, trackno) + sum(q0tau(:,:,trackno)*(r - r0shift(:,:,trackno)))
+    track(6, trackpos, trackno) =  track(6, trackpos, trackno) + sum(r0k(:,:,trackno)*(r - r0shift(:,:,trackno)))
+    track(7, trackpos, trackno) =  track(7, trackpos, trackno) + sum(q0tau(:,:,trackno)*v)
+    track(8, trackpos, trackno) =  track(8, trackpos, trackno) + sum(r0k(:,:,trackno)*v)
+end subroutine update_track
+
 
 subroutine dump_track(tr, trackno)
     use spine
@@ -81,6 +107,6 @@ subroutine dump_track(tr, trackno)
 
     call int2strz(trackno, 4, cdump)
     open(cvvout, file=trim(stem)//'_Cvv_'//cdump//'.dat')
-    write(cvvout,'(7F18.7)') (dt*(i-1)*t0fs, tr(1:6,i), i=1,seglen)
+    write(cvvout,'(9F18.7)') (dt*(i-1)*t0fs, tr(1:track_width,i), i=1,seglen)
     close(cvvout)
 end subroutine

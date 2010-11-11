@@ -7,7 +7,6 @@ program gmd
     implicit none
     integer :: iostat
     integer :: ndt, ne, nequil
-    real*8, allocatable :: f(:,:)
     real*8 :: Ekin ,Epot,tequil, tsep, tlen, pcm(3), Q1nhc, Ueff
 
     character(LEN=256) :: cfgfile, coords
@@ -41,11 +40,13 @@ program gmd
 
     allocate (y(1+21*natom), r0(3,natom), &
                 Qnk(3,3,natom), Meff(3,3,natom), invMeff(3,3,natom), &
-                r(3,natom), p(3,natom), f(3,natom), v(3,natom),&
-                r0corr(3,natom,ntracks), rshift(3,natom),r0k(3,natom,ntracks),r0shift(3,natom,ntracks), &
+                r(3,natom), p(3,natom), v(3,natom),&
+                q0tau(3,natom,ntracks), rshift(3,natom),r0k(3,natom,ntracks),r0shift(3,natom,ntracks), &
                 v0tau(3,natom,ntracks), v0s(3,natom,ntracks), &
                 p0(3,natom,ntracks), vkubo(3,natom,ntracks), &
-                track(6,seglen,ntracks), trackstart(ntracks))
+                track(track_width,seglen,ntracks), trackstart(ntracks), &
+                rprev(3,Natom,seglen), vprev(3,Natom,seglen), vsprev(3,Natom,seglen), &
+                timestamp(seglen))
     call load_xyz(r0, coords)
     call seed_rng()
 
@@ -85,16 +86,17 @@ program gmd
     r = r0
     v0tau = 0.0d0
     vkubo = 0.0d0
-    r0corr = 0.0d0
+    q0tau = 0.0d0
+    r0shift = 0.0d0
     rshift = 0.0d0
     track = 0.0d0
-    trackstart = (/ (tracksep*i + 1, i=0,ntracks-1) /)
+    trackstart = (/ (tracksep*i + seglen, i=0,ntracks-1) /)
 
     Ekin = kinetic_energy()
     if (Nbath > 0) then
         call nose_hoover_chain(p, Ekin, kT, xi, vxi, Qbath, 0.0d0, ne)
     end if
-    call verletstep(r, p, f, Epot, 0.0d0)
+    call verletstep(0.0d0, Epot)
     if (Nbath > 0) then
         call nose_hoover_chain(p, Ekin, kT, xi, vxi, Qbath, 0.0d0, ne)
     end if
@@ -109,26 +111,26 @@ program gmd
         if (Nbath > 0) then
             call nose_hoover_chain(p, Ekin, kT, xi, vxi, Qbath, dt, ne)
         end if
-        call verletstep(r, p, f, Epot, dt)
+        call verletstep(dt, Epot)
         Ekin = kinetic_energy()
         if (Nbath > 0) then
             call nose_hoover_chain(p, Ekin, kT, xi, vxi, Qbath, dt, ne)
         end if
-
+        
         if (i>nequil) then
             call correlations(i-nequil)
         end if
-        write(eout,'(6F18.7)') dt*i*t0fs,Ekin, Epot,Ekin+Epot
 
-
-        do j=1,Natom
+        do i=1,Natom
             do k=1,3
-                if (abs(r(k, j)) >bl2) then
-                    r(k, j) = r(k, j) - sign(bl, r(k, j))
-                    rshift(k, j) = rshift(k, j) + sign(bl, r(k, j))
+                if (abs(r(k, i)) > bl2) then
+                    r(k, i) = r(k, i) - sign(bl, r(k, i))
+                    rshift(k, i) = rshift(k, i) + sign(bl, r(k, i))
                 end if
             end do
         end do
+
+        write(eout,'(6F18.7)') dt*i*t0fs,Ekin, Epot,Ekin+Epot
     end do
     close(eout)
 end program gmd
