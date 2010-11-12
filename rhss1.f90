@@ -9,7 +9,7 @@ SUBROUTINE RHSS1(NEQ, T, y, yprime)
             DETA,DETAG,GUG,QP,TRUXXGI,FACTOR,U,UX,UXX,QZQ,EXPAV, &
             TRMG,DETS,DETI,GUQ, &
             BL2,M(3,3),A(3,3), &
-            R(3), Z(3,3),Q12(3), QnkP(3,3)
+            R(3), Z(3,3),Q12(3)
     REAL*8 UPV(3,N_atom), UPM(3,3,N_atom)
 
     if (NEQ /= (1+21*N_atom) ) then
@@ -132,7 +132,14 @@ SUBROUTINE RHSS1(NEQ, T, y, yprime)
     ENDDO
 
     DO I1=1,N_atom
-        GU = matmul(BLKC(:,:,I1), UPM(:,:,I1))
+        DO I=1,3
+            DO J=1,3
+                GU(I,J)=0.0D0
+                DO K=1,3
+                    GU(I,J)=GU(I,J)+BLKC(I,K,I1)*UPM(K,J,I1)
+                ENDDO
+            ENDDO
+        ENDDO
 
         DO I=1,3
             DO J=I,3
@@ -148,7 +155,6 @@ SUBROUTINE RHSS1(NEQ, T, y, yprime)
             ENDDO
         ENDDO
 
-        QnkP = - matmul(GU, QNK(:,:,I1))
         DO I=1,3
             DO J=1,3
                 GUQ=0.0D0
