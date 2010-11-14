@@ -9,7 +9,7 @@ subroutine kubo(q0, v0, beta, nsteps, xk, vk)
     real*8, dimension(3, Natom) :: ql, qr, dxk, dvk
     real*8, dimension(3, 3, Natom) :: gl, gr, Qnkl, Qnkr
     real*8, dimension(1+21*Natom, 0:nsteps) :: yl
-    real*8 :: tau, dtau, Ueff, dqlr(3), invglr(3,3), vnkl(3), vnkr(3), w
+    real*8 :: tau, dtau, Ueff, dqlr(3), invglr(3,3), vnkl(3), vnkr(3), w, detj
     integer :: i, j
  
     if (mod(nsteps,2) /= 0) then
@@ -28,7 +28,6 @@ subroutine kubo(q0, v0, beta, nsteps, xk, vk)
 
     xk = 0.0d0
     vk = 0.0d0
-    qlqrint = 0.0d0
     do i=0,nsteps/2-1
         call unpack_q(yl(:,i), ql)
         call unpack_g(yl(:,i), gl)

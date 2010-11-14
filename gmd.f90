@@ -12,7 +12,7 @@ program gmd
     character(LEN=256) :: cfgfile, coords
     integer :: i, j, k, ixyz
     namelist /gmdcfg/Natom,mass,NGAUSS,LJA,LJC,rc,rtol,atol,taumin,kT,rho, &
-            rcmin,coords,tstart,tstop,dt,Nbath,Q1nhc,ne,tequil,tlen,tsep
+            coords,tstart,tstop,dt,Nbath,Q1nhc,ne,tequil,tlen,tsep
 
 
     cfgfile='pH2.in'
@@ -40,7 +40,7 @@ program gmd
 
     allocate (y(1+21*natom), r0(3,natom), &
                 Qnk(3,3,natom), Meff(3,3,natom), invMeff(3,3,natom), &
-                r(3,natom), p(3,natom), v(3,natom),&
+                r(3,natom), p(3,natom), v(3,natom), f(3, Natom), &
                 q0tau(3,natom,ntracks), rshift(3,natom),r0k(3,natom,ntracks),r0shift(3,natom,ntracks), &
                 v0tau(3,natom,ntracks), v0s(3,natom,ntracks), &
                 p0(3,natom,ntracks), vkubo(3,natom,ntracks), &
@@ -52,12 +52,6 @@ program gmd
 
     bl = (Natom/rho)**(1.0/3.0)
     bl2=bl/2
-
-    if (rcmin**3 * rho >= 1.0) then
-        write (*,"(A,F7.3)") 'rcmin is too large. Ensure that rcmin <', &
-            rho**(-1.0/3.0)
-        stop
-    endif
 
     mass = mass*0.020614788876D0
     call vgwinit(natom, bl)
@@ -121,11 +115,11 @@ program gmd
             call correlations(i-nequil)
         end if
 
-        do i=1,Natom
+        do j=1,Natom
             do k=1,3
-                if (abs(r(k, i)) > bl2) then
-                    r(k, i) = r(k, i) - sign(bl, r(k, i))
-                    rshift(k, i) = rshift(k, i) + sign(bl, r(k, i))
+                if (abs(r(k, j)) > bl2) then
+                    rshift(k, j) = rshift(k, j) + sign(bl, r(k, j))
+                    r(k, j) = r(k, j) - sign(bl, r(k, j))
                 end if
             end do
         end do

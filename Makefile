@@ -28,7 +28,7 @@ GMD:=xyz spine gmd nose_hoover_chain kubo correlations
 MERGECVV= utils mergecvv
 LJ:=xyz utils nose_hoover_chain lj
 
-all: gmd mergecvv
+all: gmd lj
 
 dbg: dbg.gmd
 

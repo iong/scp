@@ -5,7 +5,7 @@ module spine
     integer :: Natom, Nbath, ntracks, tracksep, seglen, ringpos = 1
     real*8 :: rcmin, tstart, tstop, dt, bl, bl2,rho, kT
     real*8, dimension(:), allocatable :: y, Qbath, xi, vxi
-    real*8, dimension(:,:), allocatable :: r0,  r, p, v, rshift
+    real*8, dimension(:,:), allocatable :: r0,  r, p, v, rshift, f
     real*8, dimension(:,:,:), allocatable :: Qnk, Meff, invMeff, v0tau, v0s, p0, vkubo, track, q0tau, r0shift, r0k, rprev, vprev, vsprev
     integer, allocatable :: trackstart(:), timestamp(:)
     real*8 :: lastepot
@@ -72,7 +72,6 @@ subroutine verletstep(dt, Epot)
     real*8, intent(in) :: dt
     real*8, intent(out) :: Epot
     real*8 :: Ueff, fcm(3)
-    real*8 :: f(3, Natom)
     integer :: i, k
 
     p = p + 0.5*dt*f

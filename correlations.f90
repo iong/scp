@@ -56,7 +56,6 @@ subroutine init_track(trackno, ndt, vs)
     integer :: j
 
 
-    call vgw1(r, Ueff, 1.0d0/kT, 0.0d0, y)
     call unpack_Qnk(y, Qnk)
     do j=1,Natom
         v0tau(:,j,trackno) = matmul(Qnk(:,:,j), v(:,j))
@@ -80,19 +79,19 @@ subroutine init_track(trackno, ndt, vs)
     track((/ 7, 8 /), :, trackno) = -track((/ 7, 8 /), :, trackno)
 end subroutine init_track
 
-subroutine update_track(trackno, trackpos, r, v, vs)
+subroutine update_track(trackno, trackpos, rt, vt, vst)
     use spine
     integer, intent(in) :: trackno, trackpos
-    real*8, dimension(3,Natom), intent(in) :: r, v, vs
+    real*8, dimension(3,Natom), intent(in) :: rt, vt, vst
 
-    track(1, trackpos, trackno) =  track(1, trackpos, trackno) + sum(v0tau(:,:,trackno)*v)
-    track(2, trackpos, trackno) =  track(2, trackpos, trackno) + sum(v0s(:,:,trackno)*vs)
-    track(3, trackpos, trackno) =  track(3, trackpos, trackno) + sum(p0(:,:,trackno)*v)
-    track(4, trackpos, trackno) =  track(4, trackpos, trackno) + sum(vkubo(:,:,trackno)*v)
-    track(5, trackpos, trackno) =  track(5, trackpos, trackno) + sum(q0tau(:,:,trackno)*(r - r0shift(:,:,trackno)))
-    track(6, trackpos, trackno) =  track(6, trackpos, trackno) + sum(r0k(:,:,trackno)*(r - r0shift(:,:,trackno)))
-    track(7, trackpos, trackno) =  track(7, trackpos, trackno) + sum(q0tau(:,:,trackno)*v)
-    track(8, trackpos, trackno) =  track(8, trackpos, trackno) + sum(r0k(:,:,trackno)*v)
+    track(1, trackpos, trackno) =  track(1, trackpos, trackno) + sum(v0tau(:,:,trackno)*vt)
+    track(2, trackpos, trackno) =  track(2, trackpos, trackno) + sum(v0s(:,:,trackno)*vst)
+    track(3, trackpos, trackno) =  track(3, trackpos, trackno) + sum(p0(:,:,trackno)*vt)
+    track(4, trackpos, trackno) =  track(4, trackpos, trackno) + sum(vkubo(:,:,trackno)*vt)
+    track(5, trackpos, trackno) =  track(5, trackpos, trackno) + sum((q0tau(:,:,trackno) + r0shift(:,:,trackno))*rt) 
+    track(6, trackpos, trackno) =  track(6, trackpos, trackno) + sum((r0k(:,:,trackno) + r0shift(:,:,trackno))*rt)
+    track(7, trackpos, trackno) =  track(7, trackpos, trackno) + sum((q0tau(:,:,trackno) + r0shift(:,:,trackno))*vt)
+    track(8, trackpos, trackno) =  track(8, trackpos, trackno) + sum((r0k(:,:,trackno) + r0shift(:,:,trackno))*vt)
 end subroutine update_track
 
 
