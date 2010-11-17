@@ -113,4 +113,24 @@ subroutine detminvm(A, DETA, INVA)
     INVA = INVA / DETA
 end subroutine detminvm
 
+function outer_product(l, r) result(m)
+    real*8, intent(in) :: l(:), r(:)
+    real*8 :: m(size(l), size(r))
+    integer :: i
+
+    forall (i=1:size(r))
+        m(:,i) = l*r(i)
+    end forall
+end function outer_product
+
+pure function outer_product3(l, r) result(m)
+    real*8, intent(in) :: l(3), r(3)
+    real*8 :: m(3,3)
+    integer :: i,
+
+    forall (i=1:3)
+        m(:,i) = l*r(i)
+    end forall
+end function outer_product
+
 end module utils
