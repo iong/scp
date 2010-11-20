@@ -1,12 +1,12 @@
 module spine
     implicit none
     real*8, parameter :: t0 = 7.6382d-12, t0fs = 7638.2d0
-    integer, parameter :: eout = 30, cvvout = 31, track_width = 8
+    integer, parameter :: eout = 30, cvvout = 31, track_width = 14
     integer :: Natom, Nbath, ntracks, tracksep, seglen, ringpos = 1
     real*8 :: rcmin, tstart, tstop, dt, bl, bl2,rho, kT
     real*8, dimension(:), allocatable :: y, Qbath, xi, vxi
-    real*8, dimension(:,:), allocatable :: r0,  r, p, v, rshift, f
-    real*8, dimension(:,:,:), allocatable :: Qnk, Meff, invMeff, v0tau, v0s, p0, vkubo, track, q0tau, r0shift, r0k, rprev, vprev, vsprev
+    real*8, dimension(:,:), allocatable :: r0,  r, p, v, rshift, f,rkold
+    real*8, dimension(:,:,:), allocatable :: Qnk, Meff, invMeff, v0tau, v0s, p0, vkubo, track, q0tau, r0shift, r0k, rprev, vprev, vsprev, r0s, rsprev,v0k
     integer, allocatable :: trackstart(:), timestamp(:)
     real*8 :: lastepot
     character(256) :: stem

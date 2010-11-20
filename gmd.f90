@@ -38,14 +38,16 @@ program gmd
     seglen = tlen / dt
     ntracks = tlen / tsep
 
-    allocate (y(1+21*natom), r0(3,natom), &
+    allocate (y(1+21*natom), r0(3,natom), rkold(3, Natom), &
                 Qnk(3,3,natom), Meff(3,3,natom), invMeff(3,3,natom), &
                 r(3,natom), p(3,natom), v(3,natom), f(3, Natom), &
-                q0tau(3,natom,ntracks), rshift(3,natom),r0k(3,natom,ntracks),r0shift(3,natom,ntracks), &
-                v0tau(3,natom,ntracks), v0s(3,natom,ntracks), &
+                q0tau(3,natom,ntracks), rshift(3,natom),r0k(3,natom,ntracks), &
+                v0k(3,natom,ntracks), r0shift(3,natom,ntracks), &
+                v0tau(3,natom,ntracks), v0s(3,natom,ntracks), r0s(3,natom,ntracks), &
                 p0(3,natom,ntracks), vkubo(3,natom,ntracks), &
                 track(track_width,seglen,ntracks), trackstart(ntracks), &
-                rprev(3,Natom,seglen), vprev(3,Natom,seglen), vsprev(3,Natom,seglen), &
+                rprev(3,Natom,seglen),  rsprev(3,Natom,seglen), &
+                vprev(3,Natom,seglen), vsprev(3,Natom,seglen), &
                 timestamp(seglen))
     call load_xyz(r0, coords)
     call seed_rng()

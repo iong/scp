@@ -126,11 +126,11 @@ end function outer_product
 pure function outer_product3(l, r) result(m)
     real*8, intent(in) :: l(3), r(3)
     real*8 :: m(3,3)
-    integer :: i,
+    integer :: i
 
     forall (i=1:3)
         m(:,i) = l*r(i)
     end forall
-end function outer_product
+end function outer_product3
 
 end module utils
