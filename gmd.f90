@@ -46,6 +46,7 @@ program gmd
                 v0tau(3,natom,ntracks), v0s(3,natom,ntracks), r0s(3,natom,ntracks), &
                 p0(3,natom,ntracks), vkubo(3,natom,ntracks), &
                 track(track_width,seglen,ntracks), trackstart(ntracks), &
+                trackaccum(track_width,seglen), &
                 rprev(3,Natom,seglen),  rsprev(3,Natom,seglen), &
                 vprev(3,Natom,seglen), vsprev(3,Natom,seglen), &
                 timestamp(seglen))
@@ -86,6 +87,7 @@ program gmd
     r0shift = 0.0d0
     rshift = 0.0d0
     track = 0.0d0
+    trackaccum = 0.0d0
     trackstart = (/ (tracksep*i + seglen, i=0,ntracks-1) /)
 
     Ekin = kinetic_energy()

@@ -42,8 +42,8 @@ subroutine correlations(ndt)
     end do
 
     if (ndt - trackstart(ntracks) == seglen) then
-        track(:,:,ntracks) = track(:,:,ntracks) / (2*Natom * ntracks)
-        call dump_track(track(:,:,ntracks), ndt/seglen - 1)
+        trackaccum = trackaccum + track(:,:,ntracks) / (2*Natom * ntracks)
+        call dump_track(trackaccum / (ndt/seglen), ndt/seglen - 1)
         call init_track(ntracks, ndt, rs, vs)
     end if
     
@@ -117,7 +117,6 @@ subroutine update_track(trackno, trackpos, rt, rst, vt, vst)
     trackslice(14) = sum( r0s(:,:,trackno) *   vst)
 
     track(:,trackpos, trackno) = track(:,trackpos, trackno) + trackslice
-
 end subroutine update_track
 
 
@@ -131,7 +130,8 @@ subroutine dump_track(tr, trackno)
     character(4) :: cdump
 
     call int2strz(trackno, 4, cdump)
-    open(cvvout, file=trim(stem)//'_Cvv_'//cdump//'.dat')
+    !open(cvvout, file=trim(stem)//'_Cvv_'//cdump//'.dat')
+    open(cvvout, file=trim(stem)//'_Cvv.dat')
     write(cvvout,'(15F18.7)') (dt*(i-1)*t0fs, tr(1:track_width,i), i=1,seglen)
     close(cvvout)
 end subroutine

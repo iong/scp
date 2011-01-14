@@ -5,7 +5,7 @@ module spine
     integer :: Natom, Nbath, ntracks, tracksep, seglen, ringpos = 1
     real*8 :: rcmin, tstart, tstop, dt, bl, bl2,rho, kT
     real*8, dimension(:), allocatable :: y, Qbath, xi, vxi
-    real*8, dimension(:,:), allocatable :: r0,  r, p, v, rshift, f,rkold
+    real*8, dimension(:,:), allocatable :: r0,  r, p, v, rshift, f,rkold, trackaccum
     real*8, dimension(:,:,:), allocatable :: Qnk, Meff, invMeff, v0tau, v0s, p0, vkubo, track, q0tau, r0shift, r0k, rprev, vprev, vsprev, r0s, rsprev,v0k
     integer, allocatable :: trackstart(:), timestamp(:)
     real*8 :: lastepot
