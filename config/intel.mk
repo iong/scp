@@ -1,6 +1,6 @@
 CC:=icc
 FC:=ifort
-OPTFLAGS=-O2
+OPTFLAGS=-fast
 DBGFLAGS=-O0 -g -warn unused
 FDBG:=-fpe0 #-traceback -check all -ftrapuv
 FFLAGS:=
