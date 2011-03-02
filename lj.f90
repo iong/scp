@@ -20,7 +20,7 @@ program lj
     integer :: i, j, k, n, ixyz
 
     real*8 :: mass
-    namelist /gmdcfg/Natom,mass,kT,rho,coords,tstart,tstop,dt,Nbath,Q1nhc,ne,tequil,tlen,tsep
+    namelist /gmdcfg/mass,kT,rho,coords,tstart,tstop,dt,Nbath,Q1nhc,ne,tequil,tlen,tsep
     
     interface
         subroutine nose_hoover_chain(p, Ekin, kT, xi, vxi, Q, dt, ne)
@@ -39,6 +39,9 @@ program lj
     if (command_argument_count() >0) then
        call get_command_argument(1, coords)
     end if
+
+    call load_xyz(coords, r0)
+    Natom = size(r0, 2)
     
     ndt = (tstop - tstart) / dt
     nequil = tequil / dt
@@ -46,12 +49,11 @@ program lj
     seglen = tlen / dt
     ntracks = tlen / tsep
 
-    allocate (r0(3,natom), r(3,natom), p(3,natom), f(3,natom), rshift(3,Natom), &
+    allocate (r(3,natom), p(3,natom), f(3,natom), rshift(3,Natom), &
             rt0(3,natom,ntracks), pt0(3,natom,ntracks), r0shift(3,natom,ntracks), &
             track(track_width,seglen,ntracks), trackstart(ntracks), &
             rprev(3,Natom,seglen), pprev(3,Natom,seglen), &
             timestamp(seglen))
-    call load_xyz(r0, coords)
     call seed_rng()
 
     bl = (Natom/rho)**(1.0/3.0)
