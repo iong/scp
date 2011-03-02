@@ -2,33 +2,24 @@ module spine
     implicit none
     real*8, parameter :: t0 = 7.6382d-12, t0fs = 7638.2d0
     integer, parameter :: eout = 30, cvvout = 31, track_width = 14
-    integer :: Natom, Nbath, ntracks, tracksep, seglen, ringpos = 1
+    integer :: Natom, ndt
     real*8 :: rcmin, tstart, tstop, dt, bl, bl2,rho, kT
-    real*8, dimension(:), allocatable :: y, Qbath, xi, vxi
-    real*8, dimension(:,:), allocatable :: r0,  r, p, v, rshift, f,rkold, trackaccum
-    real*8, dimension(:,:,:), allocatable :: Qnk, Meff, invMeff, v0tau, v0s, p0, vkubo, track, q0tau, r0shift, r0k, rprev, vprev, vsprev, r0s, rsprev,v0k
-    integer, allocatable :: trackstart(:), timestamp(:)
+
+    real*8, dimension(:,:), allocatable :: r0
+    real*8, dimension(:), allocatable :: y
+    real*8, dimension(:,:), allocatable :: r, p0, p, v, rshift, f, trackaccum, rkold
+    real*8, dimension(:,:), allocatable :: v0tau, v0s, v0, vkubo, track, q0tau, r0shift, r0k, rprev, vprev, vsprev, r0s, rsprev,v0k
+    real*8, dimension(:,:,:), allocatable :: Qnk, Meff, invMeff
+
     real*8 :: lastepot
     character(256) :: stem
 
     interface
-        subroutine nose_hoover_chain(p, Ekin, kT, xi, vxi, Q, dt, ne)
-            real*8, intent(inout) :: p(:,:), Ekin, xi(:), vxi(:)
-            real*8, intent(in) :: kT, Q(:), dt
-            integer, intent(in) :: ne
-        end subroutine nose_hoover_chain
         subroutine kubo(q0, v, beta, nsteps, xk, vk)
             real*8, intent(in) :: q0(:,:), v(:,:), beta
             integer, intent(in) :: nsteps
             real*8, intent(out) :: xk(:,:), vk(:,:)
         end subroutine kubo
-        subroutine correlations(ndt)
-            integer, intent(in) :: ndt
-        end subroutine correlations
-        subroutine dump_track(track, trackno)
-            real*8, intent(in) :: track (:,:)
-            integer, intent(in) :: trackno
-        end subroutine dump_track
     end interface
 contains
 

@@ -1,9 +1,9 @@
-subroutine kubo(q0, v0, beta, nsteps, xk, vk)
+subroutine kubo(q0, qv0, beta, nsteps, xk, vk)
     use spine
     use utils
     use vgw
     implicit none
-    real*8, intent(in) :: q0(:,:), v0(:,:), beta
+    real*8, intent(in) :: q0(:,:), qv0(:,:), beta
     integer, intent(in) :: nsteps
     real*8, intent(out) :: xk(:,:), vk(:,:)
     real*8, dimension(3, Natom) :: ql, qr, dxk, dvk
@@ -46,8 +46,8 @@ subroutine kubo(q0, v0, beta, nsteps, xk, vk)
         do j=1,Natom
             call detminvm(gl(:,:,j) + gr(:,:,j), detj, invglr)
             dxk(:,j) = matmul(invglr, matmul(gr(:,:,j), ql(:,j)) + matmul(gl(:,:,j), qr(:,j)))
-            vnkl = matmul(Qnkl(:,:,j), v0(:,j))
-            vnkr = matmul(Qnkr(:,:,j), v0(:,j))
+            vnkl = matmul(Qnkl(:,:,j), qv0(:,j))
+            vnkr = matmul(Qnkr(:,:,j), qv0(:,j))
             dvk(:,j) = matmul(invglr, matmul(gr(:,:,j), vnkl) + matmul(gl(:,:,j), vnkr))
         end do
         xk = xk + dxk*w
@@ -57,7 +57,7 @@ subroutine kubo(q0, v0, beta, nsteps, xk, vk)
     call unpack_q(yl(:,nsteps/2), ql)
     call unpack_qnk(yl(:,nsteps/2), Qnkl)
     do j=1,Natom
-        dvk(:,j) = matmul(Qnkl(:,:,j), v0(:,j))
+        dvk(:,j) = matmul(Qnkl(:,:,j), qv0(:,j))
     end do
 
     xk = (xk + ql) / nsteps

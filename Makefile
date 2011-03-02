@@ -24,11 +24,11 @@ LIBS:= $(LIBS) $(LAPACK) -lm
 VGW:=utils propagation vgw unpackg\
        interaction_lists dlsode vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03
 
-GMD:=xyz spine gmd nose_hoover_chain kubo correlations
+GMD:=xyz spine gmdshort kubo correlations
 MERGECVV= utils mergecvv
 LJ:=xyz utils nose_hoover_chain lj
 
-all: gmd lj
+all: gmdshort lj
 
 dbg: dbg.gmd
 
@@ -49,7 +49,7 @@ deps.mk:
 %.o : %.f
 	$(FC) $(FFLAGS) -c $<
 
-gmd: $(addsuffix .o,$(VGW) $(GMD))
+gmdshort: $(addsuffix .o,$(VGW) $(GMD))
 	$(FC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 mergecvv: $(addsuffix .o, $(MERGECVV))
