@@ -26,9 +26,8 @@ VGW:=utils propagation vgw unpackg\
 
 GMD:=xyz spine gmdshort kubo correlations
 MERGECVV= utils mergecvv
-LJ:=xyz utils nose_hoover_chain lj
 
-all: gmdshort lj
+all: gmdshort
 
 dbg: dbg.gmd
 
@@ -50,15 +49,6 @@ deps.mk:
 	$(FC) $(FFLAGS) -c $<
 
 gmdshort: $(addsuffix .o,$(VGW) $(GMD))
-	$(FC) $(LDFLAGS) -o $@ $^ $(LIBS)
-
-mergecvv: $(addsuffix .o, $(MERGECVV))
-	$(FC) $(LDFLAGS) -o $@ $^ $(LIBS)
-
-lj: $(addsuffix .o, $(LJ))
-	$(FC) $(LDFLAGS) -o $@ $^ $(LIBS)
-
-diag: diag.o rs.o utils.o
 	$(FC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 clean:

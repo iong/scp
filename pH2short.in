@@ -1,5 +1,4 @@
 &gmdcfg
-Natom=108
 mass=2
 ! Gauss expansion of the potential, pH2 Silvera-Goldman
 NGAUSS = 3
@@ -13,18 +12,12 @@ LJC(3) =  -9.27807987319189
 rtol = 1d-4
 atol = 1d-4
 taumin=1d-4
-kT = 25
+kT = 14
 coords='dump_0000100000.xyz'
-rho=0.0190
-rcmin=3.05
+rho=0.0235
 rc=10
 tstart=0
-tstop=38.005
-dt = 1d-3
-Nbath=10
-Q1nhc = 3d-4
-ne = 40
-tequil=0.0
-tlen = 0.1
-tsep = 0.05
+tstop=0.001
+dt = 2.5d-4
+np=100
 /
