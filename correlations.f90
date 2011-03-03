@@ -79,8 +79,7 @@ subroutine dump_track(tr, trackno)
 
      write(*,*) 0, tr(1, 0)
     call int2strz(trackno, 4, cdump)
-    !open(cvvout, file=trim(stem)//'_Cvv_'//cdump//'.dat')
-    open(cvvout, file=trim(stem)//'_Cvv.dat')
+    open(cvvout, file=trim(stem)//'_Cvv_'//cdump//'.dat')
     write(cvvout,'(15F18.7)') (dt*t0fs*(i-1), tr(:,i), i=1,ndt)
     close(cvvout)
 end subroutine

@@ -137,8 +137,9 @@ pure subroutine pb_wrap(r, rshift, bl)
     real*8, intent(in) :: bl
     real*8, intent(inout) :: r(:,:), rshift(:,:)
     integer :: j, k
-    real*8 :: bl2 = 0.5d0 * bl
+    real*8 :: bl2
 
+    bl2 = 0.5d0 * bl
     do j=1,size(r, 2)
         do k=1,3
             if (abs(r(k, j)) > bl2) then
