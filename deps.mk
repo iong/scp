@@ -1,11 +1,7 @@
 correlations.mod: correlations.o
 correlations.o:  spine.mod utils.mod vgw.mod
-gmd.o:  propagation.mod spine.mod utils.mod vgw.mod xyz.mod
 gmdshort.o:  correlations.mod propagation.mod spine.mod utils.mod vgw.mod xyz.mod
 kubo.o:  spine.mod utils.mod vgw.mod
-lj.o:  utils.mod xyz.mod
-load_defaults.o:  ljmc.mod mc.mod vgw.mod
-mergecvv.o:  utils.mod
 propagation.mod: propagation.o
 rhs.mod: rhs.o
 setup_ljmc.o:  ljmc.mod mc.mod utils.mod
