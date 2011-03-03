@@ -133,4 +133,19 @@ pure function outer_product3(l, r) result(m)
     end forall
 end function outer_product3
 
+pure subroutine pb_wrap(r, rshift, bl)
+    real*8, intent(in) :: bl
+    real*8, intent(inout) :: r(:,:), rshift(:,:)
+    integer :: j, k
+    real*8 :: bl2 = 0.5d0 * bl
+
+    do j=1,size(r, 2)
+        do k=1,3
+            if (abs(r(k, j)) > bl2) then
+                rshift(k, j) = rshift(k, j) + sign(bl, r(k, j))
+                r(k, j) = r(k, j) - sign(bl, r(k, j))
+            end if
+        end do
+    end do
+end subroutine pb_wrap
 end module utils

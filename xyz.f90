@@ -16,16 +16,7 @@ subroutine dump_xyz(r, fname, molname)
     close(33)
 end subroutine
 
-function xyz_read_size(coords) result(N)
-    character(LEN=*), intent(in) :: coords
-    integer :: N
-
-    open(33,file=fname,STATUS='OLD')
-    read(33,*) N
-    close(33)
-end function
-
-    
+  
 subroutine load_xyz(fname, r)
     implicit none
     real*8, intent(out),allocatable :: r(:,:)
@@ -35,7 +26,9 @@ subroutine load_xyz(fname, r)
 
     open(33,file=fname,STATUS='OLD')
     read(33,*) N
-    allocate (r(3,N))
+    if (.not.allocated(r)) then
+        allocate (r(3,N))
+    end if
 
 !    if (N /= size(r, 2)) then
 !        write (*,*) "N /= size(r, 2)", N, size(r, 2)

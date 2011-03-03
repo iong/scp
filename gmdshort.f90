@@ -87,14 +87,8 @@ program gmdshort
         do i=1,ndt
             call verletstep(dt, Epot)
             call update_track(i)
-            do j=1,Natom
-                do k=1,3
-                    if (abs(r(k, j)) > bl2) then
-                        rshift(k, j) = rshift(k, j) + sign(bl, r(k, j))
-                        r(k, j) = r(k, j) - sign(bl, r(k, j))
-                    end if
-                end do
-            end do
+            call pb_wrap(r, rshift, bl)
+            
             Ekin = kinetic_energy()
             write(eout,'(6F18.7)') dt*i*t0fs,Ekin, Epot,Ekin+Epot
         end do
