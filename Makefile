@@ -3,7 +3,7 @@ ifeq "$(VPATH)" ""
     VPATH:=.
 endif
 
-#DBG=1
+DBG=1
 COMPILER:=intel
 
 OS=$(shell uname -s)

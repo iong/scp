@@ -17,7 +17,7 @@ coords='dump_0000100000.xyz'
 rho=0.0235
 rc=10
 tstart=0
-tstop=0.3
+tstop=0.002
 dt = 1d-3
 np=40
 /
