@@ -1,7 +1,7 @@
 module spine
     implicit none
     real*8, parameter :: t0 = 7.6382d-12, t0fs = 7638.2d0
-    integer, parameter :: eout = 30, cvvout = 31, track_width = 14
+    integer, parameter :: eout = 30, cvvout = 31, mapout=32, track_width = 14
     integer :: Natom, ndt
     real*8 :: rcmin, tstart, tstop, dt, bl, bl2,rho, kT
 

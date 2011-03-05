@@ -78,8 +78,14 @@ subroutine dump_track(tr, trackno)
     character(4) :: cdump
 
     call int2strz(trackno, 4, cdump)
-    open(cvvout, file=trim(stem)//'_Cvv_'//cdump//'.dat')
+    open(cvvout, file='dump/'//trim(stem)//'_Cvv_'//cdump//'.dat')
     write(cvvout,'(15F18.7)') (dt*t0fs*(i-1), tr(:,i), i=1,ndt)
     close(cvvout)
+
+    open(mapout, file='dump/map')
+    write(mapout, '("kT"/"CvvSym"/"EasyKubo1"/"EasyKubo2"/"CvvKubo"/"q0tau_v"/"r0k_v"/"q0tau_r")')
+    write(mapout, '("r0k_r"/"v0tau_r"/"dr0k_r"/"vkubo_r"/"r0s_rs"/"v0s_rs"/"r0s_vs")')
+    close(mapout)
+
 end subroutine
 end module correlations
