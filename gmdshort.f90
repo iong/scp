@@ -60,8 +60,8 @@ program gmdshort
 
     
     ixyz = index(coords, '.xyz', .TRUE.)
-    stem = 'dump/'//coords(1:ixyz-1)
-    open(eout,file=trim(stem)//'_energy.dat')
+    stem = coords(1:ixyz-1)
+    open(eout,file='dump/'//trim(stem)//'_energy.dat')
 
     trackaccum = 0.0d0
     do ip=1,2*np
@@ -88,9 +88,10 @@ program gmdshort
             call verletstep(dt, Epot)
             call update_track(i)
             call pb_wrap(r, rshift, bl)
-            
-            Ekin = kinetic_energy()
-            write(eout,'(6F18.7)') dt*i*t0fs,Ekin, Epot,Ekin+Epot
+            if (ip==1) then
+                Ekin = kinetic_energy()
+                write(eout,'(6F18.7)') dt*i*t0fs,Ekin, Epot,Ekin+Epot
+            end if
         end do
         write (eout, '(//)')
         trackaccum = trackaccum + track
