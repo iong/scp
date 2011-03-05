@@ -59,7 +59,7 @@ subroutine init_track()
     call unpack_q(y, q0tau)
     call kubo(r, v, 1.0d0/kT, 200,  r0k, vkubo)
     r0shift = rshift
-    v0k =  (r0k - rkold) / dt
+    v0k =  0.0d0*(r0k - rkold) / dt
 
     q0tau = q0tau + rshift
     r0k = r0k + rshift
