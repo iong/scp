@@ -3,8 +3,8 @@ ifeq "$(VPATH)" ""
     VPATH:=.
 endif
 
-DBG=1
-COMPILER:=intel
+#DBG=1
+COMPILER:=pgi
 
 OS=$(shell uname -s)
 include $(VPATH)/config/$(COMPILER).mk
