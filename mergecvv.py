@@ -14,7 +14,7 @@ def read_header(fname):
 
 
 def merge_cvv(d):
-    files=glob.glob(d+"/dump/*_Cvv.dat")
+    files=glob.glob(d+"/dump/*_Cvv*.dat")
 
     Cxxall=array([loadtxt(zf) for zf in files])
     Cxx=mean(Cxxall, 0)
