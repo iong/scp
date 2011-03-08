@@ -8,12 +8,12 @@ program gmdshort
     implicit none
     integer :: iostat, ip
     integer :: runid=0, np
-    real*8 :: Ekin ,Epot, tlen, pcm(3), Ueff
+    real*8 :: Ekin ,Epot, tlen, pcm(3), Ueff, friction, exp_friction
 
     character(LEN=256) :: cfgfile, coords,argin
     integer :: i, j, k, ixyz
     namelist /gmdcfg/mass,NGAUSS,LJA,LJC,rc,rtol,atol,taumin,kT,rho, &
-            coords,tstart,tstop,dt,np
+            coords,tstart,tstop,dt,np,friction
 
 
     cfgfile='pH2short.in'
@@ -57,7 +57,7 @@ program gmdshort
     mass = mass*0.020614788876D0
     call vgwinit(natom, bl)
 
-
+    exp_friction = exp(-0.5d0*friction*dt)
     
     ixyz = index(coords, '.xyz', .TRUE.)
     stem = coords(1:ixyz-1)
@@ -85,7 +85,9 @@ program gmdshort
         Ekin = kinetic_energy()
         write(eout,'(6F18.7)') 0.0d0,Ekin, Epot,Ekin+Epot
         do i=1,ndt
+            p = p * exp_friction
             call verletstep(dt, Epot)
+            p = p * exp_friction
             call update_track(i)
             call pb_wrap(r, rshift, bl)
             if (ip==1) then
