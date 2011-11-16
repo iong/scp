@@ -6,11 +6,34 @@
 	objectVersion = 46;
 	objects = {
 
+/* Begin PBXFileReference section */
+		C8C18FC113E38DA00097CB0B /* correlations.f90 */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.fortran.f90; path = correlations.f90; sourceTree = "<group>"; };
+		C8C18FC213E38DA00097CB0B /* gmdshort.f90 */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.fortran.f90; path = gmdshort.f90; sourceTree = "<group>"; };
+		C8C18FC413E38DB80097CB0B /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; path = Makefile; sourceTree = "<group>"; };
+		C8C18FC613E38DE50097CB0B /* gcc.mk */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = gcc.mk; sourceTree = "<group>"; };
+		C8C18FC713E38DE50097CB0B /* intel.mk */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = intel.mk; sourceTree = "<group>"; };
+		C8C18FC813E38DE50097CB0B /* pgi.mk */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = pgi.mk; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
 /* Begin PBXGroup section */
 		C80086F813E38AD700B98888 = {
 			isa = PBXGroup;
 			children = (
+				C8C18FC113E38DA00097CB0B /* correlations.f90 */,
+				C8C18FC413E38DB80097CB0B /* Makefile */,
+				C8C18FC513E38DE50097CB0B /* config */,
+				C8C18FC213E38DA00097CB0B /* gmdshort.f90 */,
 			);
+			sourceTree = "<group>";
+		};
+		C8C18FC513E38DE50097CB0B /* config */ = {
+			isa = PBXGroup;
+			children = (
+				C8C18FC613E38DE50097CB0B /* gcc.mk */,
+				C8C18FC713E38DE50097CB0B /* intel.mk */,
+				C8C18FC813E38DE50097CB0B /* pgi.mk */,
+			);
+			path = config;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -136,6 +159,7 @@
 				C800870413E38AD700B98888 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};

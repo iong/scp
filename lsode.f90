@@ -26,7 +26,10 @@ contains
         this%LRW = 20 + 16*NEQ
         this%LIW = 30
 
-        allocate(this%ATOL(NEQ), this%RWORK( this%LRW ), this%IWORK( this%LIW ))
+        if (.not. allocated(this%ATOL)) then
+            allocate(this%ATOL(NEQ), this%RWORK( this%LRW ), &
+                this%IWORK( this%LIW ))
+        end if
 
         this%ITOL=2
         this%RTOL=0
@@ -59,8 +62,9 @@ contains
         interface
             subroutine F(NEQ, T, Y, YP)
                 integer, intent(in) :: NEQ
-                double precision, intent(in) :: T, Y(:)
-                double precision, intent(out) :: YP(:)
+                double precision, intent(in) ::  T
+                double precision, intent(in), target ::  Y(:)
+                double precision, intent(out), target :: YP(:)
             end subroutine
         end interface
         double precision, intent(inout) :: y(:), T

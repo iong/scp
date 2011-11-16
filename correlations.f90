@@ -1,25 +1,30 @@
 module correlations
-    use vgw
-    use spine
+    use mainvars
     use utils
     implicit none
 contains
 subroutine update_track(ndt)
     implicit none
     integer, intent(in) :: ndt
-    integer :: i,j, trackpos
-    real * 8 :: vs(3,Natom), rs(3,Natom), sqrtMeff(3,3), rt(3,Natom)
-    real*8 :: trackslice(track_width)
+    integer :: j
+    real * 8 :: vs(3,Natom), rs(3,Natom), sqrtMeff(3,3), rt(3,Natom), &
+        d0k(3), dt(3)
+
+    call dsymv('U', 3*Natom, 1d0, invMeff, 3*Natom, p, 1, 0d0, v, 1)
+    call dsymv('U', 3*Natom, 1d0, sqrtInvMeff, 3*Natom, p, 1, 0d0, vs, 1)
+    call dsymv('U', 3*Natom, 1d0, sqrtMeff, 3*Natom, r+rshift, 1, &
+        0d0, rs, 1)
 
     do j=1,Natom
-        sqrtMeff = matsqrt(Meff(:,:,j))
-        v(:,j) = matmul(invMeff(:,:,j), p(:,j))
-        vs(:,j) = matmul(matsqrt(invMeff(:,:,j)), p(:,j))/sqrt(mass)
-        rs(:,j) = matmul(sqrtMeff, r(:,j) +  rshift(:,j))/sqrt(mass)
+        vs(:,j) = vs(:,j)/sqrt(fm%mass(j))
+        rs(:,j) = rs(:,j)/sqrt(fm%mass(j))
     end do
 
     rt =  r + rshift
     !write(*,*) ndt, track(1, ndt), sum( v0tau * v)/Natom
+
+    d0k = r0k(:,1) - r0k(:,2)
+    dt = rt(:,1) - rt(:,2)
 
     track(1, ndt)  = track(1, ndt)  +  sum( v0tau * v)
     track(2, ndt)  = track(2, ndt)  +  sum( v0s *   vs)
@@ -31,37 +36,40 @@ subroutine update_track(ndt)
     track(8, ndt)  = track(8, ndt)  +  sum( r0k *   rt)
     track(9, ndt)  = track(9, ndt)  +  sum( v0tau * rt)
     track(10, ndt) = track(10, ndt) +  sum( v0k *   rt)
-    track(11, ndt) = track(11, ndt) +  sum( vkubo * rt)
+    track(11, ndt) = track(11, ndt) +  sum( d0k * dt)
     track(12, ndt) = track(12, ndt) +  sum( r0s *   rs)
     track(13, ndt) = track(13, ndt) +  sum( v0s *   rs)
     track(14, ndt) = track(14, ndt) +  sum( r0s *   vs)
 end subroutine
 
 subroutine init_track()
+    use kubo_mod
     implicit none
-    real*8 :: Ueff
-    integer :: j
-    real * 8 :: sqrtMeff(3,3)
+    integer :: j, yskip
+    double precision, pointer :: pQnk(:)
+
+    call dgemv('N', 3*Natom, 3*Natom, 1d0, invMeff, 3*Natom, p, 1, 0d0, v, 1)
+    call dgemv('N', 3*Natom, 3*Natom, 1d0, sqrtInvMeff, 3*Natom, p, 1, 0d0, v0s, 1)
+    call dgemv('N', 3*Natom, 3*Natom, 1d0, sqrtMeff, 3*Natom, r+rshift, 1, &
+        0d0, r0s, 1)
 
     do j=1,Natom
-        sqrtMeff = matsqrt(Meff(:,:,j))
-        v(:,j) = matmul(invMeff(:,:,j), p(:,j))
-        v0s(:,j) = matmul(matsqrt(invMeff(:,:,j)), p(:,j))/sqrt(mass)
-        r0s(:,j) = matmul(sqrtMeff, r(:,j) +  rshift(:,j))/sqrt(mass)
+        v0(:,j) = p(:,j)/fm%mass(j)
+        v0s(:,j) = v0s(:,j)/sqrt(fm%mass(j))
+        r0s(:,j) = r0s(:,j)/sqrt(fm%mass(j))
     end do
 
-    call unpack_Qnk(y, Qnk)
-    do j=1,Natom
-        v0tau(:,j) = matmul(Qnk(:,:,j), v(:,j))
-    end do
-    v0 = p/mass
+    q0tau = fm%get_q() + rshift
 
-    call unpack_q(y, q0tau)
+    yskip = 3*fm%Natom + fm%NG 
+    pQnk => fm%y(yskip + 1 : yskip + fm%NQnk)
+
+    call dgemv('N', 3*Natom, 3*Natom, 1d0, pQnk, 3*Natom, v, 1, 0d0, v0tau, 1)
+
     call kubo(r, v, 1.0d0/kT, 200,  r0k, vkubo)
     r0shift = rshift
     v0k =  0.0d0*(r0k - rkold) / dt
 
-    q0tau = q0tau + rshift
     r0k = r0k + rshift
 
     track = 0.0d0
@@ -69,7 +77,6 @@ end subroutine init_track
 
 
 subroutine dump_track(tr, trackno)
-    use spine
     use utils
     implicit none
     real*8, intent(in) :: tr (:,:)
@@ -78,11 +85,12 @@ subroutine dump_track(tr, trackno)
     character(4) :: cdump
 
     call int2strz(trackno, 4, cdump)
-    open(cvvout, file='dump/'//trim(stem)//'_Cvv_'//cdump//'.dat')
-    write(cvvout,'(15F18.7)') (dt*t0fs*(i-1), tr(:,i), i=1,ndt)
+    write(*,*) trim(stem)//'_Cvv_'//cdump//'.dat'
+    open(cvvout, file=trim(stem)//'_Cvv_'//cdump//'.dat')
+    write(cvvout,'(15F18.7)') (dt*(i-1), tr(:,i), i=1,ndt)
     close(cvvout)
 
-    open(mapout, file='dump/map')
+    open(mapout, file='dump_map')
     write(mapout, '("kT"/"CvvSym"/"EasyKubo1"/"EasyKubo2"/"CvvKubo"/"q0tau_v"/"r0k_v"/"q0tau_r")')
     write(mapout, '("r0k_r"/"v0tau_r"/"dr0k_r"/"vkubo_r"/"r0s_rs"/"v0s_rs"/"r0s_vs")')
     close(mapout)

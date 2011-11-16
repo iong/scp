@@ -1,10 +1,10 @@
-CC=gcc-mp-4.4
-FC=gfortran-mp-4.4
+CC=gcc
+FC=gfortran
 OPTFLAGS=-O3
 DBGFLAGS=-O0 -ggdb -Wall
 
 CFLAGS=
-FFLAGS=-fdefault-real-8 -fdefault-double-8 -ffree-line-length-0 -ffixed-line-length-0 -fimplicit-none
+FFLAGS=-ffree-line-length-0 -ffixed-line-length-0 -fimplicit-none
 FDBG:=-fbounds-check -ffpe-trap=invalid,zero,overflow,denormal
 
 LAPACK=-lf77blas -lcblas -latlas

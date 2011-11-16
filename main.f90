@@ -1,48 +1,51 @@
-program gmdshort
-    use spine
-    use vgw
-    use xyz
-    use utils
-    use propagation
+program OH1D
     use correlations
+    use mainvars
+    use utils
+    use vgwfm_mod
+    use xyz
     implicit none
-    integer :: iostat, ip
-    integer :: runid=0, np
-    real*8 :: Ekin ,Epot, tlen, pcm(3), Ueff, friction, exp_friction
+    integer :: iostat
 
-    character(LEN=256) :: cfgfile, coords,argin
+    integer ::np=200, nx=51, ip, ix
+    double precision :: beta, xeq, dx, w0, Ekin, Z, Epot
+
+    character(LEN=256) :: argin, fname
     integer :: i, j, k, ixyz
-    namelist /gmdcfg/mass,NGAUSS,LJA,LJC,rc,rtol,atol,taumin,kT,rho, &
-            coords,tstart,tstop,dt,np,friction
 
+    double precision, parameter :: A_au = 1.8897, K_au = 3.16681534282952d-06, &
+        kOH = 0.49536d0
 
-    cfgfile='pH2short.in'
-    taumin = 1.0e-6
-    rtol=1e-4
-    atol=1.0e-4
-    rc=10.0
-    LJA=0.0d0
-    LJC=0.0d0
+    Natom = 2
 
-    open(20, file=cfgfile)
-    read(20, NML=gmdcfg)
-    close(20)
 
     if (command_argument_count() >0) then
-       call get_command_argument(1, coords)
+       call get_command_argument(1, argin)
+       read(argin,*) kT
     end if
     if (command_argument_count() >1) then
        call get_command_argument(2, argin)
-       read (argin, '(I)') runid 
+       read (argin, *) nx
     end if
 
-    call load_xyz(coords, r0)
-    Natom = size(r0, 2)
+    kT = kT * K_au
+    beta = 1d0/kT
+
+    xeq = 1d0 * A_au
+    dx = 2.5d0 / sqrt(1823.0*kOH)
+
+    dt = 2.0*M_PI*sqrt(1823.0/kOH)/32.0
+
+
+    tstart = 0d0
+    tstop = 32*5*dt
     ndt = (tstop - tstart) / dt
 
-    allocate (y(1+21*natom), rkold(3, Natom), &
-                Qnk(3,3,natom), Meff(3,3,natom), invMeff(3,3,natom), &
-                r(3,natom), p(3,natom), p0(3,natom), v(3,natom), f(3, Natom), &
+    allocate (fm, rkold(3, Natom), &
+                Meff(3*natom, 3*Natom), invMeff(3*natom, 3*natom), &
+                sqrtMeff(3*natom, 3*Natom), sqrtInvMeff(3*natom, 3*natom), &
+                r(3,natom), r0(3,Natom), p(3,natom), p0(3,natom), v(3,natom), &
+                f(3, Natom), &
                 q0tau(3,natom), rshift(3,natom),r0k(3,natom), &
                 v0k(3,natom), r0shift(3,natom), &
                 v0tau(3,natom), v0s(3,natom), r0s(3,natom), &
@@ -52,55 +55,89 @@ program gmdshort
 
     call seed_rng()
 
-    bl = (Natom/rho)**(1.0/3.0)
-    bl2=bl/2
-    mass = mass*0.020614788876D0
-    call vgwinit(natom, bl)
-
-    exp_friction = exp(-0.5d0*friction*dt)
-    
-    ixyz = index(coords, '.xyz', .TRUE.)
-    stem = coords(1:ixyz-1)
-    open(eout,file='dump/'//trim(stem)//'_energy.dat')
+    call fm%init(2, 'OH')
+    call fm%set_mm(.TRUE.)
 
     trackaccum = 0.0d0
-    do ip=1,2*np
-        r = r0
-        call vgw1(r, Ueff, 1.0/kT, 0.0d0, y, Meff, invMeff)
-        if (mod(ip,2) == 1) then
-            call initial_momenta(kT, Meff, p0)
-            pcm = sum(p0, 2)/Natom
-            do i=1,Natom
-                p0(:,i) = p0(:,i) - pcm
-            end do
-            p = p0
-        else
-            p = -p0
-        end if
-        call verletstep(0.0d0, Epot)
-        call init_track()
-        call update_track(0)
-    
-       
-        Ekin = kinetic_energy()
-        write(eout,'(6F18.7)') 0.0d0,Ekin, Epot,Ekin+Epot
-        do i=1,ndt
-            p = p * exp_friction
-            call verletstep(dt, Epot)
-            p = p * exp_friction
-            call update_track(i)
-            call pb_wrap(r, rshift, bl)
-            if (ip==1) then
-                Ekin = kinetic_energy()
-                write(eout,'(6F18.7)') dt*i*t0fs,Ekin, Epot,Ekin+Epot
+
+    r0 = 0d0
+    Z = 0d0
+    do ix = 1,nx
+        r0(1,2) = (2d0*real(ix-1)/real(nx-1) - 1d0)*dx + xeq
+        write (*,*) 'ix = ', ix, nx
+        do ip=1,2*np
+            r = r0
+            call fm%Ueff(r, 1.0/kT, Epot)
+            call fm%get_Meff(Meff)
+
+            w0 = exp(-beta*Epot) * r0(1,2)**2
+            if (mod(ip,2) == 1) then
+                call initial_momenta(kT, Meff, p0)
+                p = p0
+            else
+                p = -p0
             end if
+
+            call verletstep(0.0d0, Epot)
+            call init_track()
+            call update_track(0)
+        
+           
+            Ekin = 0.5*sum(p * v)
+            write(eout,'(6F18.7)') 0.0d0,Ekin, Epot,Ekin+Epot
+            do i=1,ndt
+                call verletstep(dt, Epot)
+                call update_track(i)
+                Ekin = 0.5*sum(p * v)
+                if (ip==1) then
+                    write(eout,'(6F18.7)') dt*i*t0fs,Ekin, Epot,Ekin+Epot
+                end if
+            end do
+            write (eout, '(//)')
+            trackaccum = trackaccum + track*w0
+            Z = Z + w0
         end do
-        write (eout, '(//)')
-        trackaccum = trackaccum + track
     end do
-    trackaccum = trackaccum / (2*Natom*np)
+    trackaccum = trackaccum / (2*Natom*Z) 
     write (*,*) trackaccum(1,0)
-    call dump_track(trackaccum, runid)
+    stem='OH'
+    call dump_track(trackaccum, 0)
     close(eout)
-end program gmdshort
+
+contains
+
+
+subroutine initial_momenta(kT, Meff, p)
+    implicit none
+    real*8, intent(in) :: kT, Meff(:,:)
+    real*8, intent(out) :: p(:, :)
+    real*8 :: U(size(Meff, 1),size(Meff, 1))
+    double precision, dimension (size(Meff, 1)) :: W, FV1, FV2, pr
+    integer :: i, j, ierr, N
+    
+    N = size(Meff, 1)
+    call RS(N,N,Meff,W,1,U,FV1,FV2,ierr)
+    do j=1,N
+        pr(j) = gaussran(sqrt(W(j)*kT), 0.0d0)
+    end do
+    call dgemv('N', N, N, 1d0, U, N, pr, 1, 0d0, p, 1)
+end subroutine
+
+
+subroutine verletstep(dt, Epot)
+    implicit none
+    real*8, intent(in) :: dt
+    real*8, intent(out) :: Epot
+    integer :: i, k
+
+    p = p + 0.5*dt*f
+    call dsymv('U', 3*Natom, dt, invMeff, 3*Natom, p, 1, 1d0, r, 1)
+
+    call fm%Ueff(r, 1.0/kT, Epot, f)
+    call fm%get_Meff(Meff, invMeff, sqrtMeff, sqrtInvMeff)
+
+    p = p + 0.5*dt*f
+end subroutine
+
+end program OH1D
 ! vim:et

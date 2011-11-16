@@ -4,43 +4,38 @@ ifeq "$(VPATH)" ""
 endif
 
 #DBG=1
-COMPILER:=pgi
+COMPILER:=gcc
 
 OS=$(shell uname -s)
 include $(VPATH)/config/$(COMPILER).mk
 
 ifdef DBG
-	CFLAGS:=$(CFLAGS) $(DBGFLAGS)
-	FFLAGS:=$(FFLAGS) $(DBGFLAGS) $(FDBG)
-	LDFLAGS:=$(LDFLAGS) $(DBGFLAGS) $(FDBG)
-else
-	CFLAGS:=$(CFLAGS) $(OPTFLAGS)
-	FFLAGS:=$(FFLAGS) $(OPTFLAGS)
-	LDFLAGS:=$(LDFLAGS) $(OPTFLAGS)
+	OPTFLAGS := $(DBGFLAGS)
+	FFLAGS   += $(FDBG) 
+	LDFLAGS  += $(FDBG)
 endif
 
-LIBS:= $(LIBS) $(LAPACK) -lm
+FFLAGS += $(OPTFLAGS)
+CFLAGS += $(OPTFLAGS)
+LDFLAGS += $(OPTFLAGS)
 
-VGW:=utils propagation vgw unpackg\
-       interaction_lists dlsode vgwspb_H2_4G_Rc_Q_tau_SqrtMeff_Mar03
 
-GMD:=xyz spine gmdshort kubo correlations
-MERGECVV= utils mergecvv
+LIBS += $(LAPACK) -lm
 
-all: gmdshort
+VGW:=utils.f90 lsode.f90 vgw.f90 vgwfm.f90 dlsode.f rs.f
+OH:=xyz.f90 mainvars.f90 kubo.f90 correlations.f90 main.f90
+objects=$(addsuffix .o,$(basename $(1)))
 
-dbg: dbg.gmd
+all: OH
 
-dbg.%:
-	$(MAKE) DBG=1 $*
+ifneq ($(wildcard $(VPATH)/deps.mk),)
+include $(VPATH)/deps.mk
+endif
 
-deps: deps.mk
-
-include deps.mk
-
-deps.mk:
-	$(VPATH)/f90deps  $(addsuffix .f90,$(VGW) $(GMD) $(MERGECVV) $(LJ)) > $@
-
+deps:
+	$(RM) deps.mk
+	gfortran-mp-4.6 -MM -cpp $(FFLAGS) $(VGW) $(OH) > deps.mk
+	#$(VPATH)/f90deps $(ALL_SRC) > deps.mk
 
 %.o : %.f90
 	$(FC) $(FFLAGS) -c $<
@@ -48,10 +43,14 @@ deps.mk:
 %.o : %.f
 	$(FC) $(FFLAGS) -c $<
 
-gmdshort: $(addsuffix .o,$(VGW) $(GMD))
+debug:
+	@echo $(PWD)
+	$(MAKE) -f $(THIS_MAKEFILE) DBG=1
+
+OH: $(call objects,$(VGW) $(OH))
 	$(FC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 clean:
 	$(RM) *.o *.mod
 
-.PHONY: libpepc deps dbg
+.PHONY: deps debug clean

@@ -1,5 +1,9 @@
 module utils
-    real*8 :: M_PI = 3.14159265358979323846264338327950288d0
+    double precision :: M_PI = 3.14159265358979323846264338327950288d0
+    interface min_image
+        module procedure min_image1
+        module procedure min_image2
+    end interface
 contains
 subroutine seed_rng()
         integer :: seed(128), seed_size, c, crate, cmax
@@ -12,25 +16,24 @@ subroutine seed_rng()
         call random_seed(PUT=seed(1:seed_size))
 end subroutine
 
-real*8 function gaussran(sigma, x0) result(y)
+double precision function gaussran(sigma, x0) result(y)
     implicit none
-    real*8, intent(in) :: sigma, x0
-    real*8 :: x(2)
+    double precision, intent(in) :: sigma, x0
+    double precision :: x(2)
     do
-        call random_number(x)
+    call random_number(x)
         if (x(1) /= 0.0d0) exit
     enddo
     !   write (*,*) x
-
     y = sqrt( -2.0 * log(x(1))) * cos(2*M_PI*x(2))
 
     y = y*sigma + x0
 end function gaussran
 
 subroutine pol2cart(pol, cart)
-    real*8, intent(in) :: pol(3)
-    real*8, intent(out) :: cart(3)
-    real*8 :: rxy
+    double precision, intent(in) :: pol(3)
+    double precision, intent(out) :: cart(3)
+    double precision :: rxy
 
     rxy = pol(1) * sin(pol(2))
     cart(1) = rxy * cos(pol(3))
@@ -59,11 +62,11 @@ subroutine int2strz(n, w, str0)
 end subroutine int2strz
 
 subroutine linspace(xmin, xmax, N, xout)
-    real*8, intent(in) :: xmin, xmax
+    double precision, intent(in) :: xmin, xmax
     integer, intent(in) :: N
-    real*8, intent(out) :: xout(N)
+    double precision, intent(out) :: xout(N)
     integer :: i
-    real*8:: dx
+    double precision:: dx
 
     dx = (xmax - xmin) / (N-1)
     xout = xmin + dx * (/(i,i=0,N-1)/)
@@ -81,23 +84,22 @@ subroutine replace_char(str, a, b)
     end do
 end subroutine replace_char
 
-subroutine fliplr(v)
-    real*8, intent(inout) :: v(:)
-    real*8 :: x
+function fliplr(v) result(y)
+    double precision, intent(in) :: v(:)
+    double precision :: y(size(v))
     integer :: i, N
 
     N = size(v)
-    do i=1,N/2
-        x = v(N-i+1)
-        v(N-i+1) = v(i)
-        v(i) = x
+    do i=1,N
+        y(N-i+1) = v(i)
     end do
-end subroutine fliplr
+end function
 
 subroutine detminvm(A, DETA, INVA)
     implicit none
-    real*8, intent(in) :: A(3,3)
-    real*8, intent(out) :: DETA, INVA(3,3)
+    double precision, intent(in) :: A(3,3)
+    double precision, intent(out) :: DETA, INVA(3,3)
+    double precision :: INVDET
 
     INVA(1,1) = A(2,2)*A(3,3)-A(2,3)*A(3,2)
     INVA(2,1) = -A(1,2)*A(3,3)+A(1,3)*A(3,2)
@@ -110,12 +112,72 @@ subroutine detminvm(A, DETA, INVA)
     INVA(3,3) = A(1,1)*A(2,2)-A(1,2)*A(2,1)
 
     DETA = INVA(1,1)*A(1,1)+INVA(2,1)*A(2,1)+INVA(3,1)*A(3,1)
-    INVA = INVA / DETA
+    INVDET = 1.0d0/DETA
+    INVA = INVA * INVDET
 end subroutine detminvm
 
+subroutine detminvm_sg(A, DETA, INVA)
+    implicit none
+    double precision, intent(in) :: A(6)
+    double precision, intent(out) :: DETA, INVA(3,3)
+    double precision :: INVDET
+
+    INVA(1,1) = A(4)*A(6)-A(5)**2
+    INVA(2,1) = -A(2)*A(6)+A(3)*A(5)
+    INVA(3,1) = A(2)*A(5)-A(3)*A(4)
+    INVA(1,2) = INVA(2,1)
+    INVA(2,2) = A(1)*A(6)-A(3)**2
+    INVA(3,2) = -A(1)*A(5)+A(3)*A(2)
+    INVA(1,3) = INVA(3,1)
+    INVA(2,3) = INVA(3,2)
+    INVA(3,3) = A(1)*A(4)-A(2)**2
+
+    DETA = INVA(1,1)*A(1)+INVA(2,1)*A(2)+INVA(3,1)*A(3)
+    INVDET = 1.0d0/DETA
+    INVA = INVA * INVDET
+end subroutine detminvm_sg
+
+subroutine detminvm_ss(A, DETA, INVA)
+    implicit none
+    double precision, intent(in) :: A(6)
+    double precision, intent(out) :: DETA, INVA(6)
+    double precision :: INVDET
+
+    INVA(1) = A(4)*A(6)-A(5)**2
+    INVA(2) = -A(2)*A(6)+A(3)*A(5)
+    INVA(3) = A(2)*A(5)-A(3)*A(4)
+    INVA(4) = A(1)*A(6)-A(3)**2
+    INVA(5) = -A(1)*A(5)+A(3)*A(2)
+    INVA(6) = A(1)*A(4)-A(2)**2
+
+    DETA = sum(INVA(1:3) * A(1:3) )
+    INVDET = 1.0d0/DETA
+    INVA = INVA * INVDET
+end subroutine detminvm_ss
+
+pure function detm(A)
+    implicit none
+    double precision, intent(in) :: A(3,3)
+    double precision :: DETM
+
+    DETM = (A(2,2)*A(3,3) - A(2,3)*A(3,2)) * A(1,1)&
+          + ( -A(1,2)*A(3,3) + A(1,3)*A(3,2) ) * A(2,1) &
+          + ( A(1,2)*A(2,3) - A(1,3)*A(2,2) ) * A(3,1)
+end function detm
+
+pure function detm_s(A)
+    implicit none
+    double precision, intent(in) :: A(6)
+    double precision :: DETM_S
+
+    DETM_S = (A(4)*A(6) - A(5)**2) * A(1)&
+          + ( -A(2)*A(6) + A(3)*A(5) ) * A(2) &
+          + ( A(2)*A(5) - A(3)*A(4) ) * A(3)
+end function detm_s
+
 function outer_product(l, r) result(m)
-    real*8, intent(in) :: l(:), r(:)
-    real*8 :: m(size(l), size(r))
+    double precision, intent(in) :: l(:), r(:)
+    double precision :: m(size(l), size(r))
     integer :: i
 
     forall (i=1:size(r))
@@ -124,14 +186,59 @@ function outer_product(l, r) result(m)
 end function outer_product
 
 pure function outer_product3(l, r) result(m)
-    real*8, intent(in) :: l(3), r(3)
-    real*8 :: m(3,3)
+    double precision, intent(in) :: l(3), r(3)
+    double precision :: m(3,3)
     integer :: i
 
     forall (i=1:3)
         m(:,i) = l*r(i)
     end forall
 end function outer_product3
+
+pure function min_image1(r)
+    implicit none
+    double precision, intent(in) :: r(3)
+    double precision :: min_image1(3)
+    integer :: i
+
+    do i=1,3
+        if (r(i) > 0.5) then
+            min_image1(i) = r(i) - 1.0
+        elseif (r(i) < -0.5) then
+            min_image1(i) = r(i) + 1.0
+        else
+            min_image1(i) = r(i)
+        end if
+    end do
+end function
+
+pure function min_image2(r, bl)
+    implicit none
+    double precision, intent(in) :: r(3), bl
+    double precision :: min_image2(3)
+    double precision :: bl2
+
+    bl2=0.5d0*bl
+    where (abs(r) > bl2)
+        min_image2  = r - sign(bl, r)
+    elsewhere
+        min_image2 = r
+    end where
+end function
+
+pure subroutine find(l, i, ni)
+        logical, intent(in) :: l(:)
+        integer, intent(out) :: i(:), ni
+        integer :: j
+
+        ni = 0
+        do j=1,size(l)
+            if (l(j)) then
+                ni = ni + 1
+                i(ni) = j
+            endif
+        end do
+end subroutine find
 
 pure subroutine pb_wrap(r, rshift, bl)
     real*8, intent(in) :: bl
@@ -149,4 +256,41 @@ pure subroutine pb_wrap(r, rshift, bl)
         end do
     end do
 end subroutine pb_wrap
+
+
+function matsqrt(M)
+    implicit none
+    real*8, intent(in) :: M(:,:)
+    real*8 :: matsqrt(size(M,1),size(M,2))
+    real*8 :: U(size(M,1),size(M,1)), U1(size(M,1),size(M,1)), W(size(M,1)), FV1(size(M,1)), FV2(size(M,1))
+    integer :: i, j, ierr, N
+
+    N = size(M,1)
+    call RS(N,N,M,W,1,U,FV1,FV2,ierr)
+    U1 = transpose(U)
+    do j=1,N
+        U1(:,j) = sqrt(W)*U1(:,j)
+    end do
+    matsqrt = matmul(U, U1)
+end function
+
+function matinv(M)
+    implicit none
+    real*8, intent(in) :: M(:,:)
+    real*8 :: matinv(size(M,1),size(M,2))
+    real*8 :: U(size(M,1),size(M,1)), U1(size(M,1),size(M,1)), W(size(M,1)), FV1(size(M,1)), FV2(size(M,1))
+    integer :: i, j, ierr, N
+
+    N = size(M,1)
+    call RS(N,N,M,W,1,U,FV1,FV2,ierr)
+    U1 = transpose(U)
+    do j=1,N
+        U1(:,j) = U1(:,j)/W
+    end do
+    matinv = matmul(U, U1)
+end function
+
+
+
+
 end module utils
