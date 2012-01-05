@@ -78,6 +78,8 @@ contains
     subroutine lsode_destroy(this)
         implicit none
         class(lsode) :: this
+        if (.not. allocated(this%ATOL) ) return
+
         deallocate(this%ATOL, this%RWORK, this%IWORK)
     end subroutine
 
