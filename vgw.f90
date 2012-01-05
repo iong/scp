@@ -121,6 +121,25 @@ contains
 
             call this % dlsode%set_dt(1d-5, 1d-7, 0.25d0)
             call this % dlsode%set_dt(1d-5, 1d-7, 10d0)
+        else if (this % species == 'HarmOsc') then
+            this % NGAUSS=5
+            this % LJA(1:5) = (/-0.0854686, 0.227202, 2.17897, 8.00009,  0.0/)
+            this % LJC(1:5) = (/3.42986, -1.05074, 0.0294075, -0.00688583,-2.4021/)
+            this % LJA(1:5) =  this % LJA(1:5) / xeqOH**2
+            this % LJC(1:5) = this % LJC(1:5) * kOH * xeqOH**2
+            this % rc = 100d0
+
+            this % mass(1) = 16d0*1823d0
+            this % mass(2) = 1d0*1823d0
+
+            if (size(this % mass) > 2) then
+                write(*,*) 'Error: can only do OH dimers!'
+            end if
+
+            this % vgw_atol = (/ 1d-5, 1d-7, .001d0 /)
+
+            call this % dlsode%set_dt(1d-5, 1d-7, 0.25d0)
+            call this % dlsode%set_dt(1d-5, 1d-7, 10d0)
         end if
         this % invmass = 1d0/this % mass
     end subroutine vgw_common_init
