@@ -151,7 +151,8 @@ subroutine verletstep(dt, Epot)
     p = p + 0.5*dt*f
     call dsymv('U', 3*Natom, dt, invMeff, 3*Natom, p, 1, 1d0, r, 1)
 
-    call fm%Ueff(r, 1.0/kT, Epot, f)
+    call fm%Ueff(r, 1.0/kT, Epot)
+    call fm%Feff(f)
     call fm%get_Meff(Meff, invMeff, sqrtMeff, sqrtInvMeff)
 
     p = p + 0.5*dt*f
