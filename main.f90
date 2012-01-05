@@ -84,16 +84,20 @@ program OH1D
         
            
             Ekin = 0.5*sum(p * v)
-            write(eout,'(6F18.7)') 0.0d0,Ekin, Epot,Ekin+Epot
+            if (debug .and. ip==1) then
+                write(eout,'(6F18.7)') 0.0d0,Ekin, Epot,Ekin+Epot
+            end if
             do i=1,ndt
                 call verletstep(dt, Epot)
                 call update_track(i)
                 Ekin = 0.5*sum(p * v)
-                if (ip==1) then
-                    write(eout,'(6F18.7)') dt*i*t0fs,Ekin, Epot,Ekin+Epot
+                if (debug .and. ip==1) then
+                    write(eout,'(6F18.7)') dt*i,Ekin, Epot,Ekin+Epot
                 end if
             end do
-            write (eout, '(//)')
+            if (debug .and. ip==1) then
+                write (eout, '(//)')
+            end if
             trackaccum = trackaccum + track*w0
             Z = Z + w0
         end do
