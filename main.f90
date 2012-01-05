@@ -7,8 +7,9 @@ program OH1D
     implicit none
     integer :: iostat
 
-    integer ::np=200, nx=51, ip, ix
-    double precision :: beta, xeq, dx, w0, Ekin, Z, Epot
+    integer ::np=100, nx=51, ip, ix, ipb
+    double precision :: beta, xeq, dx, w0, Ekin, Z, Epot, Epotref, pcm(3), &
+          mw_tanh_hwbeta
 
     character(LEN=256) :: argin, fname
     integer :: i, j, k, ixyz
@@ -31,8 +32,9 @@ program OH1D
     kT = kT * K_au
     beta = 1d0/kT
 
-    xeq = 1d0 * A_au
-    dx = 2.5d0 / sqrt(1823.0*kOH)
+    xeq = 0.9824 * A_au !equilibrium of the quantum OH bond
+    mw_tanh_hwbeta = sqrt(1823.0*kOH)*tanh(0.5d0*sqrt(kOH/1823.0)/kT)
+    dx = 3.5d0 /sqrt(mw_tanh_hwbeta)
 
     dt = 2.0*M_PI*sqrt(1823.0/kOH)/32.0
 
