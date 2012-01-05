@@ -43,28 +43,28 @@ module vgw_mod
             class(vgw) :: this
             integer, intent(in) :: Natom
             character(*), intent(in) :: species
-        end subroutine
+        end subroutine vgw_initX
 
         subroutine vgw_cleanupX(this)
             import vgw
             class(vgw) :: this
-        end subroutine
+        end subroutine vgw_cleanupX
 
         subroutine vgw_init_Qnk0X(this)
             import vgw
             class(vgw) :: this
-        end subroutine
+        end subroutine vgw_init_Qnk0X
 
         double precision function vgw_logdetX(this)
             import vgw
             class(vgw) :: this
-        end function
+        end function vgw_logdetX
 
         subroutine vgw_propagateX(this, tau)
             import vgw
             class(vgw) :: this
             double precision, intent(in) :: tau
-        end subroutine
+        end subroutine vgw_propagateX
     end interface
 contains
     subroutine vgw_common_init(this)
@@ -73,8 +73,8 @@ contains
         this%NEQ = 3 * this%Natom + this%NG + 1
 
         allocate ( this%NNB( this%Natom ), this%NBIDX(this%Natom,this%Natom), &
-            this%y ( this%NEQ ), &
-            this%mass(this%Natom), this%invmass( this%Natom ) )
+                this%y ( this%NEQ ), &
+                this%mass(this%Natom), this%invmass( this%Natom ) )
 
         this%vgw_atol = 1d-4
         call this%dlsode%set_dt(0d0, 0d0, 0d0)
@@ -82,9 +82,9 @@ contains
         if (this%species=='pH2-4g') then
             this%NGAUSS=4
             this%LJA(1:4) = (/ 1.0382522151, 0.59740391094, 0.1964765722778, &
-                        0.066686117717 /)
+                    0.066686117717 /)
             this%LJC(1:4) = (/ 96609.4882898, 14584.620755075, -365.4606149565, &
-                        -19.55346978000 /)
+                    -19.55346978000 /)
             this%mass = 2.0*0.020614788876D0
             this%rc = 8.0
 
@@ -121,7 +121,7 @@ contains
             call this%dlsode%set_dt(1d-5, 1d-7, 10d0)
         end if
         this%invmass = 1d0/this%mass
-    end subroutine
+    end subroutine vgw_common_init
 
 
     subroutine vgw_common_destroy(this)
@@ -129,7 +129,7 @@ contains
 
         deallocate(this%y, this%mass, this%invmass, this%nnb, this%nbidx)
         call this%dlsode%destroy()
-    end subroutine
+    end subroutine vgw_common_destroy
 
 
     subroutine vgw_interaction_lists(this, Q)
@@ -158,7 +158,7 @@ contains
         enddo
 
         this%nnbmax = maxval(this%nnb)
-    end subroutine
+    end subroutine vgw_interaction_lists
 
     SUBROUTINE vgw_Ueff(this, Q0, beta, Ueff, WX)
         IMPLICIT NONE
@@ -180,7 +180,7 @@ contains
 
         call this%dlsode%init( this%NEQ )
         call this%dlsode%set_atol(this%y)
-        
+
         ! initialize q_0 and Qnk
         this%y = 0d0
         this%y(1 : 3 * this%Natom) = reshape(Q0, (/ 3 * this%Natom /) )
@@ -193,7 +193,7 @@ contains
 
         this%T = 0
         TSTOP = 0.5d0*beta
-        
+
         call this%propagate(0.5d0 * beta)
 
         call cpu_time(stop_time)
@@ -204,22 +204,22 @@ contains
 
         if (present(Ueff) .and. this%T > 0) then
             logrho = 2.0 * this%Natom * this%y( this%NEQ ) &
-                - 0.5*this%logdet() - 1.5 * this%Natom * log(4.0*M_PI)
-        
+                    - 0.5*this%logdet() - 1.5 * this%Natom * log(4.0*M_PI)
+
             Ueff = -logrho/beta
         end if
 
         if (present(WX)) then
             WX = -2d0/beta &
-                * reshape(this%y(this%NEQ - 3 * this%Natom : this%NEQ - 1), &
-                (/3, this%Natom/) )
+                    * reshape(this%y(this%NEQ - 3 * this%Natom : this%NEQ - 1), &
+                    (/3, this%Natom/) )
         end if
 
         this%rt = 0
         if ( this%dlsode%get_ncalls() > 0) then
             this%rt = (stop_time - start_time) / real(this%dlsode%get_ncalls())
         end if
-    end subroutine
+    end subroutine vgw_Ueff
 
     function vgw_classical_Utot(this, Q0) result(U)
         implicit none
@@ -234,13 +234,13 @@ contains
         U=0d0
         DO I=1,N-1
             DO J=I+1,N
-                    qij = Q0(:,I) - Q0(:,J)
-                    rsq = sum(min_image(qij, this%BL)**2)
-                    U = U + sum( this%LJC (1 : this%NGAUSS) * &
+                qij = Q0(:,I) - Q0(:,J)
+                rsq = sum(min_image(qij, this%BL)**2)
+                U = U + sum( this%LJC (1 : this%NGAUSS) * &
                         EXP(-this%LJA ( 1 : this%NGAUSS ) * rsq) )
             ENDDO
         ENDDO
-    end function
+    end function vgw_classical_Utot
 
 
     subroutine vgw_set_bl(this, bl)
@@ -248,7 +248,7 @@ contains
         double precision :: bl
 
         this%bl = bl
-    end subroutine
+    end subroutine vgw_set_bl
 
     function vgw_get_q(this)
         implicit none
@@ -256,7 +256,7 @@ contains
         double precision :: vgw_get_q(3, this%Natom)
 
         vgw_get_q = reshape(this%y ( 1 : 3 * this%Natom), (/ 3, this%Natom /) )
-    end function
+    end function vgw_get_q
 
 
     subroutine vgw_set_rc(this, rc)
@@ -265,7 +265,7 @@ contains
         double precision :: rc
 
         this%rc = rc
-    end subroutine
+    end subroutine vgw_set_rc
 
 
     subroutine vgw_set_mass(this, m)
@@ -275,7 +275,7 @@ contains
 
         this%mass = m
         this%invmass = 1d0/m
-    end subroutine
+    end subroutine vgw_set_mass
 
 
     subroutine vgw_set_mm (this, mm)
@@ -295,17 +295,17 @@ contains
             allocate( this%y( this%NEQ ))
         end if
 
-    end subroutine
+    end subroutine vgw_set_mm
 
     subroutine vgw_get_Qnk_ptr(v, ptr)
         class(vgw), pointer :: v
         double precision, pointer :: ptr(:)
 
         integer :: skip
-        
+
         skip = 3*v%Natom + v%NG
         ptr => v%y(skip + 1 : skip + v%NQnk)
-    end subroutine
+    end subroutine vgw_get_Qnk_ptr
 
 
-end module
+end module vgw_mod
