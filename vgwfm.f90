@@ -309,7 +309,7 @@ subroutine vgwfm_get_Meff(this, Meff, invMeff, sqrtMeff, sqrtInvMeff)
 
     ! M*G*M
     do j=1,N
-        Meff(:,j) = this%T * Meff(:,j) * W * W(j)/this%T
+        Meff(:,j) = Meff(:,j) * W * W(j) / this%T
     end do
 
     if (present(invMeff)) then
