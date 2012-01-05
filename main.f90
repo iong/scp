@@ -71,6 +71,7 @@ program OH1D
         r0(1,2) = (2d0*real(ix-1)/real(nx-1) - 1d0)*dx + xeq
         write (*,*) 'ix = ', ix, nx
         do ip=1,2*np
+            write (*,*) '    ip = ', ip, np
             r = r0
             call fm%Ueff(r, 1.0/kT, Epot)
             if (.not. ieee_is_finite(Epotref)) then
@@ -81,6 +82,11 @@ program OH1D
             w0 = exp(-beta*(Epot-Epotref)) * r0(1,2)**2
             if (mod(ip,2) == 1) then
                 call initial_momenta(kT, Meff, p0)
+                p0(2:3,:) = 0d0
+                pcm = sum(p0, 2) / size(p0,2)
+                do ipb=1,size(p0,2)
+                    p0(:,ipb) = p0(:,ipb) - pcm
+                end do
                 p = p0
             else
                 p = -p0
