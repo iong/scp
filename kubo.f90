@@ -11,7 +11,7 @@ subroutine kubo(q0, qv0, beta, nsteps, xk, vk)
     real*8, allocatable, target :: yl(:,:)
     real*8, pointer:: ql(:), qr(:), Qnkl(:), Qnkr(:)
     real*8, dimension(3*fm%Natom, 3*fm%Natom) :: gl, gr, glrinv, glr
-    real*8, dimension(3*fm%Natom) :: gqv, xksum, vksum, vnkl, vnkr
+    real*8, dimension(3*fm%Natom) :: gqv, vnkl, vnkr
     real*8 :: tau, dtau, w
     integer :: i, qGQnkLength, qnkpos, info
  
@@ -38,9 +38,9 @@ subroutine kubo(q0, qv0, beta, nsteps, xk, vk)
         yl(:,i) = fm%y(1 : qGQnkLength)
     end do
 
-    xksum = yl(1:3*fm%Natom, nsteps/2)
+    xk = reshape(yl(1:3*fm%Natom, nsteps/2),  (/ 3, fm%Natom /) )
     Qnkl => yl(qnkpos +1 : qnkpos + fm%NQnk, nsteps/2)
-    call dsymv('U', 3*fm%Natom, 1d0, Qnkl, 3*fm%Natom, qv0, 1, 0d0, vksum, 1)
+    call dgemv('N', 3*fm%Natom, 3*fm%Natom, 1d0, Qnkl, 3*fm%Natom, qv0, 1, 0d0, vk, 1)
 
     do i=0,nsteps/2-1
 
@@ -65,43 +65,19 @@ subroutine kubo(q0, qv0, beta, nsteps, xk, vk)
         call dpotri('U', 3 * fm%Natom, glrinv, 3*fm%Natom, info)
 
         call dsymv('U', 3*fm%Natom, 1d0, gr, 3*fm%Natom, ql, 1, 0d0, gqv, 1)
-        if (maxval(abs(gqv)) > 1e20) then
-            call break_in_debugger()
-        end if
         call dsymv('U', 3*fm%Natom, 1d0, gl, 3*fm%Natom, qr, 1, 1d0, gqv, 1)
-        if (maxval(abs(gqv)) > 1e20) then
-            call break_in_debugger()
-        end if
-        vnkl = xksum
-        call dsymv('U', 3*fm%Natom, w, glrinv, 3*fm%Natom, gqv, 1, 1d0, xksum, 1)
-        xksum = xksum + vnkr*w
-        if (maxval(abs(xksum)) > 1e20) then
-            call break_in_debugger()
-        end if
+        call dsymv('U', 3*fm%Natom, w, glrinv, 3*fm%Natom, gqv, 1, 1d0, xk, 1)
 
-        call dsymv('U', 3*fm%Natom, 1d0, Qnkl, 3*fm%Natom, qv0, 1, 0d0, vnkl, 1)
-        call dsymv('U', 3*fm%Natom, 1d0, Qnkr, 3*fm%Natom, qv0, 1, 0d0, vnkr, 1)
 
+        call dgemv('N', 3*fm%Natom, 3*fm%Natom, 1d0, Qnkl, 3*fm%Natom, qv0, 1, 0d0, vnkl, 1)
+        call dgemv('N', 3*fm%Natom, 3*fm%Natom, 1d0, Qnkr, 3*fm%Natom, qv0, 1, 0d0, vnkr, 1)
         call dsymv('U', 3*fm%Natom, 1d0, gr, 3*fm%Natom, vnkl, 1, 0d0, gqv, 1)
-        if (maxval(abs(gqv)) > 1e20) then
-            call break_in_debugger()
-        end if
         call dsymv('U', 3*fm%Natom, 1d0, gl, 3*fm%Natom, vnkr, 1, 1d0, gqv, 1)
-        if (maxval(abs(gqv)) > 1e20) then
-            call break_in_debugger()
-        end if
-
-        call dsymv('U', 3*fm%Natom, w, glrinv, 3*fm%Natom, gqv, 1, 1d0, vksum, 1)
-        if (maxval(abs(vksum)) > 1e20) then
-            call break_in_debugger()
-        end if
+        call dsymv('U', 3*fm%Natom, w, glrinv, 3*fm%Natom, gqv, 1, 1d0, vk, 1)
     end do
-        if (maxval(abs(xksum)) > 1e20) then
-            call break_in_debugger()
-        end if
 
-    xk = reshape(xksum / nsteps, (/ 3, fm%Natom /) )
-    vk = reshape(vksum / nsteps, (/ 3, fm%Natom /) )
+    xk = xk / nsteps
+    vk = vk / nsteps
 
     deallocate (yl)
 end subroutine
