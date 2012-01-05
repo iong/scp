@@ -4,6 +4,7 @@ program OH1D
     use utils
     use vgwfm_mod
     use xyz
+    use, intrinsic :: ieee_arithmetic
     implicit none
     integer :: iostat
 
@@ -64,15 +65,20 @@ program OH1D
 
     r0 = 0d0
     Z = 0d0
+
+    Epotref = ieee_value(1d0, ieee_positive_inf)
     do ix = 1,nx
         r0(1,2) = (2d0*real(ix-1)/real(nx-1) - 1d0)*dx + xeq
         write (*,*) 'ix = ', ix, nx
         do ip=1,2*np
             r = r0
             call fm%Ueff(r, 1.0/kT, Epot)
+            if (.not. ieee_is_finite(Epotref)) then
+                Epotref = Epot
+            end if
             call fm%get_Meff(Meff)
 
-            w0 = exp(-beta*Epot) * r0(1,2)**2
+            w0 = exp(-beta*(Epot-Epotref)) * r0(1,2)**2
             if (mod(ip,2) == 1) then
                 call initial_momenta(kT, Meff, p0)
                 p = p0
