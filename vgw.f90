@@ -69,7 +69,7 @@ module vgw_mod
 contains
     subroutine vgw_common_init(this)
         class(vgw) :: this
-
+        double precision, parameter :: xeqOH = 1.8897, kOH = 0.49536d0
         this % NEQ = 3 * this % Natom + this % NG + 1
 
         allocate ( this % NNB( this % Natom ), this % NBIDX(this % Natom,this % Natom), &
@@ -104,8 +104,10 @@ contains
             call this % dlsode%set_dt(1d-5, 1d-7, 0.25d0)
         else if (this % species == 'OH') then
             this % NGAUSS=5
-            this % LJA(1:5) = (/-0.0512, 0.7628, 3.5831, 16.4327, 0.0/)
-            this % LJC(1:5) = (/2.1352, 0.2919, 0.1067, 0.0571, -2.3864/)
+            this % LJA(1:5) = (/-0.0902, 0.9454, 4.0565, 17.5229, 0.0/)
+            this % LJC(1:5) = (/2.0233, 0.5054, 0.1912, 0.1085, -2.4140/)
+            this % LJA(1:5) =  this % LJA(1:5) / xeqOH**2
+            this % LJC(1:5) = this % LJC(1:5) * kOH
             this % rc = 100d0
 
             this % mass(1) = 16d0*1823d0
@@ -115,7 +117,7 @@ contains
                 write(*,*) 'Error: can only do OH dimers!'
             end if
 
-            this % vgw_atol = (/ 1d-5, 1d-7, .1d0 /)
+            this % vgw_atol = (/ 1d-5, 1d-7, .001d0 /)
 
             call this % dlsode%set_dt(1d-5, 1d-7, 0.25d0)
             call this % dlsode%set_dt(1d-5, 1d-7, 10d0)
