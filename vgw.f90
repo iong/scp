@@ -22,6 +22,8 @@ module vgw_mod
     contains
         procedure(vgw_initX), deferred :: init
         procedure :: Ueff => vgw_Ueff
+        procedure :: Havg => vgw_Havg
+        procedure :: Feff => vgw_Feff
         procedure(vgw_init_Qnk0X), deferred :: init_Qnk0
         procedure(vgw_propagateX), deferred :: propagate
         procedure(vgw_logdetX), deferred :: logdet
@@ -181,12 +183,12 @@ contains
         this % nnbmax = maxval(this % nnb)
     end subroutine vgw_interaction_lists
 
-    SUBROUTINE vgw_Ueff(this, Q0, beta, Ueff, WX)
+    SUBROUTINE vgw_Ueff(this, Q0, beta, Ueff)
         IMPLICIT NONE
         class(vgw) :: this
         double precision, intent(in) :: Q0(:,:), beta
-        double precision, intent(out), optional :: Ueff, WX(:,:)
-        real*8 :: logrho, TSTOP, start_time, stop_time
+        double precision, intent(out), optional :: Ueff
+        real*8 :: logrho, start_time, stop_time
         integer :: ncalls
 
         call this % interaction_lists(Q0)
@@ -213,8 +215,6 @@ contains
         call cpu_time(start_time)
 
         this % T = 0
-        TSTOP = 0.5d0*beta
-
         call this % propagate(0.5d0 * beta)
 
         call cpu_time(stop_time)
@@ -230,17 +230,40 @@ contains
             Ueff = -logrho/beta
         end if
 
-        if (present(WX)) then
-            WX = -2d0/beta &
-                    * reshape(this % y(this % NEQ - 3 * this % Natom : this % NEQ - 1), &
-                    (/3, this % Natom/) )
-        end if
-
         this % rt = 0
         if ( this % dlsode%get_ncalls() > 0) then
             this % rt = (stop_time - start_time) / real(this % dlsode%get_ncalls())
         end if
     end subroutine vgw_Ueff
+
+    function vgw_Havg(this, q0, beta)
+        class(vgw) :: this
+        double precision, intent(in) :: q0(:,:), beta
+        double precision :: vgw_Havg
+
+        double precision :: Ueff1, logrho(2), dbeta
+
+        dbeta = 1d0
+        call this % Ueff(Q0, beta - dbeta, Ueff1)
+        logrho(1) = - Ueff1 * (beta - dbeta)
+        call this % propagate(0.5d0 * beta)
+
+        logrho(2) = 2.0 * this % Natom * this % y( this % NEQ ) &
+                - 0.5*this % logdet() - 1.5 * this % Natom * log(4.0*M_PI)
+
+        vgw_Havg = -(logrho(2) - logrho(1)) / dbeta
+    end function vgw_Havg
+
+    subroutine vgw_Feff(this, f)
+        class(vgw), target :: this
+        double precision, intent(out) :: f(:,:)
+
+        double precision, pointer :: fptr(:)
+
+        fptr => this % y(this % NEQ - 3 * this % Natom : this % NEQ - 1)
+
+        f = reshape(fptr, (/3, this % Natom/) ) / this%T
+    end subroutine vgw_Feff
 
     function vgw_classical_Utot(this, Q0) result(U)
         implicit none
