@@ -4,7 +4,7 @@ ifeq "$(VPATH)" ""
 endif
 
 #DBG=1
-COMPILER:=gcc
+COMPILER:=intel
 
 OS=$(shell uname -s)
 include $(VPATH)/config/$(COMPILER).mk
@@ -48,6 +48,12 @@ debug:
 	$(MAKE) -f $(THIS_MAKEFILE) DBG=1
 
 OH: $(call objects,$(VGW) $(OH))
+	$(FC) $(LDFLAGS) -o $@ $^ $(LIBS)
+
+clustergs: $(call objects,$(VGW)) clustergs.o
+	$(FC) $(LDFLAGS) -o $@ $^ $(LIBS)
+
+OHeff: $(call objects,$(VGW)) OHeff.o
 	$(FC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 clean:
