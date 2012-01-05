@@ -36,11 +36,11 @@ program OH1D
     mw_tanh_hwbeta = sqrt(1823.0*kOH)*tanh(0.5d0*sqrt(kOH/1823.0)/kT)
     dx = 3.5d0 /sqrt(mw_tanh_hwbeta)
 
-    dt = 2.0*M_PI*sqrt(1823.0/kOH)/32.0
+    dt = 2.0*M_PI*sqrt(16d0/17d0*1823.0/kOH)/64.0
 
 
     tstart = 0d0
-    tstop = 32*5*dt
+    tstop = 64.0*5*dt
     ndt = (tstop - tstart) / dt
 
     allocate (fm, rkold(3, Natom), &
