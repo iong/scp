@@ -1,6 +1,7 @@
 program OH1D
     use correlations
     use mainvars
+    use mpi
     use utils
     use vgwfm_mod
     use xyz
@@ -8,9 +9,11 @@ program OH1D
     implicit none
     integer :: iostat
 
-    integer ::np=100, nx=51, ip, ix, ipb
-    double precision :: beta, xeq, dx, w0, Ekin, Z, Epot, Epotref, pcm(3), &
-          mw_tanh_hwbeta
+    integer ::np=50, nx=51, nxpp, nxb, nxe, spilloff, ip, ix, ipb
+    double precision :: beta, xeq, dx, w0, Ekin, Epot, Epotref, pcm(3), &
+            mw_tanh_hwbeta
+
+    real*8 :: Z, Ztot
 
     character(LEN=256) :: argin, fname
     integer :: i, j, k, ixyz
@@ -18,8 +21,13 @@ program OH1D
     double precision, parameter :: A_au = 1.8897, K_au = 3.16681534282952d-06, &
         kOH = 0.49536d0
 
+    integer :: mpi_rank, nprocs, ierr
+
     Natom = 2
 
+    call MPI_Init(ierr)
+    call MPI_Comm_rank(MPI_COMM_WORLD, mpi_rank, ierr)
+    call MPI_Comm_size(MPI_COMM_WORLD, nprocs, ierr)
 
     if (command_argument_count() >0) then
        call get_command_argument(1, argin)
@@ -41,7 +49,7 @@ program OH1D
 
 
     tstart = 0d0
-    tstop = 64.0*5*dt
+    tstop = 64.0*20*dt
     ndt = (tstop - tstart) / dt
 
     allocate (fm, rkold(3, Natom), &
@@ -67,11 +75,23 @@ program OH1D
     Z = 0d0
 
     Epotref = ieee_value(1d0, ieee_positive_inf)
-    do ix = 1,nx
+
+    nxpp = nx/nprocs
+    spilloff = nx - nxpp * nprocs
+    if (mpi_rank < spilloff) then
+        nxpp = nxpp + 1
+    end if
+    nxb = nxpp*mpi_rank+1
+    nxe = min(nxpp*(mpi_rank+1), nx)
+    if (mpi_rank >= spilloff) then
+        nxb = nxb + spilloff
+        nxe = nxe + spilloff
+    end if
+
+    !write (*,*), mpi_rank, nxpp, nxb, nxe
+    do ix =nxb, nxe
         r0(1,2) = (2d0*real(ix-1)/real(nx-1) - 1d0)*dx + xeq
-        write (*,*) 'ix = ', ix, nx
         do ip=1,2*np
-            write (*,*) '    ip = ', ip, np
             r = r0
             call fm%Ueff(r, 1.0/kT, Epot)
             if (.not. ieee_is_finite(Epotref)) then
@@ -116,12 +136,26 @@ program OH1D
             Z = Z + w0
         end do
     end do
-    trackaccum = trackaccum / (2*Natom*Z) 
-    write (*,*) trackaccum(1,0)
-    stem='OH'
-    call dump_track(trackaccum, 0)
-    close(eout)
 
+!!$    if (mpi_rank == 0) then
+!!$        call MPI_Reduce(MPI_IN_PLACE, trackaccum, size(trackaccum), MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+!!$        call MPI_Reduce(MPI_IN_PLACE, Z, 1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+!!$    else
+!!$        call MPI_Reduce(trackaccum, 0, size(trackaccum), MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+!!$        call MPI_Reduce(Z, 0, 1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+!!$    end if
+    call MPI_Reduce(trackaccum, track, size(trackaccum), MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+    call MPI_Reduce(Z, Ztot, 1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+    trackaccum = track / (2*Natom*Ztot)
+
+    if (mpi_rank == 0) then
+        stem='OH'
+        call dump_track(trackaccum, 0)
+    end if
+    if (debug) then
+        close(eout)
+    end if
+    call MPI_Finalize(ierr)
 contains
 
 

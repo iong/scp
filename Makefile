@@ -8,6 +8,7 @@ COMPILER:=intel
 
 OS=$(shell uname -s)
 include $(VPATH)/config/$(COMPILER).mk
+FC=mpif90
 
 ifdef DBG
 	OPTFLAGS := $(DBGFLAGS)
