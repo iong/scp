@@ -8,7 +8,7 @@ subroutine update_track(ndt)
     integer, intent(in) :: ndt
     integer :: j
     real * 8 :: vs(3,Natom), rs(3,Natom), sqrtMeff(3,3), rt(3,Natom), &
-        d0k(3), dt(3)
+        d0k(3), dpt(3)
 
     call dsymv('U', 3*Natom, 1d0, invMeff, 3*Natom, p, 1, 0d0, v, 1)
     call dsymv('U', 3*Natom, 1d0, sqrtInvMeff, 3*Natom, p, 1, 0d0, vs, 1)
@@ -24,7 +24,7 @@ subroutine update_track(ndt)
     !write(*,*) ndt, track(1, ndt), sum( v0tau * v)/Natom
 
     d0k = r0k(:,1) - r0k(:,2)
-    dt = rt(:,1) - rt(:,2)
+    dpt = rt(:,1) - rt(:,2)
 
     track(1, ndt)  = track(1, ndt)  +  sum( v0tau * v)
     track(2, ndt)  = track(2, ndt)  +  sum( v0s *   vs)
@@ -36,7 +36,7 @@ subroutine update_track(ndt)
     track(8, ndt)  = track(8, ndt)  +  sum( r0k *   rt)
     track(9, ndt)  = track(9, ndt)  +  sum( v0tau * rt)
     track(10, ndt) = track(10, ndt) +  sum( v0k *   rt)
-    track(11, ndt) = track(11, ndt) +  sum( d0k * dt)
+    track(11, ndt) = track(11, ndt) +  sum( d0k * dpt)
     track(12, ndt) = track(12, ndt) +  sum( r0s *   rs)
     track(13, ndt) = track(13, ndt) +  sum( v0s *   rs)
     track(14, ndt) = track(14, ndt) +  sum( r0s *   vs)
@@ -87,7 +87,7 @@ subroutine dump_track(tr, trackno)
     call int2strz(trackno, 4, cdump)
     write(*,*) trim(stem)//'_Cvv_'//cdump//'.dat'
     open(cvvout, file=trim(stem)//'_Cvv_'//cdump//'.dat')
-    write(cvvout,'(15F18.7)') (dt*(i-1), tr(:,i), i=1,ndt)
+    write(cvvout,'(15G17.8)') (dt*(i-1), tr(:,i), i=1,ndt)
     close(cvvout)
 
     open(mapout, file='dump_map')
