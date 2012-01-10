@@ -109,7 +109,7 @@ contains
             this % LJA(1:5) = (/-0.0902, 0.9454, 4.0565, 17.5229, 0.0/)
             this % LJC(1:5) = (/2.0233, 0.5054, 0.1912, 0.1085, -2.4140/)
             this % LJA(1:5) =  this % LJA(1:5) / xeqOH**2
-            this % LJC(1:5) = this % LJC(1:5) * kOH
+            this % LJC(1:5) = this % LJC(1:5) * kOH* xeqOH**2
             this % rc = 100d0
 
             this % mass(1) = 16d0*1823d0
