@@ -32,7 +32,7 @@ contains
         end if
 
         this%ITOL=2
-        this%RTOL=0
+        this%RTOL=1d-5
         this%ITASK=1
         this%ISTATE=1
         this%IOPT = 1
