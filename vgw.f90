@@ -68,6 +68,7 @@ module vgw_mod
             double precision, intent(in) :: tau
         end subroutine vgw_propagateX
     end interface
+
 contains
     subroutine vgw_common_init(this)
         class(vgw) :: this
@@ -193,16 +194,13 @@ contains
 
         call this % interaction_lists(Q0)
 
-
-        this % y  = this % vgw_atol(2)
-        ! set up the absolute tolerance
-        this % y (1 : 3 * this % Natom) = this % vgw_atol(1)
-        this % y (3 * this % Natom + 1 : 3 * this % Natom + this % NG) = this % vgw_atol(2)
-        ! tolerance for Qnkp and gamakp
-        this % y( this % NEQ ) = this % vgw_atol(3)
-
         call this % dlsode%init( this % NEQ )
-        call this % dlsode%set_atol(this % y)
+
+        ! set up the absolute tolerance
+        this % dlsode%atol (1 : 3 * this % Natom) = this % vgw_atol(1)
+        this % dlsode%atol (3 * this % Natom + 1 : 3 * this % Natom + this % NG) = this % vgw_atol(2)
+        ! tolerance for Qnkp and gamakp
+        this % dlsode%atol ( 3 * this % Natom + this % NG + 1: ) = this % vgw_atol(3)
 
         ! initialize q_0 and Qnk
         this % y = 0d0
