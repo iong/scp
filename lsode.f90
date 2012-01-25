@@ -1,117 +1,111 @@
 module lsode_mod
+    use integrator_mod
+    private
 
-    type :: lsode
-        double precision :: dt0, dtmin, dtmax
-        double precision, allocatable :: RWORK(:), YP(:), ATOL(:)
+    type, public, extends(integrator) ::  lsode
+        integer :: LIW, MF
+        integer :: ITASK,IOPT,ISTATE,LRW,ITOL,IERR
         integer, allocatable :: IWORK(:)
-
-        integer :: NEQ, ITOL, ITASK, IOPT, MF, ISTATE, LRW, LIW
-        double precision :: RTOL
+        double precision, allocatable :: RWORK(:)
     contains
-        procedure :: init=> lsode_init
-        procedure :: propagate => lsode_prop
-        procedure :: get_ncalls => lsode_get_ncalls 
-        procedure :: get_nsteps => lsode_get_nsteps 
-        procedure :: destroy => lsode_destroy 
-        procedure :: set_dt => lsode_set_dt
-        procedure :: set_atol => lsode_set_atol
+        procedure :: init
+        procedure :: advance
+        procedure :: set_dtmin
+        procedure :: set_dtmax
+        !procedure :: step => lsode_step
+        procedure :: cleanup
     end type lsode
 contains
-
-    subroutine lsode_init(this, NEQ)
+    subroutine  init(self, NEQ, tstart, dt0)
         implicit none
-        class(lsode) :: this
-        integer :: NEQ
+        class(lsode) :: self
+        integer, intent(IN) :: NEQ
+        double precision, intent(in) :: tstart, dt0
 
-        this%LRW = 20 + 16*NEQ
-        this%LIW = 30
+        call self % integrator % init(NEQ, tstart, dt0)
 
-        if (.not. allocated(this%ATOL)) then
-            allocate(this%ATOL(NEQ), this%RWORK( this%LRW ), &
-                this%IWORK( this%LIW ))
-        end if
-
-        this%ITOL=2
-        this%RTOL=1d-5
-        this%ITASK=1
-        this%ISTATE=1
-        this%IOPT = 1
-        this%MF=10
-        this%IWORK=0
-
-        this%IWORK(6) = 50000 !MXSTEP
-
-        this%RWORK(5) = this%dt0
-        this%RWORK(6) = this%dtmax
-        this%RWORK(7) = this%dtmin
-    end subroutine
+        self % LRW = 20 + 16*NEQ
 
 
-    subroutine lsode_set_atol(this, atol)
+
+        self % LIW = 30
+        self % MF = 10
+        self % ITOL=2
+        self % ITASK=1
+        self % IOPT=1
+        self % ISTATE=1
+
+        allocate(self % RWORK( self % LRW), self % IWORK(self % LIW))
+
+        self % IWORK=0
+        self % IWORK(6) = 50000 ! MXSTEP
+
+        !self % RWORK(7) = HMIN
+        self%RWORK(5) = self % dt
+        self % RWORK(6:10)=0.0D0
+    end subroutine init
+
+
+
+    subroutine set_dtmin(self, dtmin)
+        class(lsode) :: self
+        double precision, intent(in) :: dtmin
+
+        self % dtmin = dtmin
+        self%RWORK(7) = self % dtmin
+    end subroutine set_dtmin
+
+
+
+    subroutine set_dtmax(self, dtmax)
+        class(lsode) :: self
+        double precision, intent(in) :: dtmax
+
+        self % dtmax = dtmax
+        self%RWORK(6) = self % dtmax
+    end subroutine set_dtmax
+
+
+
+    subroutine advance(self, F, x, tstop)
         implicit none
-        class(lsode) :: this
-        double precision, intent(in) :: atol(:)
+        class(lsode) :: self
+        DOUBLE PRECISION, intent(inout) :: x(:)
+        double precision, intent(in) :: tstop
+        procedure(RHS_X) :: F
 
-        this%atol = atol
-    end subroutine
+        CALL DLSODE(f77_rhs, size(x), x, self % t, tstop, self % ITOL, &
+                self % RTOL, &
+                self % ATOL, self % ITASK, self % ISTATE, self % IOPT, &
+                self % RWORK, self % LRW, self % IWORK, self % LIW, JAC, &
+                self % MF)
 
+        self % dt = self % RWORK(12)
+        self % nsteps = self % IWORK(11)
+        self % ncalls = self % IWORK(12)
 
-    subroutine lsode_prop(this, F, y, T, TSTOP)
-        implicit none
-        class(lsode) :: this
-        interface
-            subroutine F(NEQ, T, Y, YP)
-                integer, intent(in) :: NEQ
-                double precision, intent(in) ::  T
-                double precision, intent(in), target ::  Y(:)
-                double precision, intent(out), target :: YP(:)
-            end subroutine
-        end interface
-        double precision, intent(inout) :: y(:), T
-        double precision, intent(in) :: TSTOP
+    contains
+        subroutine f77_rhs(neq, t, y, yp)
+            integer, intent(in) :: NEQ
+            double precision, intent(in) :: T
+            double precision, intent(in), target :: Y(NEQ)
+            double precision, intent(out), target :: YP(NEQ)
 
-        CALL DLSODE(F, size(y), Y, T, TSTOP, this%ITOL, this%RTOL, this%ATOL, &
-            this%ITASK, this%ISTATE, this%IOPT,&
-            this%RWORK, this%LRW, this%IWORK, this%LIW, JAC, this%MF)
-    end subroutine
+            call F(neq, t, y, yp)
+        end subroutine f77_rhs
+    end subroutine advance
 
-    subroutine lsode_destroy(this)
-        implicit none
-        class(lsode) :: this
-        if (.not. allocated(this%ATOL) ) return
+    subroutine cleanup(self)
+        class(lsode) :: self
 
-        deallocate(this%ATOL, this%RWORK, this%IWORK)
-    end subroutine
+        deallocate(self % RWORK, self % IWORK)
 
-    subroutine lsode_set_dt(this, dt0, dtmin, dtmax)
-        implicit none
-        class(lsode) :: this
-        double precision , intent(in) :: dt0, dtmin, dtmax
-
-        this%dt0 = dt0
-        this%dtmin = dtmin
-        this%dtmax = dtmax
-    end subroutine
-
-    function lsode_get_ncalls(this)
-        implicit none
-        class(lsode) :: this
-        integer :: lsode_get_ncalls
-
-        lsode_get_ncalls = this%IWORK(12)
-    end function
+        call self % integrator % cleanup()
+    end subroutine cleanup
 
 
-    function lsode_get_nsteps(this)
-        implicit none
-        class(lsode) ::this
-        integer :: lsode_get_nsteps
-
-        lsode_get_nsteps = this%IWORK(11)
-    end function
+    subroutine  JAC()
+    end subroutine JAC
 
 
-    subroutine JAC()
-    end subroutine
-
-end module lsode_mod
+end module
