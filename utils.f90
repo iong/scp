@@ -258,39 +258,20 @@ pure subroutine pb_wrap(r, rshift, bl)
 end subroutine pb_wrap
 
 
-function matsqrt(M)
-    implicit none
-    real*8, intent(in) :: M(:,:)
-    real*8 :: matsqrt(size(M,1),size(M,2))
-    real*8 :: U(size(M,1),size(M,1)), U1(size(M,1),size(M,1)), W(size(M,1)), FV1(size(M,1)), FV2(size(M,1))
-    integer :: i, j, ierr, N
-
-    N = size(M,1)
-    call RS(N,N,M,W,1,U,FV1,FV2,ierr)
-    U1 = transpose(U)
-    do j=1,N
-        U1(:,j) = sqrt(W)*U1(:,j)
-    end do
-    matsqrt = matmul(U, U1)
-end function
-
-function matinv(M)
-    implicit none
-    real*8, intent(in) :: M(:,:)
-    real*8 :: matinv(size(M,1),size(M,2))
-    real*8 :: U(size(M,1),size(M,1)), U1(size(M,1),size(M,1)), W(size(M,1)), FV1(size(M,1)), FV2(size(M,1))
-    integer :: i, j, ierr, N
-
-    N = size(M,1)
-    call RS(N,N,M,W,1,U,FV1,FV2,ierr)
-    U1 = transpose(U)
-    do j=1,N
-        U1(:,j) = U1(:,j)/W
-    end do
-    matinv = matmul(U, U1)
-end function
-
-
-
+!!$function matsqrt(M)
+!!$    implicit none
+!!$    real*8, intent(in) :: M(:,:)
+!!$    real*8 :: matsqrt(size(M,1),size(M,2))
+!!$    real*8 :: U(size(M,1),size(M,1)), U1(size(M,1),size(M,1)), W(size(M,1)), FV1(size(M,1)), FV2(size(M,1))
+!!$    integer :: i, j, ierr, N
+!!$
+!!$    N = size(M,1)
+!!$    call RS(N,N,M,W,1,U,FV1,FV2,ierr)
+!!$    U1 = transpose(U)
+!!$    do j=1,N
+!!$        U1(:,j) = sqrt(W)*U1(:,j)
+!!$    end do
+!!$    matsqrt = matmul(U, U1)
+!!$end function
 
 end module utils
