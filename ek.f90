@@ -12,14 +12,13 @@ module ek_mod
     end type ek
 
 contains
-    subroutine  init(self,F,  NEQ, tstart, dt0)
+    subroutine  init(self, NEQ, tstart, dt0)
         implicit none
         class(ek) :: self
-        procedure(RHS_X) :: F
         integer, intent(IN) :: NEQ
         double precision, intent(in) :: tstart, dt0
 
-        call self % integrator % init(F, NEQ, tstart, dt0)
+        call self % integrator % init(NEQ, tstart, dt0)
 
         allocate(self%xe(NEQ), self%x0(NEQ), self%x1(NEQ), self%xp(NEQ, 2))
     end subroutine init
@@ -31,9 +30,10 @@ contains
         call self % integrator % cleanup()
     end subroutine cleanup
 
-    subroutine advance(self, x, tstop)
+    subroutine advance(self, F, x, tstop)
         implicit none
         class(ek) :: self
+        procedure(RHS_X) :: F
         DOUBLE PRECISION, intent(inout) :: x(:)
         double precision, intent(in) :: tstop
         DOUBLE PRECISION :: rmserr, newdt
@@ -46,7 +46,7 @@ contains
 
         self % x0 = x
         do while (self % t < tstop)
-            rmserr = self % step(x, self % dt)
+            rmserr = self % step(F, x, self % dt)
             write (*,*) self % t, self % dt, rmserr
             if (rmserr <= 0.5) then
                 self % x0 = x
@@ -67,15 +67,16 @@ contains
                 x = self % x0
             endif
         enddo
-        rmserr = self % step(x, tstop - self % t)
+        rmserr = self % step(F, x, tstop - self % t)
         write (*,*) self % t,  tstop - self % t, rmserr
         self % t = tstop
     end subroutine advance
 
 
-    function step(self, x, dt)
+    function step(self, F, x, dt)
         implicit none
         class(ek) :: self
+        procedure(RHS_X) :: F
         DOUBLE PRECISION, intent(inout) :: x(:)
         DOUBLE PRECISION, intent(in) :: dt
         double precision :: step
@@ -86,9 +87,9 @@ contains
 
 
         NEQ = size(x)
-        call self % F(NEQ, self % t, x, self%xp(:,1))
+        call F(NEQ, self % t, x, self%xp(:,1))
         self % x1 = x + dt*self % xp(:,1)
-        call self % F(NEQ, self % t, self % x1, self % xp(:,2))
+        call F(NEQ, self % t, self % x1, self % xp(:,2))
 
         self % ncalls = self % ncalls + 2
 
