@@ -1,3 +1,9 @@
+
+!!!!!!!
+!!!!!!! solve damped harmonic oscillator in q, G => this
+!!!!!!! will move q and G towards the minimum of the potential energy F (free energy)
+
+
 program clustergs
 !    use vgw
     use vgwfm_mod
@@ -50,10 +56,8 @@ program clustergs
     mass = 1/deBoer**2
 
     call fm%init(Natom, 'LJ')
-    call fm%set_mm(.TRUE.)
     call fm%set_mass((/ ( mass, i=1,Natom ) /) )
-    E0 = fm%Havg(r0, taustop)
-    call fm%Feff(r0)
+    E0 = fm%F(r0, kT, taustop)
     call fm%cleanup()
 
     !U(2:4) = U(2:4) * epsilon0
