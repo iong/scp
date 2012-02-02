@@ -7,8 +7,6 @@ module vgwfm_mod
 
     type, public, extends(vgw) :: vgwfm
 	real*8 :: rfullmatsq
-
-	real*8, allocatable :: G(:,:), GP(:,:), GU(:,:)
 	real*8, allocatable :: UXY(:,:)
     contains
 	procedure :: cleanup
@@ -24,45 +22,49 @@ contains
         implicit none
         class(vgwfm) :: self
 
-        deallocate(self%G, self%GP, self%GU, self%UXY, self%y)
+        deallocate(self%UXY, self%y)
         
         call self%vgw%cleanup()
     end subroutine cleanup
 
 
     subroutine init_prop(self, q0)
-        class(vgwfm) :: self
+        class(vgwfm), target :: self
         double precision, intent(in) :: q0(:,:)
-        integer :: N3, info
+        integer :: N3, info, i
 
-        self % NG =  (9 * self%Natom**2 + 3 * self%Natom)/2
+        double precision, pointer :: G(:,:)
+
+        self % NG =  9 * self%Natom**2
         self % NEQ = 3 * self % Natom + self % NG
 
         N3 = 3 * self % Natom
         if (.NOT. allocated(self % y)) then
-            allocate(self % y ( self % NEQ ), &
-                    self%G(N3,N3), self%GP(N3, N3), &
-                    self%GU(N3, N3), self%UXY(N3, N3))
+            allocate(self % y ( self % NEQ ), self%UXY(N3, N3))
         end if
 
         allocate (lsode :: self%prop)
 
         call self % prop % init(self%NEQ, 0d0, self%dt0)
         call self % prop % set_dtmin(0d0*self%dt_min)
-        call self % prop % set_dtmax(1d-2)
+        !call self % prop % set_dtmax(1d-2)
 
         self % prop % rtol = 1d-5
-        self % prop % atol (1 : 3 * self % Natom) = self % q_atol
-        self % prop % atol (3 * self % Natom + 1 : ) = self % g_atol
+        self % prop % atol (1 : 3 * self % Natom) = 1d-3!self % q_atol
+        self % prop % atol (3 * self % Natom + 1 : ) = 1d-5!self % g_atol
 
         self % y(1 : N3) = reshape(Q0, (/ N3 /) )
 
-        call self % hessian( self % y(1 :N3), self%UXY)
-        call dpotrf('L', N3, self%UXY, N3, info)
-        call dpotri('L', N3, self%UXY, N3, info)
+        G(1:N3,1:N3) => self%y(N3+1:)
+        call self % hessian( self % y(1 :N3), G)
+        call dpotrf('L', N3, G, N3, info)
+        call dpotri('L', N3, G, N3, info)
 
-        call fm_set_g(self%Natom, self%UXY, self%y)
-        !self % y (N3+1:) = 2d0 * self%kT * self % y (N3+1:)
+        !G = 0d0
+        do i=1,N3
+            G(i,i:) = G(i:,i)
+            !G(i,i) = 1d0
+        end do
     end subroutine
 
     subroutine propagate(self, tstop)
@@ -87,13 +89,13 @@ contains
                     Zq(3), Z(3,3),Q12(3)
             real*8 :: UXY0(3,3), UX0(3), U, TRUXXG, k1
 
-            double precision, pointer :: UX(:), GPP(:)
+            double precision, pointer :: UX(:), GPP(:), G(:,:), GP(:,:)
 
-            !    do I1=1,Natom-1
-            call fm_get_g(self%Natom, self%y, self%G) 
-
-            UX => yp(1:3*self%Natom)
+           
             N3 = 3*self%Natom
+            UX => yp(1:N3)
+            G(1:N3,1:N3) => y(N3+1:)
+            GP(1:N3,1:N3) => yp(N3+1:)
 
             self % U = 0; UX = 0; self%UXY = 0;
             do I1 = 1, self%Natom - 1
@@ -102,10 +104,10 @@ contains
                     I2_3 = 3*(I2-1) + 1
                     Q12 = y(I1_3:I1_3+2) - y(I2_3:I2_3+2)
                     Q12 = min_image(Q12, self%bl)
-                    G12=  self%G (I1_3 : I1_3 + 2, I1_3 : I1_3 + 2) &
-                            + self%G (I2_3 : I2_3 + 2, I2_3 : I2_3 + 2) &
-                            - self%G (I2_3 : I2_3 + 2, I1_3 : I1_3 + 2) &
-                            - self%G (I1_3 : I1_3 + 2, I2_3 : I2_3 + 2)
+                    G12=  G (I1_3 : I1_3 + 2, I1_3 : I1_3 + 2) &
+                            + G (I2_3 : I2_3 + 2, I2_3 : I2_3 + 2) &
+                            - G (I2_3 : I2_3 + 2, I1_3 : I1_3 + 2) &
+                            - G (I1_3 : I1_3 + 2, I2_3 : I2_3 + 2)
                     G12 = 2d0 * self%kT * G12
 
                     call detminvm(G12, DETA, A)
@@ -158,26 +160,17 @@ contains
                 end do ! I2
             end do ! I1
 
-            UX = -UX
-            call dsymm('L', 'L', N3, N3, -1d0, self%G, N3, &
-                 self%UXY, N3, 0d0, self%GP, N3)
-
-            self%GP = 0.5d0 * ( self%GP + transpose(self%GP) )
+            call dsymm('L', 'L', N3, N3, 1d0, G, N3, self%UXY, N3, 0d0, GP, N3)
             do i1=1,N3
-				self%GP(i1,i1) = self%GP(i1,i1) - 1d0
-			end do
+                GP(i1,i1) = GP(i1,i1) - 1d0
+            end do
+            GP = 0.5d0  *  ( GP + transpose(GP) )
 
-!!$
-!!$
-!!$            call dsymm('R', 'L', 3 * self%Natom, 3 * self%Natom, 1d0, self%G, 3 * self%Natom,&
-!!$                    self%GU, 3 * self%Natom, 0d0, self%GP, 3 * self%Natom)
-!!$
-!!$            self%GP = -2d0*self%kT * (self%GP - self%G)
-            !self%GP = -self%GP + self%G
-            call fm_set_g(self%Natom, self%GP, yp)
-            yp(N3+1:)=0.25d0*yp(N3+1:)
+            self % qconv = sqrt(sum(UX**2)/size(UX))
+            self % gconv = sqrt(sum(GP**2)/size(GP))
 
-            print *, T, sqrt(sum(yp(N3+1:)**2)/(NEQ-N3)),  sqrt(sum(UX**2)/size(UX))
+            UX = -self%cq * UX
+            GP = -0.5d0* self%cg * self%kT * GP
         END SUBROUTINE RHS
     end subroutine PROPAGATE
 
@@ -252,17 +245,19 @@ contains
 
     
     function logdet(self)
-        class(vgwfm) :: self
+        class(vgwfm), target :: self
         double precision :: logdet
+
+        double precision, pointer :: G(:,:)
 
         integer :: info, j
 
-        call fm_get_g(self%Natom, self%y, self%G)
-        call dpotrf('U', 3 * self%Natom, self%G, 3 * self%Natom, info)
+        G(1:3 * self%Natom, 1:3 * self%Natom) => self%y(3 * self%Natom + 1:)
+        call dpotrf('U', 3 * self%Natom, G, 3 * self%Natom, info)
 
         logdet=0.0
         DO j=1, 3 * self%Natom
-            logdet = logdet + LOG(ABS( self%G(j,j) ))
+            logdet = logdet + LOG(ABS( G(j,j) ))
         ENDDO
         logdet = 2d0* logdet
     end function logdet
