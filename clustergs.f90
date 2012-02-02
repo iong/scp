@@ -47,13 +47,10 @@ program clustergs
     ! deBoer can be supplied as a second argument on the command line
     if (command_argument_count() > 1) then
         call get_command_argument(2, arg)
-        read(arg, *) deBoer
+        read(arg, *) kT
     end if
 
-    r0 = r0*1.05d0 / sigma0
-
-    taustop = 1d0/kT
-    mass = 1/deBoer**2
+    r0 = r0! / sigma0
 
     call fm%init(Natom, 'LJ')
     !call fm%set_mass((/ ( mass, i=1,Natom ) /) )
