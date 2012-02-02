@@ -13,7 +13,7 @@ module vgw_mod
         logical :: mm = .FALSE.
 
         double precision :: U, kT, BL, RC, LJA(10), LJC(10), rt
-        double precision :: q_atol, g_atol, dt_min, dt0, dt_max
+        double precision :: q_atol, g_atol, dt_min, dt0, dt_max, qconv, gconv, cq, cg
         double precision, allocatable :: mass(:), invmass(:)
         double precision, allocatable :: Y(:)
 
@@ -137,12 +137,12 @@ module vgw_mod
 
 
     subroutine init_prop(self, q0)
-        class(vgw) :: self
+        class(vgw), target :: self
         double precision, intent(in) :: q0(:,:)
     end subroutine init_prop
 
     function logdet(self)
-        class(vgw) :: self
+        class(vgw), target :: self
         double precision :: logdet
 
         print *, 'please override logdet!'
@@ -156,12 +156,13 @@ module vgw_mod
         
     end subroutine PROPAGATE
 
-    function vgw_F(self, Q0, kT, tstop)
+    function vgw_F(self, Q0, kT)
         IMPLICIT NONE
         class(vgw) :: self
-        double precision, intent(in) :: Q0(:,:), kT, tstop
+        double precision, intent(in) :: Q0(:,:), kT
         double precision :: vgw_F
-        real*8 ::  start_time, stop_time
+        real*8 ::  start_time, stop_time, tstop, convgoal
+        integer :: i
 
         self % kT = kT
 
@@ -169,7 +170,34 @@ module vgw_mod
 
         ! solve the VGW equations, measure CPU time
         call cpu_time(start_time)
-        call self % propagate(tstop)
+        tstop=5d0
+        self % cq = 1d0
+        self % cg = 1d0
+        convgoal = 0.5
+        i = 1
+        do
+            call self % propagate(tstop)
+            print *, tstop, self%qconv, self % gconv
+            
+            if (self % gconv < 2d-2) then
+                if (self % kT > 0.5) then
+                    exit
+                endif
+
+!!$                open(60,file='q.dat')
+!!$                write(60,*) self % y(1:3*self%Natom)
+!!$                close(60)
+!!$                open(60,file='g.dat')
+!!$                write(60,*) self % y(3*self%Natom+1:)
+!!$                close(60)
+
+                vgw_F = self%U - self%kT*( self%logdet() + 3 * self%Natom * log(2d0*self%kT) ) / 2d0
+                print *, self % kT, vgw_f
+                self % kT = self %kT + 0.01
+            end if
+            tstop = tstop +5d0
+            i = i + 1
+        end do
         call cpu_time(stop_time)
 
         self % rt = 0
@@ -177,7 +205,7 @@ module vgw_mod
             self % rt = (stop_time - start_time) / real(self % prop%ncalls)
         end if
       
-        vgw_F = -kT*( self%logdet() + 3 * self%Natom * log(2d0*kT) ) / 2d0
+        
     end function vgw_F
 
 

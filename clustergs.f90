@@ -56,12 +56,12 @@ program clustergs
     mass = 1/deBoer**2
 
     call fm%init(Natom, 'LJ')
-    call fm%set_mass((/ ( mass, i=1,Natom ) /) )
-    E0 = fm%F(r0, kT, taustop)
+    !call fm%set_mass((/ ( mass, i=1,Natom ) /) )
+    E0 = fm%F(r0, kT)
     call fm%cleanup()
 
     !U(2:4) = U(2:4) * epsilon0
 
-    write(*,'(I10,2F12.7)') Natom, E0/Natom, sqrt(sum(r0**2)/(3*Natom))
+    write(*,'(I10,2F12.7)') Natom, E0/Natom, fm % gconv
 
 end program clustergs
