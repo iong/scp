@@ -16,6 +16,7 @@ if (CMAKE_Fortran_COMPILER_ID STREQUAL Intel)
     set(CMAKE_Fortran_FLAGS_DEBUG "-fpe0 -traceback -ftrapuv -check all  -warn unused -O0 -g -heap-arrays -openmp")
     set(CMAKE_Fortran_FLAGS_RELWITHDEBINFO "-O2 -g -openmp")
     set(CMAKE_C_FLAGS_RELEASE "-O3 -xHost -ipo -openmp")
+    set(CMAKE_AR xiar)
 
 elseif(CMAKE_Fortran_COMPILER_ID STREQUAL GNU)
 
@@ -51,13 +52,18 @@ set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 #    set_target_properties(qgibbs PROPERTIES LINK_FLAGS ${LAPACK_LINKER_FLAGS})
 #endif()
 
+add_subdirectory(nr)
 
 ADD_EXECUTABLE(clustergs  utils.f90 dlsode.f integrator.f90 lsode.f90 ek.f90
 	vgw.f90 vgwfm.f90 integration.f90 clustergs.f90)
+
     
 #include_directories(clustergs ${CHOLMOD_INC})
 
-target_link_libraries(clustergs ${LAPACK_LIBRARIES})
+target_link_libraries(clustergs nr ${LAPACK_LIBRARIES})
+
+add_executable(gaussmin gaussmin.f90)
+target_link_libraries(gaussmin nr)
 
 if (APPLE)
   set_target_properties(clustergs PROPERTIES LINK_FLAGS -Wl,-no_pie)
