@@ -1,16 +1,10 @@
 	SUBROUTINE mnbrak(ax,bx,cx,fa,fb,fc,func)
 	USE nrtype; USE nrutil, ONLY : swap
+        USE nr, ONLY: func_s_s
 	IMPLICIT NONE
 	REAL(SP), INTENT(INOUT) :: ax,bx
 	REAL(SP), INTENT(OUT) :: cx,fa,fb,fc
-	INTERFACE
-		FUNCTION func(x)
-		USE nrtype
-		IMPLICIT NONE
-		REAL(SP), INTENT(IN) :: x
-		REAL(SP) :: func
-		END FUNCTION func
-	END INTERFACE
+        procedure(func_s_s) :: func
 	REAL(SP), PARAMETER :: GOLD=1.618034_sp,GLIMIT=100.0_sp,TINY=1.0e-20_sp
 	REAL(SP) :: fu,q,r,u,ulim
 	fa=func(ax)

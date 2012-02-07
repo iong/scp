@@ -1,24 +1,11 @@
 	FUNCTION dbrent(ax,bx,cx,func,dfunc,tol,xmin)
 	USE nrtype; USE nrutil, ONLY : nrerror
+      use nr, only: func_s_s
 	IMPLICIT NONE
 	REAL(SP), INTENT(IN) :: ax,bx,cx,tol
 	REAL(SP), INTENT(OUT) :: xmin
 	REAL(SP) :: dbrent
-	INTERFACE
-		FUNCTION func(x)
-		USE nrtype
-		IMPLICIT NONE
-		REAL(SP), INTENT(IN) :: x
-		REAL(SP) :: func
-		END FUNCTION func
-!BL
-		FUNCTION dfunc(x)
-		USE nrtype
-		IMPLICIT NONE
-		REAL(SP), INTENT(IN) :: x
-		REAL(SP) :: dfunc
-		END FUNCTION dfunc
-	END INTERFACE
+procedure(func_s_s) :: func, dfunc
 	INTEGER(I4B), PARAMETER :: ITMAX=100
 	REAL(SP), PARAMETER :: ZEPS=1.0e-3_sp*epsilon(ax)
 	INTEGER(I4B) :: iter

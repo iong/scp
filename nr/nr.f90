@@ -1,4 +1,34 @@
 MODULE nr
+    abstract INTERFACE
+        FUNCTION func_s_s(p)
+            USE nrtype
+            IMPLICIT NONE
+            REAL(SP), INTENT(IN) :: p
+            REAL(SP) :: func_s_s
+        END FUNCTION func_s_s
+
+        FUNCTION func_s_v(p)
+            USE nrtype
+            IMPLICIT NONE
+            REAL(SP), DIMENSION(:), INTENT(IN) :: p
+            REAL(SP) :: func_s_v
+        END FUNCTION func_s_v
+
+!!$        FUNCTION func_v_s(p)
+!!$            USE nrtype
+!!$            IMPLICIT NONE
+!!$            REAL(SP), INTENT(IN) :: p
+!!$            REAL(SP), DIMENSION(size(p)) :: dfunc
+!!$        END FUNCTION func_v_s
+  
+        FUNCTION func_v_v(p)
+            USE nrtype
+            IMPLICIT NONE
+            REAL(SP), DIMENSION(:), INTENT(IN) :: p
+            REAL(SP), DIMENSION(size(p)) :: func_v_v
+        END FUNCTION func_v_v
+    END INTERFACE
+
 	INTERFACE
 		SUBROUTINE airy(x,ai,bi,aip,bip)
 		USE nrtype
@@ -597,22 +627,11 @@ MODULE nr
 	INTERFACE
 		FUNCTION dbrent(ax,bx,cx,func,dbrent_dfunc,tol,xmin)
 		USE nrtype
+                IMPORT FUNC_S_S
 		REAL(SP), INTENT(IN) :: ax,bx,cx,tol
 		REAL(SP), INTENT(OUT) :: xmin
 		REAL(SP) :: dbrent
-		INTERFACE
-			FUNCTION func(x)
-			USE nrtype
-			REAL(SP), INTENT(IN) :: x
-			REAL(SP) :: func
-			END FUNCTION func
-!BL
-			FUNCTION dbrent_dfunc(x)
-			USE nrtype
-			REAL(SP), INTENT(IN) :: x
-			REAL(SP) :: dbrent_dfunc
-			END FUNCTION dbrent_dfunc
-		END INTERFACE
+                procedure(func_s_s) :: func, dbrent_dfunc
 		END FUNCTION dbrent
 	END INTERFACE
 	INTERFACE
@@ -1097,8 +1116,12 @@ MODULE nr
 		END SUBROUTINE frenel
 	END INTERFACE
 	INTERFACE
-		SUBROUTINE frprmn(p,ftol,iter,fret)
+		SUBROUTINE frprmn(f, df, p,ftol,iter,fret)
 		USE nrtype
+ IMPORT FUNC_S_V
+ IMPORT FUNC_V_V
+  procedure(func_s_v) :: f
+  procedure(func_v_v) :: df
 		INTEGER(I4B), INTENT(OUT) :: iter
 		REAL(SP), INTENT(IN) :: ftol
 		REAL(SP), INTENT(OUT) :: fret
@@ -1482,8 +1505,12 @@ MODULE nr
 		END SUBROUTINE linbcg
 	END INTERFACE
 	INTERFACE
-		SUBROUTINE linmin(p,xi,fret)
+		SUBROUTINE linmin(f, df, p,xi,fret)
 		USE nrtype
+import func_s_v
+import func_v_v
+    procedure(func_s_v) :: f
+    procedure(func_v_v) :: df
 		REAL(SP), INTENT(OUT) :: fret
 		REAL(SP), DIMENSION(:), TARGET, INTENT(INOUT) :: p,xi
 		END SUBROUTINE linmin
@@ -1686,15 +1713,11 @@ MODULE nr
 	INTERFACE
 		SUBROUTINE mnbrak(ax,bx,cx,fa,fb,fc,func)
 		USE nrtype
+ IMPORT FUNC_S_S
 		REAL(SP), INTENT(INOUT) :: ax,bx
 		REAL(SP), INTENT(OUT) :: cx,fa,fb,fc
-		INTERFACE
-			FUNCTION func(x)
-			USE nrtype
-			REAL(SP), INTENT(IN) :: x
-			REAL(SP) :: func
-			END FUNCTION func
-		END INTERFACE
+
+  procedure(func_s_s) :: func
 		END SUBROUTINE mnbrak
 	END INTERFACE
 	INTERFACE
