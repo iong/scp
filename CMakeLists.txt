@@ -11,7 +11,7 @@ PROJECT(SCP C Fortran)
 if (CMAKE_Fortran_COMPILER_ID STREQUAL Intel)
 
     set(MKL_LIBRARIES -mkl=parallel)
-    set(LAPACK_LIBRARIES -mkl=sequential)
+    set(LAPACK_LIBRARIES -mkl=parallel)
     set(CMAKE_Fortran_FLAGS_RELEASE "-O3 -xHost -ipo -heap-arrays -openmp")
     set(CMAKE_Fortran_FLAGS_DEBUG "-fpe0 -traceback -ftrapuv -check all  -warn unused -O0 -g -heap-arrays -openmp")
     set(CMAKE_Fortran_FLAGS_RELWITHDEBINFO "-O2 -g -openmp")
@@ -40,7 +40,7 @@ endif()
 
 #include(FindCHOLMOD.cmake)
 
-set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+#set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 
 #Targets!
 
@@ -54,6 +54,7 @@ set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 
 add_subdirectory(nr)
 
+include_directories(${nr_BINARY_DIR})
 ADD_EXECUTABLE(clustergs  utils.f90 dlsode.f integrator.f90 lsode.f90 ek.f90
 	vgw.f90 vgwfm.f90 integration.f90 clustergs.f90)
 
@@ -62,8 +63,11 @@ ADD_EXECUTABLE(clustergs  utils.f90 dlsode.f integrator.f90 lsode.f90 ek.f90
 
 target_link_libraries(clustergs nr ${LAPACK_LIBRARIES})
 
-add_executable(gaussmin gaussmin.f90)
+add_executable(gaussmin gaussmin.f90 xyz.f90)
 target_link_libraries(gaussmin nr)
+
+add_executable(scpmin scpmin.f90 utils.f90 xyz.f90)
+target_link_libraries(scpmin nr ${LAPACK_LIBRARIES})
 
 if (APPLE)
   set_target_properties(clustergs PROPERTIES LINK_FLAGS -Wl,-no_pie)
