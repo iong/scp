@@ -7,7 +7,7 @@ subroutine dump_xyz(r, fname, molname)
     integer :: j, N
 
     N = size(r, 2)
-    open(33,file=fname,status='REPLACE')
+    open(33,file=trim(fname),status='REPLACE')
     write(33,'(I10)') N
     write(33,"(A)") trim(molname)
     do j=1,N
