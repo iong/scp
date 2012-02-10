@@ -15,8 +15,7 @@ program clustergs
 
     integer :: i, Natom, status
 
-    double precision :: endtime(3), begtime(3), mass, taustop
-    double precision ::  deBoer=0.1, kT=0.001d0, RC=100d0, BL=100d0, sigma0 = 2.749, epsilon0 = 35.6d0
+    double precision :: kT=0.001d0
 
     double precision, allocatable :: r0(:,:)
     double precision :: Uref, E0
@@ -33,7 +32,7 @@ program clustergs
     allocate(r0(3,Natom))
 
     Uref = 0d0
-    read(33,IOSTAT=status,FMT=*) deBoer, Uref
+    read(33,IOSTAT=status,FMT=*) kT, Uref
     if (status > 0) then
         Uref = 0d0
     else if (status<0) then
