@@ -191,7 +191,8 @@ module vgw_mod
 !!$                write(60,*) self % y(3*self%Natom+1:)
 !!$                close(60)
 
-                vgw_F = self%U - self%kT*( self%logdet() + 3 * self%Natom * log(2d0*self%kT) ) / 2d0
+                vgw_F = self%U - 0.5d0 * self%kT * self%logdet() &
+                      - 3 * self%Natom * self%kT * log(2d0 * M_PI * exp(0.5) * self%kT)
                 print *, self % kT, vgw_f
                 self % kT = self %kT + 0.01
             end if
