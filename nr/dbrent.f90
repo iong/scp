@@ -1,11 +1,11 @@
-	FUNCTION dbrent(ax,bx,cx,func,dfunc,tol,xmin)
+	FUNCTION dbrent(ax,bx,cx,fdf,tol,xmin)
 	USE nrtype; USE nrutil, ONLY : nrerror
-      use nr, only: func_s_s
+      use nr, only: fdf_s_s
 	IMPLICIT NONE
 	REAL(SP), INTENT(IN) :: ax,bx,cx,tol
 	REAL(SP), INTENT(OUT) :: xmin
 	REAL(SP) :: dbrent
-procedure(func_s_s) :: func, dfunc
+procedure(fdf_s_s) :: fdf
 	INTEGER(I4B), PARAMETER :: ITMAX=100
 	REAL(SP), PARAMETER :: ZEPS=1.0e-3_sp*epsilon(ax)
 	INTEGER(I4B) :: iter
@@ -18,10 +18,9 @@ procedure(func_s_s) :: func, dfunc
 	w=v
 	x=v
 	e=0.0
-	fx=func(x)
+	call fdf(x, fx, dx)
 	fv=fx
 	fw=fx
-	dx=dfunc(x)
 	dv=dx
 	dw=dx
 	do iter=1,ITMAX
@@ -64,13 +63,12 @@ procedure(func_s_s) :: func, dfunc
 		end if
 		if (abs(d) >= tol1) then
 			u=x+d
-			fu=func(u)
+			call fdf(u, fu, du)
 		else
 			u=x+sign(tol1,d)
-			fu=func(u)
+			call fdf(u, fu, du)
 			if (fu > fx) exit
 		end if
-		du=dfunc(u)
 		if (fu <= fx) then
 			if (u >= x) then
 				a=x

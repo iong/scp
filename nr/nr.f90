@@ -27,6 +27,22 @@ MODULE nr
             REAL(SP), DIMENSION(:), INTENT(IN) :: p
             REAL(SP), DIMENSION(size(p)) :: func_v_v
         END FUNCTION func_v_v
+
+        subroutine fdf_s_s(x, f, df)
+            USE nrtype
+            IMPLICIT NONE
+            REAL(SP), INTENT(IN) :: x
+            REAL(SP), INTENT(OUT) :: f, df
+        end subroutine fdf_s_s
+
+        subroutine fdf_s_v(x, f, df)
+            USE nrtype
+            IMPLICIT NONE
+            REAL(SP), INTENT(IN) :: x(:)
+            REAL(SP), INTENT(OUT) :: f
+            REAL(SP), INTENT(OUT), allocatable :: df(:)
+        end subroutine fdf_s_v
+            
     END INTERFACE
 
 	INTERFACE
@@ -625,13 +641,13 @@ MODULE nr
 		END FUNCTION dawson_v
 	END INTERFACE
 	INTERFACE
-		FUNCTION dbrent(ax,bx,cx,func,dbrent_dfunc,tol,xmin)
+		FUNCTION dbrent(ax,bx,cx,fdf,tol,xmin)
 		USE nrtype
-                IMPORT FUNC_S_S
+                IMPORT fdf_s_s
 		REAL(SP), INTENT(IN) :: ax,bx,cx,tol
 		REAL(SP), INTENT(OUT) :: xmin
 		REAL(SP) :: dbrent
-                procedure(func_s_s) :: func, dbrent_dfunc
+                procedure(fdf_s_s) :: fdf
 		END FUNCTION dbrent
 	END INTERFACE
 	INTERFACE
@@ -1116,12 +1132,12 @@ MODULE nr
 		END SUBROUTINE frenel
 	END INTERFACE
 	INTERFACE
-		SUBROUTINE frprmn(f, df, p,ftol,iter,fret)
+		SUBROUTINE frprmn(f, fdf, p,ftol,iter,fret)
 		USE nrtype
- IMPORT FUNC_S_V
- IMPORT FUNC_V_V
-  procedure(func_s_v) :: f
-  procedure(func_v_v) :: df
+                IMPORT FUNC_S_V
+                IMPORT fdf_s_v
+                procedure(func_s_v) :: f
+                procedure(fdf_s_v) :: fdf
 		INTEGER(I4B), INTENT(OUT) :: iter
 		REAL(SP), INTENT(IN) :: ftol
 		REAL(SP), INTENT(OUT) :: fret
@@ -1505,12 +1521,12 @@ MODULE nr
 		END SUBROUTINE linbcg
 	END INTERFACE
 	INTERFACE
-		SUBROUTINE linmin(f, df, p,xi,fret)
+		SUBROUTINE linmin(f, fdf, p,xi,fret)
 		USE nrtype
-import func_s_v
-import func_v_v
-    procedure(func_s_v) :: f
-    procedure(func_v_v) :: df
+                import func_s_v
+                import fdf_s_v
+                procedure(func_s_v) :: f
+                procedure(fdf_s_v) :: fdf
 		REAL(SP), INTENT(OUT) :: fret
 		REAL(SP), DIMENSION(:), TARGET, INTENT(INOUT) :: p,xi
 		END SUBROUTINE linmin
