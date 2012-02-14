@@ -10,6 +10,7 @@ module lsode_mod
     contains
         procedure :: init
         procedure :: advance
+        procedure :: converge
         procedure :: set_dtmin
         procedure :: set_dtmax
         !procedure :: step => lsode_step
@@ -25,8 +26,6 @@ contains
         call self % integrator % init(NEQ, tstart, dt0)
 
         self % LRW = 20 + 16*NEQ
-
-
 
         self % LIW = 30
         self % MF = 10
@@ -94,6 +93,62 @@ contains
             call F(neq, t, y, yp)
         end subroutine f77_rhs
     end subroutine advance
+
+    subroutine converge(self, F, x, dFtol)
+        implicit none
+        class(lsode) :: self
+        DOUBLE PRECISION, intent(inout) :: x(:)
+        double precision, intent(in) :: dFtol
+        procedure(RHS_X) :: F
+
+
+        double precision, allocatable :: df(:)
+        integer :: iflag, itask
+        double precision :: dfnorm, hcur
+
+        self % ISTATE=1
+
+        itask = 1
+        CALL DLSODE(f77_rhs, size(x), x, self % t, self%t+0.1d0, self % ITOL, &
+                self % RTOL, &
+                self % ATOL, itask, self % ISTATE, self % IOPT, &
+                self % RWORK, self % LRW, self % IWORK, self % LIW, JAC, &
+                self % MF)
+
+        allocate(df(size(x)))
+        itask = 3
+        do
+            call DINTDY(self%t, 1, self%RWORK(21), size(df), df, iflag)
+
+            dfnorm = sqrt(sum(df**2)/size(df))
+            if (dfnorm < dFtol) then
+                print *, self%t, 'dfnorm =', dfnorm
+                exit
+            end if
+            print *, self%t, 'dfnorm =', dfnorm
+            hcur = self % RWORK(12)
+            CALL DLSODE(f77_rhs, size(x), x, self % t, self%t + 10d0*hcur , &
+                    self % ITOL, self % RTOL, &
+                    self % ATOL, itask, self % ISTATE, self % IOPT, &
+                    self % RWORK, self % LRW, self % IWORK, self % LIW, JAC, &
+                    self % MF)
+        end do
+
+        self % dt = self % RWORK(12)
+        self % nsteps = self % IWORK(11)
+        self % ncalls = self % IWORK(12)
+
+        deallocate(df)
+    contains
+        subroutine f77_rhs(neq, t, y, yp)
+            integer, intent(in) :: NEQ
+            double precision, intent(in) :: T
+            double precision, intent(in), target :: Y(NEQ)
+            double precision, intent(out), target :: YP(NEQ)
+
+            call F(neq, t, y, yp)
+        end subroutine f77_rhs
+    end subroutine converge
 
     subroutine cleanup(self)
         class(lsode) :: self

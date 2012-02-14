@@ -11,6 +11,7 @@ module integrator_mod
         procedure :: set_dtmin
         procedure :: set_dtmax
         procedure :: advance
+        procedure :: converge
         procedure :: cleanup
     end type integrator
     
@@ -68,6 +69,16 @@ contains
         print *, 'please override advance() !'
         stop
     end subroutine advance
+
+    subroutine converge(self, F, x, dFtol)
+        implicit none
+        class(integrator) :: self
+        DOUBLE PRECISION, intent(inout) :: x(:)
+        double precision, intent(in) :: dFtol
+        procedure(RHS_X) :: F
+        print *, 'please override converge() !'
+        stop
+    end subroutine converge
 
 
     subroutine cleanup(self)
