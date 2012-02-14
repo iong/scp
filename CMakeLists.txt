@@ -66,7 +66,7 @@ target_link_libraries(clustergs nr ${LAPACK_LIBRARIES})
 add_executable(gaussmin gaussmin.f90 xyz.f90)
 target_link_libraries(gaussmin nr)
 
-add_executable(scpmin scpmin.f90 utils.f90 xyz.f90)
+add_executable(scpmin scpmin.f90 scp.f90 dlsode.f integrator.f90 lsode.f90 ek.f90 utils.f90 xyz.f90)
 target_link_libraries(scpmin nr ${LAPACK_LIBRARIES})
 
 if (APPLE)
