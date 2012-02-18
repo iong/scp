@@ -5,6 +5,9 @@ module vgw_mod
     private
 
     type, public :: vgw
+        integer, parameter :: info = 1
+        integer :: debug = 0
+
         integer :: Natom, N3, NGAUSS
         integer :: NEQ, NG, NQNK
 
@@ -12,8 +15,8 @@ module vgw_mod
 
         logical :: mm = .FALSE.
 
-        double precision :: U, kT, BL, RC, LJA(10), LJC(10), rt
-        double precision :: q_atol, g_atol, dt_min, dt0, dt_max, qconv, gconv, cq, cg
+        double precision :: U, kT, BL, LJA(10), LJC(10), rt,  sigma0, epsilon0
+        double precision :: q_atol, g_atol, dt_min, dt0, dt_max, qconv, gconv
         double precision, allocatable :: mass(:), invmass(:)
         double precision, allocatable :: Y(:)
 
