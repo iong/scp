@@ -5,7 +5,7 @@ module vgw_mod
     private
 
     type, public :: vgw
-        integer :: Natom, NGAUSS
+        integer :: Natom, N3, NGAUSS
         integer :: NEQ, NG, NQNK
 
         character(8) :: species
@@ -27,7 +27,7 @@ module vgw_mod
         procedure :: F => vgw_F
         procedure :: init_prop
         procedure :: logdet
-        procedure :: propagate
+        procedure :: converge
         procedure :: set_bl
         procedure :: get_q
         procedure :: set_rc
@@ -43,6 +43,7 @@ module vgw_mod
 
         self%species = species
         self%Natom = Natom
+        self%N3 = 3 * Natom
 
         allocate (self % mass(self % Natom), self % invmass( self % Natom ) )
 
@@ -149,12 +150,17 @@ module vgw_mod
         logdet = 0d0
     end function logdet
 
-    subroutine propagate(self, tstop)
+    !> Once compilers mature, this function can be eliminated. Theoretically,
+    !! one can store a pointer to the right-hand-side function in the
+    !! propagator and call prop%converge directly. This a Fortran 2008 feature.
+    !! However, both ifort and gfortran segfault when compiling such code.
+    !! \tag F2008
+    subroutine converge(self, tol)
         IMPLICIT NONE
         class(vgw) :: self
-        double precision, intent(in) :: tstop
+        double precision, intent(in) :: tol
         
-    end subroutine PROPAGATE
+    end subroutine CONVERGE
 
     function vgw_F(self, Q0, kT)
         IMPLICIT NONE
@@ -171,32 +177,18 @@ module vgw_mod
         ! solve the VGW equations, measure CPU time
         call cpu_time(start_time)
         tstop=5d0
-        self % cq = 1d0
-        self % cg = 1d0
-        convgoal = 0.5
         i = 1
         do
-            call self % propagate(tstop)
-            print *, tstop, self%qconv, self % gconv
-            
-            if (self % gconv < 2d-2) then
-                if (self % kT > 0.5) then
-                    exit
-                endif
+            call self % converge(1d-4)
 
-!!$                open(60,file='q.dat')
-!!$                write(60,*) self % y(1:3*self%Natom)
-!!$                close(60)
-!!$                open(60,file='g.dat')
-!!$                write(60,*) self % y(3*self%Natom+1:)
-!!$                close(60)
+            if (self % kT > 0.8) then
+                exit
+            endif
 
-                vgw_F = self%U - 0.5d0 * self%kT * self%logdet() &
-                      - 3 * self%Natom * self%kT * log(2d0 * M_PI * exp(0.5) * self%kT)
-                print *, self % kT, vgw_f
-                self % kT = self %kT + 0.01
-            end if
-            tstop = tstop +5d0
+            vgw_F = self%U - self%kT * self%logdet() &
+                    - 3 * self%Natom * self%kT * log(2d0 * M_PI * exp(0.5) * self%kT)
+            print *, self % kT, vgw_f, self % qconv, self % gconv
+            self % kT = self %kT + 0.1
             i = i + 1
         end do
         call cpu_time(stop_time)
@@ -266,35 +258,4 @@ module vgw_mod
         self % mass = m
         self % invmass = 1d0/m
     end subroutine set_mass
-
-
-!!$    subroutine interaction_lists(self, Q)
-!!$        implicit none
-!!$        class(vgw) :: self
-!!$        real*8, intent(in) :: Q(:,:)
-!!$        integer :: N,I,J, NN
-!!$        real*8 rsq,rc2,qij(3)
-!!$
-!!$        N = size(Q, 2)
-!!$        rc2=self % rc**2
-!!$
-!!$        self % NBIDX = 0
-!!$        self % NNB = 0
-!!$        do I=1,N-1
-!!$            NN = 0
-!!$            do J=I+1,N
-!!$                qij=Q(:,I)-Q(:,J)
-!!$                rsq = sum(min_image(qij, self % BL)**2)
-!!$                if(rsq <= rc2) then
-!!$                    NN = NN + 1
-!!$                    self % NBIDX(NN, I) = J
-!!$                endif
-!!$            enddo
-!!$            self % NNB(i) = NN
-!!$        enddo
-!!$
-!!$        self % nnbmax = maxval(self % nnb)
-!!$    end subroutine interaction_lists
-
-
 end module vgw_mod
