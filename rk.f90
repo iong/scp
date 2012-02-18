@@ -1,43 +1,7 @@
-module propagation
-    save
-    integer, parameter :: LIW=20, MF=10
-    integer :: ITASK,IOPT,ISTATE,LRW,ITOL,IWORK(LIW),IERR
-    real*8, allocatable :: RWORK(:)
-
+module rk_mod
 
 contains
-subroutine  init_mylsode(NEQ)
-    integer, intent(IN) :: NEQ
-    LRW = 10 + 16*NEQ
-    if (.not. allocated(RWORK)) then
-        allocate(RWORK(LRW))
-    endif
-    ITOL=1
-    ITASK=1
-    IOPT=1
-    ISTATE=1
 
-    IWORK(5:10)=(/4, 100000, 0, 0, 0, 0/)
-    RWORK(5:10)=0.0D0
-    !RWORK(7) = HMIN
-end subroutine
-
-subroutine mylsode(F, x, NEQ, dt, tstart, tstop, atol, rtol)
-    implicit none
-    integer, intent(in) :: NEQ
-    REAL*8, intent(inout) :: x(NEQ)
-    real*8, intent(in) :: tstart, tstop, atol, rtol
-    real*8, intent(inout) :: dt
-    external F, JAC
-
-    CALL DLSODE(F,NEQ,x,tstart,tstop,ITOL,RTOL,ATOL,ITASK,ISTATE, &
-                IOPT,RWORK,LRW,IWORK,LIW,JAC,MF)
-end subroutine
-
-subroutine  JAC()
-end subroutine
-
-    
 subroutine rk4(F, x, NEQ, dt, nsteps)
     implicit none
     integer, intent(in) :: NEQ
@@ -63,60 +27,6 @@ subroutine rk4(F, x, NEQ, dt, nsteps)
             x = x + (dt/6.0)*(xp(:,1) + 2.0*(xp(:,2) + xp(:,3)) + xp(:,4))
     enddo
 end subroutine rk4
-
-subroutine ek(F, x, dt, tstart, tstop,atol, rtol)
-    implicit none
-    REAL*8, intent(inout) :: x(:)
-    real*8, intent(in) :: tstart, tstop, atol, rtol
-    real*8, intent(inout) :: dt
-    REAL*8 :: x1(size(x)), rmserr, t
-    external F
-
-    t = tstart
-    x1 = x
-    do while (t<tstop)
-        call ekstep(F, x1, dt, atol, rtol, rmserr)
-        !write (*,*) t, dt, rmserr
-        if (rmserr <= 1.0) then
-            x=x1
-            if (t + dt > tstop) then
-                exit
-            endif
-            t = t + dt
-            if (rmserr <=0.1) then
-              dt = dt * 1.52799165273419
-            endif
-        else
-            dt = dt/1.90779652734191
-            x1 = x
-        endif
-    enddo
-    call ekstep(F, x, tstop-t, atol, rtol, rmserr)
-end subroutine
-
-
-subroutine ekstep(F, x, dt, atol, rtol, rmserr)
-    implicit none
-    REAL*8, intent(inout) :: x(:)
-    real*8, intent(in) :: dt, atol, rtol
-    real*8, intent(out) :: rmserr
-    integer, parameter :: p=2
-    REAL*8 :: x1(size(x)), xp(size(x),p), xe(size(x))
-    integer :: NEQ
-    external F
-
-    NEQ = size(x)
-    call F(NEQ, dt, x, xp(:,1))
-    x1 = x + dt*xp(:,1)
-    call F(NEQ, dt, x1, xp(:,2))
-
-    x = x + 0.5*dt*(xp(:,1) + xp(:,2))
-    xe = 0.5*dt*(xp(:,1) - xp(:,2))
-
-    xe = xe / (abs(rtol*x) + atol)
-    rmserr = sqrt( sum(xe**2) / NEQ )
-end subroutine
-
 
 subroutine rk45(F, x, NEQ, dt, tstart, tstop,atol, rtol)
     implicit none
@@ -196,5 +106,5 @@ subroutine rk45step(F, x, x1, NEQ, dt, atol, rtol, rmserr)
 
     return
    end subroutine rk45step
-end module propagation
+end module rk_mod
 ! vim:et:softtabstop=4:sw=4
