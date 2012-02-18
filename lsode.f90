@@ -108,8 +108,11 @@ contains
 
         self % ISTATE=1
 
-        itask = 1
-        CALL DLSODE(f77_rhs, size(x), x, self % t, self%t+0.1d0, self % ITOL, &
+        itask = 3
+        self%t = 0
+        !self%RWORK(5) = 0d0 ! set H0 = 0, let dlsode determine it by itself.
+
+        CALL DLSODE(f77_rhs, size(x), x, self % t, self%t+.1d0, self % ITOL, &
                 self % RTOL, &
                 self % ATOL, itask, self % ISTATE, self % IOPT, &
                 self % RWORK, self % LRW, self % IWORK, self % LIW, JAC, &
@@ -118,20 +121,20 @@ contains
         allocate(df(size(x)))
         itask = 3
         do
-            call DINTDY(self%t, 1, self%RWORK(21), size(df), df, iflag)
-
-            dfnorm = sqrt(sum(df**2)/size(df))
-            if (dfnorm < dFtol) then
-                print *, self%t, 'dfnorm =', dfnorm
-                exit
-            end if
-            print *, self%t, 'dfnorm =', dfnorm
             hcur = self % RWORK(12)
-            CALL DLSODE(f77_rhs, size(x), x, self % t, self%t + 10d0*hcur , &
+            CALL DLSODE(f77_rhs, size(x), x, self % t, self%t + 4.0d0*hcur , &
                     self % ITOL, self % RTOL, &
                     self % ATOL, itask, self % ISTATE, self % IOPT, &
                     self % RWORK, self % LRW, self % IWORK, self % LIW, JAC, &
                     self % MF)
+
+            call DINTDY(self%t, 1, self%RWORK(21), size(df), df, iflag)
+
+            dfnorm = sqrt(sum(df**2)/size(df))
+            !print *, self%t, 'dfnorm =', dfnorm
+            if (dfnorm < dFtol) then
+                exit
+            end if
         end do
 
         self % dt = self % RWORK(12)
