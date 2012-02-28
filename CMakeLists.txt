@@ -38,36 +38,20 @@ if (NOT DEFINED LAPACK_LIBRARIES)
 	find_package(LAPACK REQUIRED)
 endif()
 
-#include(FindCHOLMOD.cmake)
+include(FindCHOLMOD.cmake)
 
 #set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 
-#Targets!
 
-# Quantum Gibbs with VGW-SP
-#ADD_EXECUTABLE(qgibbs utils.f90 dlsode.f vgw.f90 total_energy_vgw.f90 qgibbs.f90)
 
-#target_link_libraries(qgibbs ${LAPACK_LIBRARIES})
-#if (LAPACK_LINKER_FLAGS)
-#    set_target_properties(qgibbs PROPERTIES LINK_FLAGS ${LAPACK_LINKER_FLAGS})
-#endif()
 
-add_subdirectory(nr)
-
-include_directories(${nr_BINARY_DIR})
 ADD_EXECUTABLE(clustergs  utils.f90 dlsode.f integrator.f90 lsode.f90 ek.f90
-	vgw.f90 vgwfm.f90 integration.f90 clustergs.f90)
+	vgw.f90 vgwfm.f90 cholmod_logdet.c csr_sort_ja.c reallocate.f90 sparse.f90 ffvgw.f90 integration.f90 clustergs.f90)
 
     
-#include_directories(clustergs ${CHOLMOD_INC})
+include_directories(clustergs ${CHOLMOD_INC})
 
-target_link_libraries(clustergs nr ${LAPACK_LIBRARIES})
-
-add_executable(gaussmin gaussmin.f90 xyz.f90)
-target_link_libraries(gaussmin nr)
-
-add_executable(scpmin scpmin.f90 scp.f90 dlsode.f integrator.f90 lsode.f90 ek.f90 utils.f90 xyz.f90)
-target_link_libraries(scpmin nr ${LAPACK_LIBRARIES})
+target_link_libraries(clustergs ${CHOLMOD_LIBRARIES} ${LAPACK_LIBRARIES})
 
 if (APPLE)
   set_target_properties(clustergs PROPERTIES LINK_FLAGS -Wl,-no_pie)
