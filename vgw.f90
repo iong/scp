@@ -4,9 +4,11 @@ module vgw_mod
     implicit none
     private
 
+    integer, parameter :: info = 1
+    integer :: debug = 0
+
     type, public :: vgw
-        integer, parameter :: info = 1
-        integer :: debug = 0
+
 
         integer :: Natom, N3, NGAUSS
         integer :: NEQ, NG, NQNK
@@ -20,19 +22,19 @@ module vgw_mod
         double precision, allocatable :: Y(:), UX(:)
 
         class(integrator), pointer :: prop
-
-        !integer ::  nnbmax
-        !integer, allocatable :: NBIDX(:,:), NNB(:)
     contains
         procedure :: init
         procedure :: cleanup
         procedure :: F => vgw_F
+        procedure :: analyze
         procedure :: init_prop
         procedure :: logdet
         procedure :: converge
         procedure :: set_bl
         procedure :: get_q
     end type vgw
+
+    public :: transrot_subspace, info, debug
 
  contains
     subroutine init(self, Natom, species)
@@ -51,6 +53,10 @@ module vgw_mod
         self % g_atol = 1d-4
         self % dt_min = 0d0
         self % dt_max = 0d0
+        self % dt0    = 0d0
+
+        self % sigma0 = 1d0
+        self % epsilon0 = 1d0
 
         if (self % species=='pH2-4g') then
             self % NGAUSS=4
@@ -100,7 +106,6 @@ module vgw_mod
             self % dt_max = 10d0
             self % dt0 = 1d-5
         end if
-        self % invmass = 1d0/self % mass
     end subroutine init
 
 
@@ -112,9 +117,40 @@ module vgw_mod
     end subroutine cleanup
 
 
+    subroutine analyze(self, q0)
+        class(vgw), target :: self
+        double precision, intent(in) :: q0(:)
+    end subroutine analyze
+
+
     subroutine init_prop(self, q0)
         class(vgw), target :: self
-        double precision, intent(in) :: q0(:,:)
+        double precision, intent(in) :: q0(:)
+
+        integer :: N3
+
+        N3 = 3 * self % Natom
+        if (.NOT. allocated(self % y)) then
+            allocate(self % y ( self % NEQ ))
+        else
+            if (size(self%y) /= self %NEQ) then
+                deallocate(self%y)
+                allocate(self % y ( self % NEQ ))
+            end if
+        end if
+
+        allocate (lsode :: self%prop)
+
+        call self % prop % init(self%NEQ, 0d0, 0d0)
+        call self % prop % set_dtmin(0d0*self%dt_min)
+        call self % prop % set_dtmax(1d-1)
+
+        self % prop % rtol = 1d-5
+        self % prop % atol (1 : 3 * self % Natom) = self % q_atol
+        self % prop % atol (3 * self % Natom + 1 : ) = self % g_atol
+
+        self % y(1 : N3) = q0
+        self % y(N3+1:) = 0d0
     end subroutine init_prop
 
     function logdet(self)
@@ -140,18 +176,22 @@ module vgw_mod
     function vgw_F(self, Q0, kT)
         IMPLICIT NONE
         class(vgw) :: self
-        double precision, intent(in) :: Q0(:,:), kT
+        double precision, intent(in) :: Q0(:), kT
         double precision :: vgw_F
-        real*8 ::  start_time, stop_time, tstop, convgoal
+        real*8 ::  start_time, stop_time
         integer :: i
+        
+        !m0 = minval(mass)
+        !m0 = mass
+        !LAMBDA = 1d0/(sigma0 * sqrt(m0 * epsilon0))
+        self % kT = kT / self % epsilon0
+        !invmass = m0/mass
 
-        self % kT = kT
-
-        call self % init_prop(q0)
+        call self % analyze(q0 / self % sigma0)
+        call self % init_prop(q0 / self % sigma0)
 
         ! solve the VGW equations, measure CPU time
         call cpu_time(start_time)
-        tstop=5d0
         i = 1
         do
             call self % converge(1d-4)
@@ -171,9 +211,7 @@ module vgw_mod
         self % rt = 0
         if ( self % prop%ncalls > 0) then
             self % rt = (stop_time - start_time) / real(self % prop%ncalls)
-        end if
-      
-        
+        end if  
     end function vgw_F
 
 
@@ -215,6 +253,31 @@ module vgw_mod
         get_q = reshape(self % y ( 1 : 3 * self % Natom), (/ 3, self % Natom /) )
     end function get_q
 
-
+    function transrot_subspace(q) result(U)
         implicit none
+        double precision, intent(in) :: q(:)
+        double precision :: U(size(q),6)
+
+        integer :: i, j, N
+
+        N = size(q)
+
+        U = 0d0
+        U(1::3,1) = 1d0/sqrt(N/3d0)
+        U(2::3,2) = 1d0/sqrt(N/3d0)
+        U(3::3,3) = 1d0/sqrt(N/3d0)
+        U(2::3,4) = -q(3::3)
+        U(3::3,4) =  q(2::3)
+        U(1::3,5) =  q(3::3)
+        U(3::3,5) = -q(1::3)
+        U(1::3,6) = -q(2::3)
+        U(2::3,6) =  q(1::3)
+
+        do i=4,6
+            do j=1,i-1
+                U(:,i) = U(:,i) - U(:,j) * sum ( U(:,i) * U(:,j) )
+            end do
+            U(:,i) = U(:,i) / sqrt(sum(U(:,i)**2))
+        end do
+    end function transrot_subspace
 end module vgw_mod

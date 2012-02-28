@@ -253,34 +253,6 @@ contains
     end function logdet
 
 
-    function transrot_subspace(q) result(U)
-        implicit none
-        double precision, intent(in) :: q(:)
-        double precision :: U(size(q),6)
-
-        integer :: i, j, N
-
-        N = size(q)
-
-        U = 0d0
-        U(1::3,1) = 1d0/sqrt(N/3d0)
-        U(2::3,2) = 1d0/sqrt(N/3d0)
-        U(3::3,3) = 1d0/sqrt(N/3d0)
-        U(2::3,4) = -q(3::3)
-        U(3::3,4) =  q(2::3)
-        U(1::3,5) =  q(3::3)
-        U(3::3,5) = -q(1::3)
-        U(1::3,6) = -q(2::3)
-        U(2::3,6) =  q(1::3)
-
-        do i=4,6
-            do j=1,i-1
-                U(:,i) = U(:,i) - U(:,j) * sum ( U(:,i) * U(:,j) )
-            end do
-            U(:,i) = U(:,i) / sqrt(sum(U(:,i)**2))
-        end do
-    end function transrot_subspace
-
     subroutine regtransrot(q, G, l)
         implicit none
         double precision :: q(:), G(:,:), l
