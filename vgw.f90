@@ -17,8 +17,7 @@ module vgw_mod
 
         double precision :: U, kT, BL, LJA(10), LJC(10), rt,  sigma0, epsilon0
         double precision :: q_atol, g_atol, dt_min, dt0, dt_max, qconv, gconv
-        double precision, allocatable :: mass(:), invmass(:)
-        double precision, allocatable :: Y(:)
+        double precision, allocatable :: Y(:), UX(:)
 
         class(integrator), pointer :: prop
 
@@ -33,8 +32,6 @@ module vgw_mod
         procedure :: converge
         procedure :: set_bl
         procedure :: get_q
-        procedure :: set_rc
-        procedure :: set_mass
     end type vgw
 
  contains
@@ -48,7 +45,7 @@ module vgw_mod
         self%Natom = Natom
         self%N3 = 3 * Natom
 
-        allocate (self % mass(self % Natom), self % invmass( self % Natom ) )
+        allocate (self % UX (3*self % Natom))
 
         self % q_atol = 1d-4
         self % g_atol = 1d-4
@@ -61,8 +58,6 @@ module vgw_mod
                     0.066686117717 /)
             self % LJC(1:4) = (/ 96609.4882898, 14584.620755075, -365.4606149565, &
                     -19.55346978000 /)
-            self % mass = 2.0*0.020614788876D0
-            self % rc = 8.0
 
             self % q_atol = 1d-3
             self % g_atol = 1d-4
@@ -74,31 +69,15 @@ module vgw_mod
             self % NGAUSS = 3
             self % LJA(1:3) = (/ 6.65, 0.79, 2.6 /)
             self % LJC(1:3) = (/ 1840d0, -1.48d0, -23.2d0 /)
-            self % mass = 1.0
-            self % rc = 2.5
-            !self % rfullmatsq = 1.8d0**2
 
-            self % q_atol = 1d-5
-            self % g_atol = 1d-7
-
-            self % dt_min = 1d-7
-            self % dt_max = 0.25
-            self % dt0 = 1d-5
-
+            self % q_atol = 1d-3
+            self % g_atol = 1d-5
         else if (self % species == 'OH') then
             self % NGAUSS=5
             self % LJA(1:5) = (/-0.0902, 0.9454, 4.0565, 17.5229, 0.0/)
             self % LJC(1:5) = (/2.0233, 0.5054, 0.1912, 0.1085, -2.4140/)
             self % LJA(1:5) =  self % LJA(1:5) / xeqOH**2
             self % LJC(1:5) = self % LJC(1:5) * kOH* xeqOH**2
-            self % rc = 100d0
-
-            self % mass(1) = 16d0*1823d0
-            self % mass(2) = 1d0*1823d0
-
-            if (size(self % mass) > 2) then
-                write(*,*) 'Error: can only do OH dimers!'
-            end if
 
             self % q_atol = 1d-5
             self % g_atol = 1d-7
@@ -112,14 +91,7 @@ module vgw_mod
             self % LJC(1:5) = (/3.42986, -1.05074, 0.0294075, -0.00688583,-2.4021/)
             self % LJA(1:5) =  self % LJA(1:5) / xeqOH**2
             self % LJC(1:5) = self % LJC(1:5) * kOH * xeqOH**2
-            self % rc = 100d0
 
-            self % mass(1) = 16d0*1823d0
-            self % mass(2) = 1d0*1823d0
-
-            if (size(self % mass) > 2) then
-                write(*,*) 'Error: can only do OH dimers!'
-            end if
 
             self % q_atol = 1d-5
             self % g_atol = 1d-7
@@ -136,7 +108,7 @@ module vgw_mod
         class(vgw) :: self
 
         call self % prop % cleanup()
-        deallocate(self % mass, self % invmass, self % prop)
+        deallocate(self % y, self % UX)
     end subroutine cleanup
 
 
@@ -244,21 +216,5 @@ module vgw_mod
     end function get_q
 
 
-    subroutine set_rc(self, rc)
         implicit none
-        class(vgw) :: self
-        double precision :: rc
-
-        self % rc = rc
-    end subroutine set_rc
-
-
-    subroutine set_mass(self, m)
-        implicit none
-        class(vgw) :: self
-        double precision, intent(in) :: m(:)
-
-        self % mass = m
-        self % invmass = 1d0/m
-    end subroutine set_mass
 end module vgw_mod
