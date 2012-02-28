@@ -6,12 +6,9 @@ module vgwfm_mod
     private
 
     type, public, extends(vgw) :: vgwfm
-	real*8 :: rfullmatsq
-        double precision, allocatable :: UX(:)
     contains
-	procedure :: cleanup
 	procedure :: converge
-	procedure :: init_prop
+	procedure :: analyze
 	procedure :: logdet
     end type vgwfm
     
@@ -23,44 +20,14 @@ module vgwfm_mod
 
 contains
 
-    subroutine cleanup(self)
-        implicit none
-        class(vgwfm) :: self
-
-        deallocate( self%y, self% UX)
-        
-        call self%vgw%cleanup()
-    end subroutine cleanup
-
-
-    subroutine init_prop(self, q0)
+    subroutine analyze(self, q0)
         class(vgwfm), target :: self
-        double precision, intent(in) :: q0(:,:)
-
-        integer :: N3
+        double precision, intent(in) :: q0(:)
+        double precision :: q
 
         self % NG =  (9 * self%Natom**2 + 3*self%Natom)/2
         self % NEQ = 3 * self % Natom + self % NG
-
-        N3 = 3 * self % Natom
-        if (.NOT. allocated(self % y)) then
-            allocate(self % y ( self % NEQ ), self % UX(N3))
-        end if
-
-        allocate (lsode :: self%prop)
-
-        call self % prop % init(self%NEQ, 0d0, 0d0)
-        call self % prop % set_dtmin(0d0*self%dt_min)
-        call self % prop % set_dtmax(1d-1)
-
-        self % prop % rtol = 1d-5
-        self % prop % atol (1 : 3 * self % Natom) = 1d-3!self % q_atol
-        self % prop % atol (3 * self % Natom + 1 : ) = 1d-5!self % g_atol
-
-        self % y(1 : N3) = reshape(Q0, (/ N3 /) )
-        self % y(N3+1:) = 0d0
-    end subroutine init_prop
-
+    end subroutine analyze
 
     subroutine converge(self, tol)
         IMPLICIT NONE
@@ -82,9 +49,9 @@ contains
         SUBROUTINE rhs(NEQ, T, Y, YP)
             !    use omp_lib
             IMPLICIT NONE
-            integer, intent(in) :: NEQ!, IPAR(:)
+            integer, intent(in) :: NEQ
             double precision, intent(in) :: T
-            double precision, intent(in), target :: Y(:)!, RPAR(:)
+            double precision, intent(in), target :: Y(:)
             double precision, intent(out), target :: YP(:)
 
             integer :: i, j
@@ -103,7 +70,7 @@ contains
 
             call fm_get_g(y, Omega)
             
-            
+            !call printev(Omega, 'Omega')
             call dsyrk('L', 'N', N3, N3, 2d0 * self % kT, Omega, N3, 0d0, G, N3)
             call GaussianAverage(self, y(1:N3), G, self%U, self % UX, Hnew)   
 
