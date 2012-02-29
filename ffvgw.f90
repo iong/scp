@@ -214,7 +214,7 @@ contains
 
         call self % prop % converge(rhs, self%y, tol)
 
-        call G%cleanup()
+        deallocate(G%x)
     contains
         subroutine rhs(NEQ, T, Y, YP)
             IMPLICIT NONE
