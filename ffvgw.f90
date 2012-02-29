@@ -237,12 +237,12 @@ contains
             self%Omega%x => y(N3+1 : N3 + self%Omega%nnz)
 
             call self%Omega%multiply_restricted(self%Omega, G)
-
+            G%x = G%x * 2d0 * self % kT
             call GaussianAverage(self, y(1:N3), G, self%U, self%UX, self%UXY)
 
 
             call self% Omega % gemv(self%UX, yp)
-            yp(1:N3) = -yp(1:N3)
+            yp(1:N3) = -2d0 * self % kT * yp(1:N3)
 
             call self%Omega % multiply_restricted(self%UXY, self%OmegaU)
            
