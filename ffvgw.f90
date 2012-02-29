@@ -373,18 +373,14 @@ contains
         
         integer :: N3
 
-        type(csr) :: O2
-
         N3 = 3 * self%Natom
 
-        O2 = self % Omega
-        allocate(O2%x,source=self % y(N3 + 1 : N3 + self % Omega % nnz))
+        self % Omega % x => self % y(N3 + 1 : N3 + self % Omega % nnz)
+  
+        logdet =  self % Omega %logdet() &
+                - logdet_transrot(self%y(1:N3), self % Omega)
 
-        call regtransrot(self%y(1:3*self%Natom), O2, 1d0)
-
-        logdet =  O2%logdet()
-
-        deallocate(O2%x)
+        nullify( self % Omega % x)
     end function logdet
 
 
@@ -415,6 +411,33 @@ contains
         call gemm_restricted(GU, U, G, 'T', 1d0)
         deallocate(U, GU, UGU)
     end subroutine regtransrot
+
+    function logdet_transrot(q, G)
+        implicit none
+        double precision :: q(:)
+        type(csr), intent(in) :: G
+        double precision :: logdet_transrot
+
+        double precision, allocatable :: U(:,:), GU(:,:), UGU(:,:)
+        integer :: j, N, info
+
+        N = G%nrows
+
+        allocate(U(N,6), GU(N,6), UGU(6,6))
+
+        U = transrot_subspace(q)
+        call G%gemm(U, GU)
+        call dgemm('T', 'N', 6, 6, N, 1d0, U, N, GU, N, 0d0, UGU, 6)
+
+        call dpotrf('U',6, UGU, 6, info)
+
+        logdet_transrot=0.0
+        DO j=1, 6
+            logdet_transrot = logdet_transrot + LOG(ABS( UGU(j,j) ))
+        ENDDO
+        logdet_transrot = 2d0 * logdet_transrot
+        deallocate(U, GU, UGU)
+    end function logdet_transrot
 
      subroutine printev(A, name)
         double precision :: A(:,:)
