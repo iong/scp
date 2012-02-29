@@ -424,7 +424,8 @@ contains
         character(*), intent(in), optional :: transb
         double precision, intent(in), optional :: beta
         integer, parameter :: slw = 12
-        double precision :: S(slw,size(B, 2)), lbeta=0d0
+        double precision, allocatable :: S(:,:)
+        double precision :: lbeta=0d0
         character :: ltransb='N'
         integer :: i, j, w, p0, p1, M, N, K
 
@@ -439,6 +440,8 @@ contains
             N = size(B, 1)
             K = size(B, 2)
         end if
+
+        allocate(S(slw, N))
 
         do i=1,M,slw
             w = min(slw, M-i+1)
@@ -458,6 +461,8 @@ contains
                 end do
             end if
         end do
+
+        deallocate(S)
     end subroutine gemm_restricted
 
 
