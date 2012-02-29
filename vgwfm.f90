@@ -63,7 +63,7 @@ contains
                 do i=1,N3
                     Hnew(i,i) = 1d0
                 end do
-                call regtransrot(y(1:N3), Hnew, 0d0)
+                !all regtransrot(y(1:N3), Hnew, 0d0)
                 call fm_set_g(Hnew, yp)
                 return
             end if
