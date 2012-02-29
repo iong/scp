@@ -415,4 +415,30 @@ contains
         call gemm_restricted(GU, U, G, 'T', 1d0)
         deallocate(U, GU, UGU)
     end subroutine regtransrot
+
+     subroutine printev(A, name)
+        double precision :: A(:,:)
+        character(*) :: name
+        double precision, allocatable :: AA(:,:), work(:), W(:), U(:,:)
+        integer,allocatable :: iwork(:),isuppz(:)
+
+        integer :: N, info, NEV
+        interface
+            double precision function dlamch(s)
+                character(1) :: s
+            end function dlamch
+        end interface
+
+        N = size(A, 1)
+
+        allocate(AA,source=A)
+        allocate(U(N,N))
+        allocate(work(N * 26), W(N), iwork(N * 10), isuppz(2*N))
+        call dsyevr('V', 'A', 'L', N, AA, N, 0d0, 0d0, 1, 6, &
+                DLAMCH('Safe minimum'), NEV, W, U, N, isuppz, &
+                work, size(work), iwork, size(iwork), info)
+        print '(A, 15F14.6)',name, W(1:9),W(N-5:N)
+
+        deallocate(AA,W,work,iwork,isuppz, U)
+    end subroutine printev
 end module ffvgw_mod
