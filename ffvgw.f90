@@ -251,9 +251,8 @@ contains
             OmegaUOmega%x (OmegaUOmega%iia) = OmegaUOmega%x (OmegaUOmega%iia) + 1d0
 
             call OmegaUOmega % force_symmetry()
-            !call regtransrot(y(1:N3), OmegaUOmega, 0d0)
+            call regtransrot(y(1:N3), OmegaUOmega, 0d0)
             nullify(self%Omega%x)
-
         end subroutine rhs
     end subroutine converge
 
@@ -371,11 +370,21 @@ contains
         implicit none
         class(ffvgw), target :: self
         double precision :: logdet
+        
+        integer :: N3
 
-        self % Omega % x => self % y(3*self%Natom + 1 : &
-              3*self%Natom + self % Omega % nnz)
-        logdet = self % Omega%logdet()
-        nullify(self%Omega%x)
+        type(csr) :: O2
+
+        N3 = 3 * self%Natom
+
+        O2 = self % Omega
+        allocate(O2%x,source=self % y(N3 + 1 : N3 + self % Omega % nnz))
+
+        call regtransrot(self%y(1:3*self%Natom), O2, 1d0)
+
+        logdet =  O2%logdet()
+
+        deallocate(O2%x)
     end function logdet
 
 
