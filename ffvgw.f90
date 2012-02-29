@@ -23,7 +23,7 @@ module ffvgw_mod
 
 contains
 
-    subroutine set_range(self, Vcutoff, Gcutoff)
+    subroutine set_range(self, Gcutoff, Vcutoff)
         implicit none
         class(ffvgw) :: self
         double precision, intent(in) :: Vcutoff, Gcutoff
