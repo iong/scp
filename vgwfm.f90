@@ -215,7 +215,7 @@ contains
         DO j=1, 3 * self%Natom
             logdet = logdet + LOG(ABS( G(j,j) ))
         ENDDO
-        logdet = 1d0/ (2d0* logdet)
+        logdet = 2d0* logdet
         deallocate(G)
     end function logdet
 
