@@ -449,9 +449,9 @@ contains
                   B, size(B, 1), 0d0, S, slw)
             if (lbeta /= 0d0) then
                 do j=1,w
-                    p0 = C%ia(i+j-1)
-                    p1 = C%ia(i+j) - 1
-                    C%x(p0:p1) = lbeta* C%x(p0:p1) + S(j,C%ja(p0:p1))
+                    do p0 = C%ia(i+j-1), C%ia(i+j) - 1
+                        C%x(p0) = lbeta* C%x(p0) + S(j,C%ja(p0))
+                    end do
                 end do
             else
                 do j=1,w
