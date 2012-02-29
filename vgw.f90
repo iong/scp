@@ -178,13 +178,14 @@ module vgw_mod
         class(vgw) :: self
         double precision, intent(in) :: Q0(:), kT
         double precision :: vgw_F
-        real*8 ::  start_time, stop_time
+        real*8 ::  start_time, stop_time, c0
         integer :: i
         
         !m0 = minval(mass)
         !m0 = mass
         !LAMBDA = 1d0/(sigma0 * sqrt(m0 * epsilon0))
         self % kT = kT / self % epsilon0
+        c0 = 2d0 * M_PI * exp(0.5) *self%epsilon0 * self%sigma0
         !invmass = m0/mass
 
         call self % analyze(q0 / self % sigma0)
@@ -194,15 +195,19 @@ module vgw_mod
         call cpu_time(start_time)
         i = 1
         do
-            call self % converge(1d-4)
-
             if (self % kT > 0.8) then
                 exit
             endif
+            
+            call self % converge(1d-4)
 
-            vgw_F = self%U - self%kT * self%logdet() &
-                    - 3 * self%Natom * self%kT * log(2d0 * M_PI * exp(0.5) * self%kT)
-            print *, self % kT, vgw_f, self % qconv, self % gconv
+            vgw_F =  (self%U - self%kT * self%logdet() )/self%Natom &
+                    - 3  * self%kT * log(self % kT * c0)
+            vgw_F = self%epsilon0 * vgw_F
+
+            print '(F6.3,2F12.7,2E12.5)', self % kT, self%U/self%Natom, &
+                    vgw_F, self % qconv, self % gconv
+
             self % kT = self %kT + 0.1
             i = i + 1
         end do
