@@ -12,7 +12,7 @@ typedef struct cholmod_state_struct {
 } cholmod_state;
 
 
-void cholmod_init(cholmod_state *s, int N, int *ia, int *ja)
+void cholmod_init(cholmod_state *s, int N, int *ia, int *ja, double *G)
 {
      s->c = (cholmod_common *)malloc(sizeof(cholmod_common));
      cholmod_start (s->c);
@@ -25,15 +25,16 @@ void cholmod_init(cholmod_state *s, int N, int *ia, int *ja)
      s->A->ncol = N ;
      s->A->nzmax = ia[N] - ia[0];
      s->A->packed = 1 ;    /* default is packed (A->nz not present) */
-     s->A->stype = 1 ;
+     s->A->sorted = 1;
+     s->A->stype = -1 ;
      s->A->itype = s->c->itype ;
-     s->A->xtype = CHOLMOD_PATTERN ;
+     s->A->xtype = CHOLMOD_REAL ;
      s->A->dtype = s->c->dtype ;
 
      s->A->nz = NULL ;
      s->A->p = ia ;
      s->A->i = ja ;
-     s->A->x = NULL ;
+     s->A->x = G ;
      s->A->z = NULL ;
 
      s->L = cholmod_analyze (s->A, s->c) ;
@@ -71,6 +72,7 @@ static double logdet_supernodal_factor(cholmod_factor *L)
 	       logdet += log(fabs(Lx[psx + jj + jj*nsrow]));
 	  }
      }
+     logdet *= 2.0;
 
      printf ("logdet = %lg\n", logdet);
      return logdet;

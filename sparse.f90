@@ -41,12 +41,12 @@ module sparse
    
 
     interface
-        subroutine cholmod_init(s, N, ia, ja) BIND(C)
+        subroutine cholmod_init(s, N, ia, ja, G) BIND(C)
             use, intrinsic :: iso_c_binding
             import cholmod_state
             type(cholmod_state) :: s
             integer(C_INT), value :: N
-            type(C_PTR), value :: ia, ja
+            type(C_PTR), value :: ia, ja, G
         end subroutine cholmod_init
             
         real(C_DOUBLE) function cholmod_logdet(s, G) BIND(C)
@@ -382,12 +382,18 @@ contains
         class(csr), target :: self
         double precision :: logdet
 
+        self % ia = self % ia - 1
+        self % ja = self % ja - 1
+
         if (.NOT. c_associated(self % s % c)) then
             call cholmod_init(self % s, self % nrows, C_LOC(self%ia), &
-                    C_LOC(self%ja))
+                    C_LOC(self%ja), C_LOC(self%x))
         end if
 
         logdet = cholmod_logdet(self % s, C_LOC(self%x))
+        
+        self % ia = self % ia + 1
+        self % ja = self % ja + 1
     end function logdet
 
     subroutine cleanup(self)
