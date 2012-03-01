@@ -44,10 +44,8 @@ program clustergs
         read(arg, *) kT
     end if
 
-    r0 = r0! / sigma0
-
     call fm%init(Natom, 'LJ')
-    call fm%set_range(5d0, 5d0)
+    call fm%set_range(1.8d0, 5d0)
     E0 = fm%F(reshape(r0, (/3*Natom/)) , kT)
     call fm%cleanup()
 

@@ -195,7 +195,7 @@ module vgw_mod
         call cpu_time(start_time)
         i = 1
         do
-            if (self % kT > 0.8) then
+            if (self % kT > 0.5) then
                 exit
             endif
             
@@ -208,7 +208,7 @@ module vgw_mod
             print '(F6.3,2F12.7,2E12.5)', self % kT, self%U/self%Natom, &
                     vgw_F, self % qconv, self % gconv
 
-            self % kT = self %kT + 0.1
+            self % kT = self %kT + 0.01
             i = i + 1
         end do
         call cpu_time(stop_time)
