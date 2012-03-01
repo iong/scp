@@ -4,10 +4,15 @@ module sparse
     implicit none
     private
 
+    type, bind(C) :: cholmod_state
+        type(c_ptr) :: c, A, L
+    end type cholmod_state
+
     type,public :: csr
         integer :: nrows, ncols, nnz, nnz_row_max
         integer(c_int), pointer :: ia(:), ja(:), iia(:)
         real(c_double), pointer :: x(:)
+        type(cholmod_state) :: s
     contains
         procedure :: init
         procedure :: reallocate => csr_reallocate
@@ -33,12 +38,29 @@ module sparse
         procedure :: write => csr_write
     end type csr
 
+   
+
     interface
-        real(C_DOUBLE) function cholmod_logdet(G, ia, ja, N) BIND(C)
+        subroutine cholmod_init(s, N, ia, ja, G) BIND(C)
             use, intrinsic :: iso_c_binding
-            type(C_PTR), value :: G, ia, ja
+            import cholmod_state
+            type(cholmod_state) :: s
             integer(C_INT), value :: N
+            type(C_PTR), value :: ia, ja, G
+        end subroutine cholmod_init
+            
+        real(C_DOUBLE) function cholmod_logdet(s, G) BIND(C)
+            use, intrinsic :: iso_c_binding
+            import cholmod_state
+            type(cholmod_state) :: s
+            type(C_PTR), value :: G
         end function cholmod_logdet
+
+        subroutine cholmod_cleanup(s) BIND(C)
+            use, intrinsic :: iso_c_binding
+            import cholmod_state
+            type(cholmod_state) :: s
+        end subroutine cholmod_cleanup
 
         subroutine csr_sort_ja(M, ia, ja) bind(c)
             use, intrinsic ::  iso_c_binding
@@ -70,6 +92,8 @@ contains
         allocate(self % ia(nrows + 1), self % iia(nrows), self % ja(nnz) )
 
         if (lvalues) allocate (self % x (nnz) )
+
+        self % s % c = c_null_ptr
 
     end subroutine init
 
@@ -358,14 +382,26 @@ contains
         class(csr), target :: self
         double precision :: logdet
 
-        logdet = cholmod_logdet(C_LOC(self%x), C_LOC(self%ia), &
-                C_LOC(self%ja), self%nrows)
+        self % ia = self % ia - 1
+        self % ja = self % ja - 1
+
+        if (.NOT. c_associated(self % s % c)) then
+            call cholmod_init(self % s, self % nrows, C_LOC(self%ia), &
+                    C_LOC(self%ja), C_LOC(self%x))
+        end if
+
+        logdet = cholmod_logdet(self % s, C_LOC(self%x))
+        
+        self % ia = self % ia + 1
+        self % ja = self % ja + 1
     end function logdet
 
     subroutine cleanup(self)
         implicit none
         class(csr) :: self
         integer :: istat
+
+        call cholmod_cleanup(self % s)
 
         ! possible double deallocation somewhere else
         if (associated(self % x)) then
