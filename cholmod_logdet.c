@@ -39,7 +39,7 @@ void cholmod_init(cholmod_state *s, int N, int *ia, int *ja, double *G)
 
      s->L = cholmod_analyze (s->A, s->c) ;
 
-      printf("The selected method is :%d\n", s->c->selected);
+      /* printf("The selected method is :%d\n", s->c->selected); */
 }
 
 static double logdet_supernodal_factor(cholmod_factor *L)
@@ -72,9 +72,7 @@ static double logdet_supernodal_factor(cholmod_factor *L)
 	       logdet += log(fabs(Lx[psx + jj + jj*nsrow]));
 	  }
      }
-     logdet *= 2.0;
 
-     printf ("logdet = %lg\n", logdet);
      return logdet;
 }
 
@@ -82,10 +80,9 @@ static double logdet_supernodal_factor(cholmod_factor *L)
 double cholmod_logdet(cholmod_state *s, double *G)
 {    
      s->A->x = G;
-     s->A->xtype = CHOLMOD_REAL ;
      cholmod_factorize(s->A, s->L, s->c);
 
-     return logdet_supernodal_factor(s->L);
+     return 2.0 * logdet_supernodal_factor(s->L);
 }
 
 void cholmod_cleanup(cholmod_state *s)
