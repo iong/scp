@@ -26,7 +26,7 @@ void cholmod_init(cholmod_state *s, int N, int *ia, int *ja, double *G)
      s->A->nzmax = ia[N] - ia[0];
      s->A->packed = 1 ;    /* default is packed (A->nz not present) */
      s->A->sorted = 1;
-     s->A->stype = -1 ;
+     s->A->stype = 1 ;
      s->A->itype = s->c->itype ;
      s->A->xtype = CHOLMOD_REAL ;
      s->A->dtype = s->c->dtype ;
