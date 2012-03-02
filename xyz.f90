@@ -21,7 +21,7 @@ subroutine load_xyz(fname, r)
     implicit none
     real*8, intent(out),allocatable :: r(:,:)
     character(LEN=*), intent(in) :: fname
-    character(256):: molname
+    character(256):: waste
     integer :: j, N
 
     open(33,file=fname,STATUS='OLD')
@@ -35,8 +35,8 @@ subroutine load_xyz(fname, r)
 !        stop
 !    end if
  
-   read(33,"(A)") molname
-    read(33, *) (molname, r(:, j), j=1,N)
+   read(33, *)
+    read(33, *) (waste, r(:, j), j=1,N)
     close(33)
 end subroutine
 end module xyz

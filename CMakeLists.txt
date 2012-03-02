@@ -46,7 +46,8 @@ include(FindCHOLMOD.cmake)
 
 
 ADD_EXECUTABLE(clustergs  utils.f90 dlsode.f integrator.f90 lsode.f90 ek.f90
-	vgw.f90 vgwfm.f90 cholmod_logdet.c csr_sort_ja.c reallocate.f90 sparse.f90 ffvgw.f90 integration.f90 clustergs.f90)
+	vgw.f90 vgwfm.f90 cholmod_logdet.c csr_sort_ja.c reallocate.f90
+	sparse.f90 ffvgw.f90 integration.f90 xyz.f90 clustergs.f90)
 
     
 include_directories(clustergs ${CHOLMOD_INC})
