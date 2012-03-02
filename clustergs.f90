@@ -64,8 +64,4 @@ program clustergs
     end do
     call fm%cleanup()
 
-    !U(2:4) = U(2:4) * epsilon0
-
-    write(*,'(I10,2F12.7)') Natom, E0, fm % gconv
-
 end program clustergs
