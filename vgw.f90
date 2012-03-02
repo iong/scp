@@ -173,44 +173,33 @@ module vgw_mod
         
     end subroutine CONVERGE
 
-    function vgw_F(self, Q0, kT)
+    function vgw_F(self, Q0, kT, noinit)
         IMPLICIT NONE
         class(vgw) :: self
         double precision, intent(in) :: Q0(:), kT
+        logical, intent(in), optional :: noinit
         double precision :: vgw_F
         real*8 ::  start_time, stop_time, c0
         integer :: i
-        
-        !m0 = minval(mass)
-        !m0 = mass
-        !LAMBDA = 1d0/(sigma0 * sqrt(m0 * epsilon0))
+        logical :: lnoinit = .FALSE.
+
         self % kT = kT / self % epsilon0
         c0 = 2d0 * M_PI * exp(0.5) *self%epsilon0 * self%sigma0
-        !invmass = m0/mass
 
-        call self % analyze(q0 / self % sigma0)
-        call self % init_prop(q0 / self % sigma0)
+        if (present(noinit)) lnoinit = noinit
+        if (.NOT. lnoinit) then
+            call self % analyze(q0 / self % sigma0)
+            call self % init_prop(q0 / self % sigma0)
+        end if
 
         ! solve the VGW equations, measure CPU time
         call cpu_time(start_time)
-        i = 1
-        do
-            if (self % kT > 0.5) then
-                exit
-            endif
-            
-            call self % converge(1d-4)
+        call self % converge(1d-4)
 
-            vgw_F =  (self%U - self%kT * self%logdet() )/self%Natom &
+        vgw_F =  (self%U - self%kT * self%logdet() )/self%Natom &
                     - 3  * self%kT * log(self % kT * c0)
-            vgw_F = self%epsilon0 * vgw_F
+        vgw_F = self%epsilon0 * vgw_F
 
-            print '(F6.3,2F12.7,2E12.5)', self % kT, self%U/self%Natom, &
-                    vgw_F, self % qconv, self % gconv
-
-            self % kT = self %kT + 0.01
-            i = i + 1
-        end do
         call cpu_time(stop_time)
 
         self % rt = 0
