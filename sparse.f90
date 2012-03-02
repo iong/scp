@@ -667,11 +667,10 @@ contains
         end if
 
         C%x = 0d0
-!$omp parallel private(w, x)
+!$omp parallel private(w, x, i, p)
         allocate (w(A%ncols),  x(A%ncols))
-        x = 0
         w = 0
-!$omp do private(i, p) schedule(dynamic)
+!$omp do schedule(dynamic, 12)
         do i=1,C%nrows
             x = 0d0
             do p = A%ia(i), A%ia(i+1)-1

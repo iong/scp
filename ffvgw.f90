@@ -288,7 +288,7 @@ contains
         allocate(Gband(3,G%nnz_row_max), Gband_ja(G%nnz_row_max), &
               UXYband(3, UXY%nnz_row_max))
 
-        !$omp do schedule(dynamic)
+        !$omp do schedule(dynamic, 12)
         do I1=1,N3-3, 3
             Gbandpos = 1
             Gband_ja = 0
