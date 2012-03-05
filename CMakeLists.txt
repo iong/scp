@@ -45,15 +45,15 @@ include(FindCHOLMOD.cmake)
 
 
 
-ADD_EXECUTABLE(clustergs  utils.f90 dlsode.f integrator.f90 lsode.f90 ek.f90
+ADD_EXECUTABLE(scp  utils.f90 dlsode.f integrator.f90 lsode.f90 ek.f90
 	vgw.f90 vgwfm.f90 cholmod_logdet.c csr_sort_ja.c reallocate.f90
-	sparse.f90 ffvgw.f90 integration.f90 xyz.f90 clustergs.f90)
+	sparse.f90 ffvgw.f90 integration.f90 xyz.f90 scp.f90)
 
     
-include_directories(clustergs ${CHOLMOD_INC})
+include_directories(scp ${CHOLMOD_INC})
 
-target_link_libraries(clustergs ${CHOLMOD_LIBRARIES} ${LAPACK_LIBRARIES})
+target_link_libraries(scp ${CHOLMOD_LIBRARIES} ${LAPACK_LIBRARIES})
 
 if (APPLE)
-  set_target_properties(clustergs PROPERTIES LINK_FLAGS -Wl,-no_pie)
+  set_target_properties(scp PROPERTIES LINK_FLAGS -Wl,-no_pie)
 endif()
