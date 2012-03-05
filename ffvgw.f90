@@ -243,7 +243,8 @@ contains
 
             call self% Omega % gemv(self%UX, yp)
             self % qconv = sqrt(sum(yp(1:N3)**2)/ self % Natom)
-            yp(1:N3) = -2d0 * self % kT * yp(1:N3)
+            !yp(1:N3) = -2d0 * self % kT * yp(1:N3)
+            yp(1:N3) = - yp(1:N3)
 
             call self%Omega % multiply_restricted(self%UXY, self%OmegaU)
            
