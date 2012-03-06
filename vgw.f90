@@ -57,6 +57,7 @@ module vgw_mod
 
         self % sigma0 = 1d0
         self % epsilon0 = 1d0
+        self % bl = 1d10
 
         if (self % species=='pH2-4g') then
             self % NGAUSS=4
