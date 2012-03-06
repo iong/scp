@@ -32,6 +32,7 @@ module vgw_mod
         procedure :: converge
         procedure :: set_bl
         procedure :: get_q
+        procedure :: Utot0
     end type vgw
 
     public :: transrot_subspace, info, debug
@@ -210,7 +211,7 @@ module vgw_mod
     end function vgw_F
 
 
-    function classical_Utot(self, Q0) result(U)
+    function Utot0(self, Q0) result(U)
         implicit none
         class(vgw) :: self
         double precision, intent(in) :: Q0(:,:)
@@ -229,7 +230,7 @@ module vgw_mod
                         EXP(-self % LJA ( 1 : self % NGAUSS ) * rsq) )
             ENDDO
         ENDDO
-    end function classical_Utot
+    end function Utot0
 
 
     subroutine set_bl(self, bl)
