@@ -12,7 +12,7 @@ program scp
 
     integer :: i, Natom, status, narg, nargs
 
-    double precision :: kT=0.02d0, kTstop=0.3
+    double precision :: kT=0.03d0, kTstop=0.3
 
     double precision, allocatable :: r0(:,:)
     double precision :: Uref, E0
@@ -66,7 +66,7 @@ program scp
 
     do
         print '(F6.3,2F12.7,2E12.5)', kT, E0, p % qconv, p % gconv
-        kT = kT + 0.01
+        kT = kT + 0.03
         if (kT >  kTstop) exit
         E0 = p%F(reshape(r0, (/3*Natom/)) , kT, .TRUE.)
     end do
