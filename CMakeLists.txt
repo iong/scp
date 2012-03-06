@@ -13,9 +13,13 @@ if (CMAKE_Fortran_COMPILER_ID STREQUAL Intel)
     set(MKL_LIBRARIES -mkl=parallel)
     set(LAPACK_LIBRARIES -mkl=parallel)
     set(CMAKE_Fortran_FLAGS_RELEASE "-O3 -xHost -ipo -heap-arrays -openmp")
-    set(CMAKE_Fortran_FLAGS_DEBUG "-fpe0 -traceback -ftrapuv -check all  -warn unused -O0 -g -heap-arrays -openmp")
-    set(CMAKE_Fortran_FLAGS_RELWITHDEBINFO "-O2 -g -openmp")
     set(CMAKE_C_FLAGS_RELEASE "-O3 -xHost -ipo -openmp")
+
+    set(CMAKE_Fortran_FLAGS_DEBUG "-fpe0 -traceback -ftrapuv -check all  -warn unused -O0 -g -heap-arrays -openmp")
+
+    set(CMAKE_Fortran_FLAGS_RELWITHDEBINFO "-O2 -g -openmp")
+    set(CMAKE_C_FLAGS_RELWITHDEBINFO "-O2 -g -openmp")
+
     set(CMAKE_AR xiar)
 
 elseif(CMAKE_Fortran_COMPILER_ID STREQUAL GNU)
