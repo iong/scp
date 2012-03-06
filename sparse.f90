@@ -419,20 +419,27 @@ contains
     end subroutine cleanup
 
     !> y = A*x 
-    subroutine gemv (A, x, y)
+    subroutine gemv (A, x, y, alpha)
         implicit none
         class(csr) :: A
         double precision, intent(in) :: x(:)
+        double precision, intent(in), optional :: alpha
         double precision, intent(out) :: y(:)
 
         integer :: i, p
+        double precision :: lalpha = 1d0, c
 
-        y = 0d0
+        if (present(alpha)) lalpha = alpha
+
+!$omp parallel do schedule(static) private(c)
         do i = 1, A%nrows
+            c = 0d0
             do p = A%ia(i), A%ia(i+1) - 1
-                y(i) = y(i) +  A%x(p) * x( A%ja(p) )
+                c = c +  A%x(p) * x( A%ja(p) )
             end do
+            y(i) = c * lalpha
         end do
+!$omp end parallel do
     end subroutine gemv
 
     subroutine gemm (A, x, y)
