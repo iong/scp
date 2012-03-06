@@ -53,6 +53,11 @@ program scp
     type is(ffvgw)
         call p%set_range(1.8d0, 2.75d0)
     end select
+
+    ! kT = 0
+    E0 = p%Utot0(r0)
+    print '(F6.3,2F12.7,2E12.5)', 0d0, E0, 0d0, 0d0
+
     E0 = p%F(reshape(r0, (/3*Natom/)) , kT)
 
     !ff % Omega % x => ff%y(3*Natom+1 : 3*Natom + ff%Omega%nnz)
