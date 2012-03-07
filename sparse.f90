@@ -25,6 +25,7 @@ module sparse
         procedure :: write_3rows_urnd
         procedure :: get_3x3_diag 
         procedure :: set_3x3_diag
+        procedure :: put_3x3_block
         procedure :: gemv
         procedure :: gemm
         procedure :: multiply
@@ -159,6 +160,7 @@ contains
 
         w = 0
 
+
         do i=1, self%nrows
             do p=self%ia(i), self%ia(i+1)-1
                 j = self%ja(p)
@@ -175,22 +177,77 @@ contains
         end do
     end subroutine force_symmetry
 
+    subroutine omp_work_range(self, r0, r1)
+        use omp_lib
+        implicit none
+        class(csr) :: self
+        integer, intent(out) :: r0, r1
+        integer :: nthreads, n, i, wrow, wsum
+        double precision :: wavg
+        integer, allocatable :: row(:)
+        
+        nthreads = omp_get_num_threads()
+        allocate(row(0:nthreads))
+
+        wavg = real(sum(self%iia - self%ia(1:self%nrows))) / nthreads
+
+        n = 0
+        row(n) = 1
+        wsum = 0
+        do i=1,self%nrows
+            wrow = self%iia(i) - self%ia(i)
+            if (abs(wsum - wavg*n) < abs(wsum + wrow - wavg*n) ) then
+                n = n+1
+                row(n) = i
+            end if
+            wsum = wsum + wrow
+        end do
+        row(nthreads) = self%nrows+1
+
+        i = omp_get_thread_num()
+        r0 = row(i)
+        r1 = row(i+1)
+        deallocate(row)
+    end subroutine
+
+
+    subroutine put_3x3_block(self, i, p, A)
+        class(csr) :: self
+        integer, intent(in) :: i, p
+        double precision, intent(in) :: A(3,3)
+        
+        integer :: rowlen
+
+        rowlen = self%ia(i+1) - self%ia(i)
+        self%x(p : p+2) = A(1,:)
+        self%x(p+rowlen : p+rowlen+2) = A(2,:)
+        self%x(p+2*rowlen : p+2*rowlen+2) = A(3,:)
+    end subroutine
+
+
     subroutine mirror_uplo(self)
         implicit none
         class(csr) :: self
 
-        integer :: w( self % nrows ), i, j, p
+        integer :: i, j, p, r0, r1
+        integer, allocatable :: w(:)
 
+        call omp_work_range(self, r0, r1)
+        !print *, 'range:', r0, r1
+        allocate(w(r0:r1))
         w = 0
         do i=1, self%nrows
             do p=self%iia(i)+1, self%ia(i+1)-1
                 j = self%ja(p)
+                if (j<r0 .OR. j>= r1) cycle
 
                 self % x ( self%ia(j) + w(j) ) = self % x(p)
 
                 w(j) = w(j) + 1
             end do
         end do
+        deallocate(w)
+!$omp barrier
     end subroutine mirror_uplo
 
     !> Get the horizontal 3x band after the diagonal 3x3 block
@@ -427,11 +484,12 @@ contains
         double precision, intent(out) :: y(:)
 
         integer :: i, p
-        double precision :: lalpha = 1d0, c
+        double precision :: lalpha, c
 
+        lalpha = 1d0
         if (present(alpha)) lalpha = alpha
 
-!$omp parallel do schedule(static) private(c)
+!$omp do schedule(static)
         do i = 1, A%nrows
             c = 0d0
             do p = A%ia(i), A%ia(i+1) - 1
@@ -439,7 +497,7 @@ contains
             end do
             y(i) = c * lalpha
         end do
-!$omp end parallel do
+!$omp end do
     end subroutine gemv
 
     subroutine gemm (A, x, y)
@@ -673,11 +731,9 @@ contains
             return
         end if
 
-        C%x = 0d0
-!$omp parallel private(w, x, i, p)
         allocate (w(A%ncols),  x(A%ncols))
         w = 0
-!$omp do schedule(dynamic, 12)
+!$omp do schedule(dynamic, 6)
         do i=1,C%nrows
             x = 0d0
             do p = A%ia(i), A%ia(i+1)-1
@@ -690,7 +746,6 @@ contains
         end do
 !$omp end do
         deallocate(w, x)
-!$omp end parallel
     end subroutine multiply_restricted
 
 

@@ -224,6 +224,8 @@ contains
             double precision, intent(out), target :: YP(:)
             type(csr) :: OmegaUOmega
 
+            integer :: i
+
             OmegaUOmega = self % Omega
             OmegaUOmega%x => yp(N3+1 : N3 + self%Omega%nnz)
 
@@ -236,19 +238,21 @@ contains
 
             self%Omega%x => y(N3+1 : N3 + self%Omega%nnz)
 
+!$omp parallel
             call self%Omega%multiply_restricted(self%Omega, G)
-            G%x = G%x * 2d0 * self % kT
-            call GaussianAverage(self, y(1:N3), G, self%U, self%UX, self%UXY)
+!$omp do schedule(static)
+            do i=1,G%nnz
+                G%x(i) = G%x(i) * 2d0 * self % kT
+            end do
+!$omp end do
+            call GaussianAverage(self, y, G, self%U, self%UX, self%UXY)
 
 
-            call self% Omega % gemv(self%UX, yp)
-            self % qconv = sqrt(sum(yp(1:N3)**2)/ self % Natom)
-            !yp(1:N3) = -2d0 * self % kT * yp(1:N3)
-            yp(1:N3) = - yp(1:N3)
-
+            !call self% Omega % gemv(self%UX, yp, 2d0 * self % kT)
+            call self% Omega % gemv(self%UX, yp, -1d0)
             call self%Omega % multiply_restricted(self%UXY, self%OmegaU)
-           
             call self%OmegaU % multiply_restricted(self%Omega, OmegaUOmega)
+!$omp end parallel
             OmegaUOmega%x = -OmegaUOmega%x
             OmegaUOmega%x (OmegaUOmega%iia) = OmegaUOmega%x (OmegaUOmega%iia) + 1d0
 
@@ -256,6 +260,7 @@ contains
             !call regtransrot(y(1:N3), OmegaUOmega, 0d0)
             nullify(self%Omega%x)
 
+            self % qconv = sqrt(sum(yp(1:N3)**2)/ self % Natom)
             self % gconv = sqrt(sum(yp(N3:)**2)/ OmegaUOmega % nnz)
         end subroutine rhs
     end subroutine converge
@@ -300,31 +305,27 @@ contains
         class(ffvgw) :: self
         double precision, intent(in) :: q(:)
         type(csr), intent(in) :: G
-        double precision, intent(out) :: U, UX(:)
+        double precision, intent(out) :: U, UX(3 *self%Natom)
         type(csr), intent(out) :: UXY
 
-        INTEGER :: J,I1,I2,IG, p, N3
+        INTEGER :: J,I1,I2,IG, p, p1, p2, N3
         double precision :: AG(3,3), DETA,DETAG,QZQ,U12, Gb12(3,3),A(3,3), &
               Zq(3), Z(3,3),Q12(3), UXY0(3,3), UX0(3)
 
-        integer :: Gbandpos, UXYbandpos
+        integer :: Gbandpos
 
-        double precision, allocatable :: UXYband(:,:), UXYbdiag(:,:), &
-                Gband(:,:), Gbdiag(:,:)
+        double precision, allocatable :: Gband(:,:), Gbdiag(:,:)
         integer, allocatable :: Gband_ja(:)
 
         N3 = 3 * self%Natom
+        allocate(Gbdiag(3,N3), Gband(3,G%nnz_row_max), Gband_ja(G%nnz_row_max))
 
-        allocate(Gbdiag(3,N3), UXYbdiag(3,N3))
         call G%get_3x3_diag(Gbdiag)
 
-        U = 0; UX = 0;  UXY%x=0; UXYbdiag=0;
-        !$omp parallel default(private) shared(self, q, G, UXY, Gbdiag, N3) reduction(+:U,UX,UXYbdiag)
-
-        allocate(Gband(3,G%nnz_row_max), Gband_ja(G%nnz_row_max), &
-              UXYband(3, UXY%nnz_row_max))
-
-        !$omp do schedule(dynamic, 12)
+!$omp single
+        U = 0; UX = 0;
+!$omp end single
+!$omp do schedule(dynamic) reduction(+:U,UX)
         do I1=1,N3-3, 3
             Gbandpos = 1
             Gband_ja = 0
@@ -333,8 +334,6 @@ contains
                 Gband_ja(1 : G%ia(I1+1) - G%iia(I1) - 3) = &
                       G%ja(G%iia(I1) + 3 : G%ia(I1 + 1) - 1)
             end if
-
-            UXYband = 0d0
 
             do p=UXY%iia(I1) + 3, UXY%ia(I1+1)-1, 3 
                 I2 = UXY%ja(p)
@@ -386,22 +385,29 @@ contains
                 UX(I1 : I1 + 2) = UX(I1 : I1 + 2) + UX0
                 UX(I2 : I2 + 2) = UX(I2 : I2 + 2) - UX0
 
-                UXYbdiag(:,I1 : I1 + 2) = UXYbdiag(:,I1 : I1 + 2) + UXY0
-                UXYbdiag(:,I2 : I2 + 2) = UXYbdiag(:,I2 : I2 + 2) + UXY0
-
-                UXYbandpos = P - UXY%iia(I1) + 1
-                UXYband(:,UXYbandpos : UXYbandpos + 2) = -UXY0
-
+                UXY0 = -UXY0
+                call UXY%put_3x3_block(I1, p, UXY0)
             end do ! I2
-            call UXY%write_3rows_urnd(I1, UXYband(:,4:))
 
         end do ! I1
-        !$omp end do
-        deallocate (Gband_ja, Gband, UXYband)
-        !$omp end parallel
-        call UXY%set_3x3_diag(UXYbdiag)
+!$omp end do
         call UXY%mirror_uplo()
-        deallocate(Gbdiag, UXYbdiag)
+        deallocate (Gbdiag, Gband_ja, Gband )
+
+!$omp do schedule(static)
+        do i1=1,N3
+            p = UXY%iia(i1) - mod(i1-1,3)
+            p1 = UXY%ia(i1)
+            p2 = UXY%ia(i1+1) - 1
+            UXY%x(p : p+2) = 0d0
+
+            UX0(1) = -sum(UXY%x(p1 : p2 : 3))
+            UX0(2) = -sum(UXY%x(p1+1 : p2 : 3))
+            UX0(3) = -sum(UXY%x(p1+2 : p2 : 3))
+
+            UXY%x(p : p+2) = UX0
+        end do
+!$omp end do
     end subroutine GaussianAverage
 
 
