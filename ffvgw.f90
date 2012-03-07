@@ -253,7 +253,7 @@ contains
             OmegaUOmega%x (OmegaUOmega%iia) = OmegaUOmega%x (OmegaUOmega%iia) + 1d0
 
             call OmegaUOmega % force_symmetry()
-            call regtransrot(y(1:N3), OmegaUOmega, 0d0)
+            !call regtransrot(y(1:N3), OmegaUOmega, 0d0)
             nullify(self%Omega%x)
 
             self % gconv = sqrt(sum(yp(N3:)**2)/ OmegaUOmega % nnz)
