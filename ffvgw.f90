@@ -260,6 +260,41 @@ contains
         end subroutine rhs
     end subroutine converge
 
+     subroutine work_range(UXY, r0, r1)
+        use omp_lib
+        implicit none
+        type(csr) :: UXY
+        integer, intent(out) :: r0, r1
+        integer :: nthreads, n, i, wrow, wsum
+        double precision :: wavg
+        integer, allocatable :: row(:)
+        
+        nthreads = omp_get_num_threads()
+        allocate(row(nthreads+1))
+
+        wavg = real(sum(UXY%iia(::3) - UXY%ia(1:UXY%nrows : 3))) / nthreads
+        wavg = wavg / 3
+
+        n = 1
+        row(n) = 1
+        wsum = 0
+        do i=1,UXY%nrows,3
+            wrow = (UXY%ia(i+1) - UXY%iia(i))/3
+            if (abs(wsum - wavg*n) < abs(wsum + wrow - wavg*n) ) then
+                n = n+1
+                row(n) = i
+            end if
+            wsum = wsum + wrow
+        end do
+        row(nthreads+1) = UXY%nrows-2 ! skip the last particle!
+
+        i = omp_get_thread_num()
+        r0 = row(i+1)
+        r1 = row(i+2)
+        deallocate(row)
+    end subroutine
+
+
     SUBROUTINE GaussianAverage(self, q, G, U, UX, UXY)
         IMPLICIT NONE
         class(ffvgw) :: self
