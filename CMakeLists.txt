@@ -7,7 +7,7 @@ cmake_minimum_required(VERSION 2.8)
 # BLA_VENDOR: Intel10_lp64, ACML_MP, ACML_FM4_MP, ACML, etc.
 set(CMAKE_C_COMPILER_INIT "icc")
 set(CMAKE_Fortran_COMPILER_INIT "ifort")
-set(BLA_VENDOR "Intel10_64lp")
+set(BLA_VENDOR "mkl_parallel")
 
 PROJECT(SCP C Fortran)
 
@@ -36,7 +36,7 @@ elseif (CMAKE_Fortran_COMPILER_ID STREQUAL PGI OR CMAKE_C_COMPILER_ID STREQUAL P
 	set(BLA_VENDOR "ACML")
 endif()
 
-include(FindBLAS.cmake)
+include(FindBLAS2.cmake)
 
 include(FindCHOLMOD.cmake)
 
