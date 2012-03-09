@@ -103,10 +103,10 @@ contains
         class(csr) :: self
         integer, intent(in) :: n
 
-        self % ja => reallocate(self %ja, n)
+        self % ja => reallocatei(self %ja, n)
 
         if (associated(self % x)) then
-            self % x => reallocate(self % x, n)
+            self % x => reallocated(self % x, n)
         end if
     end subroutine csr_reallocate
 
