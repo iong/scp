@@ -12,23 +12,30 @@ set(BLA_VENDOR "mkl_parallel")
 PROJECT(SCP C Fortran)
 
 if (CMAKE_Fortran_COMPILER_ID STREQUAL Intel)
-    set(CMAKE_Fortran_FLAGS_RELEASE "-O3 -xHost -ipo -heap-arrays -openmp")
-    set(CMAKE_C_FLAGS_RELEASE "-O3 -xHost -ipo -openmp")
+    set(CMAKE_C_FLAGS "-openmp")
+    set(CMAKE_Fortran_FLAGS "-heap-arrays -openmp")
+    set(CMAKE_Fortran_FLAGS_RELEASE "-O3 -xHost -ipo")
+    set(CMAKE_C_FLAGS_RELEASE "-O3 -xHost -ipo")
 
-    set(CMAKE_Fortran_FLAGS_DEBUG "-fpe0 -traceback -ftrapuv -check all  -warn unused -O0 -g -heap-arrays -openmp")
+    set(CMAKE_Fortran_FLAGS_DEBUG "-fpe0 -traceback -ftrapuv -check all  -warn unused -O0 -g")
 
-    set(CMAKE_Fortran_FLAGS_RELWITHDEBINFO "-O2 -g -openmp")
-    set(CMAKE_C_FLAGS_RELWITHDEBINFO "-O2 -g -openmp")
+    # cmake doesn't set these on Darwin??
+    set(CMAKE_Fortran_FLAGS_RELWITHDEBINFO "-O2 -g")
+    set(CMAKE_C_FLAGS_RELWITHDEBINFO "-O2 -g")
 
     set(CMAKE_AR xiar)
 
 elseif (CMAKE_Fortran_COMPILER_ID STREQUAL GNU)
+    set(CMAKE_C_FLAGS "-fopenmp")
+    set(CMAKE_Fortran_FLAGS "-fopenmp -fimplicit-none")
 
-        set(CMAKE_Fortran_FLAGS_RELEASE "-O3 -fimplicit-none")
+    #set(CMAKE_Fortran_FLAGS_RELEASE "-O3")
+    #set(CMAKE_C_FLAGS_RELEASE "-O3")
         set(CMAKE_Fortran_FLAGS_DEBUG "-fbounds-check -ffpe-trap=invalid,zero,overflow,denormal -fimplicit-none -O0 -g")
-        set(CMAKE_C_FLAGS_RELEASE "-O3")
 
 elseif (CMAKE_Fortran_COMPILER_ID STREQUAL PGI OR CMAKE_C_COMPILER_ID STREQUAL PGI)
+    set(CMAKE_C_FLAGS "-mp")
+    set(CMAKE_Fortran_FLAGS "-mp")
 
         set(CMAKE_Fortran_FLAGS_RELEASE "-fast")
         set(CMAKE_Fortran_FLAGS_DEBUG "-O0 -g -Ktrap=fp -Mbounds")
