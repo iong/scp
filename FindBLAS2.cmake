@@ -58,9 +58,12 @@ if (BLA_VENDOR MATCHES "ACML.*" OR BLA_VENDOR STREQUAL "All")
       endif()
 
       if( BLA_VENDOR MATCHES "ACML(_.*)" )
-	string(TOLOWER ${CMAKE_MATCH_0} _ACML_VARIANT)
+	string(TOLOWER ${CMAKE_MATCH_1} _ACML_VARIANT)
       endif()
       set(_lib "acml")
+      if( BLA_VENDOR MATCHES "ACML.*MP" )
+	set(_lib "acml_mp")
+      endif()
 
       set(_ACML_LIBDIR "${_ACML_ROOT}/${_ACML_COMPILER}${_ACML_VARIANT}${_ACML_PATH_SUFFIX}/lib" )
       find_library_list(BLAS_LIBRARIES "${_lib}" ${_ACML_LIBDIR})
