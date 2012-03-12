@@ -1,7 +1,8 @@
 include (FindLibraryList)
 
 if($ENV{BLA_VENDOR} MATCHES ".+")
-  set(BLA_VENDOR $ENV{BLA_VENDOR})
+  set(BLA_VENDOR $ENV{BLA_VENDOR} CACHE STRING "The BLAS Vendor" FORCE)
+  message(${BLA_VENDOR} $ENV{BLA_VENDOR})
 elseif(NOT BLA_VENDOR)
   set(BLA_VENDOR "All")
 endif()
