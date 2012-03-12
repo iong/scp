@@ -9,7 +9,6 @@ macro(Find_Library_List LIBRARIES _list)
   
   set(_libdir HINTS ${ARGN} ${_libdir})
 
-  message("xxxxx ${_libdir}")
   foreach(_lib ${_list})
     find_library(${_lib}_LIBRARY NAMES ${_lib} ${_libdir})
     set(${LIBRARIES} ${${LIBRARIES}} ${${_lib}_LIBRARY})

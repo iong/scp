@@ -1,4 +1,4 @@
-include (FindLibraryList)
+include (FindLibraryList.cmake)
 
 if($ENV{BLA_VENDOR} MATCHES ".+")
   set(BLA_VENDOR $ENV{BLA_VENDOR} CACHE STRING "The BLAS Vendor" FORCE)
@@ -83,4 +83,8 @@ if (BLA_VENDOR MATCHES "mkl_.*" OR BLA_VENDOR STREQUAL "All")
 
     find_library_list(BLAS_LIBRARIES "${_MKL_LP64};${_MKL_THREAD}")
   endif()
+endif()
+
+if(BLAS_LIBRARIES)
+	message("Found BLAS " ${BLAS_LIBRARIES})
 endif()
