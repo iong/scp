@@ -74,7 +74,7 @@ contains
             call dsyrk('L', 'N', N3, N3, 2d0 * self % kT, Omega, N3, 0d0, G, N3)
             call GaussianAverage(self, y(1:N3), G, self%U, self % UX, Hnew)   
 
-            call dsymv('L', 'N', -2d0*self%kT, Omega, N3, self % UX, 1, 0d0, yp, 1)
+            call dsymv('L', 'N', -1d0, Omega, N3, self % UX, 1, 0d0, yp, 1)
 
             call dsymm('L', 'L', N3, N3, 1d0, Omega, N3, Hnew, N3, 0d0, G, N3)
             Hnew = 0d0
