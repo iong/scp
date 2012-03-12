@@ -12,7 +12,7 @@ program scp
 
     integer :: i, Natom, status, narg, nargs
 
-    double precision :: kT=0.03d0, kTstop=0.3
+    double precision :: dkT=0.03d0, kTstop=0.3, kT
 
     double precision, allocatable :: r0(:,:)
     double precision :: Uref, E0
@@ -37,7 +37,7 @@ program scp
 
     if (narg <= nargs) then
         call get_command_argument(narg, arg)
-        read(arg, *) kT
+        read(arg, *) dkT
         narg = narg + 1
     end if
 
@@ -54,21 +54,15 @@ program scp
         call p%set_range(1.8d0, 2.75d0)
     end select
 
-    ! kT = 0
+    kT = 0d0
     E0 = p%Utot0(r0)/Natom
-    print '(F6.3,2F12.7,2E12.5)', 0d0, E0, 0d0, 0d0
-
-    E0 = p%F(reshape(r0, (/3*Natom/)) , kT)
-
-    !ff % Omega % x => ff%y(3*Natom+1 : 3*Natom + ff%Omega%nnz)
-    !call ff % Omega % write('Omega.csr')
-    !nullify(ff % Omega % x)
+    print '(F6.3,2F12.7,2E12.5)', kT, E0, 0d0, 0d0
 
     do
-        print '(F6.3,2F12.7,2E12.5)', kT, E0, p % qconv, p % gconv
-        kT = kT + 0.03
+        kT = kT + dkT
         if (kT >  kTstop) exit
-        E0 = p%F(reshape(r0, (/3*Natom/)) , kT, .TRUE.)
+        E0 = p%F(reshape(r0, (/3*Natom/)) , kT, kT>dkT)
+        print '(F6.3,2F12.7,2E12.5)', kT, E0, p % qconv, p % gconv
     end do
     call p%cleanup()
 
