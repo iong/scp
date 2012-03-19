@@ -23,8 +23,6 @@ if (CMAKE_Fortran_COMPILER_ID STREQUAL Intel)
     set(CMAKE_Fortran_FLAGS_RELWITHDEBINFO "-O2 -g")
     set(CMAKE_C_FLAGS_RELWITHDEBINFO "-O2 -g")
 
-    set(CMAKE_AR xiar)
-
 elseif (CMAKE_Fortran_COMPILER_ID STREQUAL GNU)
     set(CMAKE_C_FLAGS "-fopenmp")
     set(CMAKE_Fortran_FLAGS "-fopenmp -fimplicit-none")
@@ -40,7 +38,6 @@ elseif (CMAKE_Fortran_COMPILER_ID STREQUAL PGI OR CMAKE_C_COMPILER_ID STREQUAL P
         set(CMAKE_Fortran_FLAGS_RELEASE "-fast")
         set(CMAKE_Fortran_FLAGS_DEBUG "-O0 -g -Ktrap=fp -Mbounds")
         set(CMAKE_C_FLAGS_RELEASE "-fast")
-	set(BLA_VENDOR "ACML")
 endif()
 
 include(FindBLAS2.cmake)
