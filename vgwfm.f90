@@ -88,7 +88,7 @@ contains
             call regtransrot(y(1:N3), Hnew, 0d0)
             call fm_set_g(Hnew, yp)
 
-            self % qconv  = sqrt(sum(yp(1:N3)**2)/N3)/(2d0*self%kT)
+            self % qconv  = sqrt(sum(yp(1:N3)**2)/N3)
             self % gconv = sqrt(sum(yp(N3+1:)**2)/(NEQ-N3))
 
             !print *, T, self % qconv, self %gconv 
