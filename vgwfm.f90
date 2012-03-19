@@ -25,6 +25,8 @@ contains
         double precision, intent(in) :: q0(:)
         double precision :: q
 
+        call self % vgw % analyze(q0)
+
         self % NG =  (9 * self%Natom**2 + 3*self%Natom)/2
         self % NEQ = 3 * self % Natom + self % NG
     end subroutine analyze
