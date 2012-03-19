@@ -142,6 +142,8 @@ contains
         type(csr_list) :: matrix_list(2)
 
 
+        call self % vgw % analyze(q0)
+
         N3 = 3 * self % Natom
 
         nnz = count_pairs(q0, (/ self%Vcutoff, self%Gcutoff /), self%bl )
