@@ -104,7 +104,7 @@ contains
 
         double precision, allocatable :: df(:)
         integer :: iflag, itask
-        double precision :: dfnorm, hcur
+        double precision :: dfnorm, hcur, hu
 
         self % ISTATE=1
 
@@ -121,8 +121,10 @@ contains
         allocate(df(size(x)))
         itask = 3
         do
+            hu = self % RWORK(11)
             hcur = self % RWORK(12)
-            CALL DLSODE(f77_rhs, size(x), x, self % t, self%t + 4.0d0*hcur , &
+            print *, 'HU =', hu, 'HCUR =', hcur
+            CALL DLSODE(f77_rhs, size(x), x, self % t, self%t + 2.0d0*hcur , &
                     self % ITOL, self % RTOL, &
                     self % ATOL, itask, self % ISTATE, self % IOPT, &
                     self % RWORK, self % LRW, self % IWORK, self % LIW, JAC, &
