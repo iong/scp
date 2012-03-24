@@ -7,6 +7,7 @@ module ek_mod
     contains
         procedure :: init
         procedure :: advance
+        procedure :: get_xp
         procedure :: step 
         procedure :: cleanup
     end type ek
@@ -35,7 +36,7 @@ contains
         procedure(RHS_X) :: F
         DOUBLE PRECISION, intent(inout) :: x(:)
         double precision, intent(in) :: tstop
-        DOUBLE PRECISION :: rmserr, newdt
+        DOUBLE PRECISION :: rmserr, t0
 
 
         if (size(x) /= size(self%x1) ) then
@@ -43,34 +44,40 @@ contains
                     ' from internal storage.'
         end if
 
-        self % x0 = x
+        t0 = self%t
         do while (self % t < tstop)
+            t0 = self%t
+            self % x0 = x
             rmserr = self % step(F, x, self % dt)
-            write (*,*) self % t, self % dt, rmserr
-            if (rmserr <= 0.5) then
-                self % x0 = x
-                if (self % t + self % dt > tstop) then
-                    exit
-                endif
-                self % t = self % t + self % dt
-                if (rmserr <=0.1) then
-                    newdt = self % dt * 1.52799165273419
-                    if (newdt <= self %dtmax) then
-                        self % dt = newdt
-                    end if
-                endif
-
-                self % nsteps = self % nsteps + 1
-            else
-                self % dt = self % dt/1.90779652734191
+            if (rmserr > 0.5 .AND. self%dt > self%dtmin) then
+                self % dt = max(self % dt/1.90779652734191, self % dtmin)
                 x = self % x0
+            elseif (rmserr <= 0.5) then
+                self % t = self % t + self % dt
+                self % nsteps = self % nsteps + 1
+
+                if (rmserr <=0.1) then
+                    self % dt = min(self % dt * 1.52799165273419, self %dtmax)
+                endif
             endif
         enddo
-        rmserr = self % step(F, x, tstop - self % t)
-        write (*,*) self % t,  tstop - self % t, rmserr
-        self % t = tstop
+        if (self % task == 1) then
+            rmserr = self % step(F, x, tstop - self % t)
+            x = x - (x - self%x0) * (self%t - tstop)/(self%t - t0)
+            self % t = tstop
+        elseif (self % task == 3) then
+        end if
+
+        self % nsteps = self % nsteps + 1
     end subroutine advance
 
+    subroutine get_xp(self, xp)
+        implicit none
+        class(ek) :: self
+        DOUBLE PRECISION, intent(out) :: xp(:)
+
+        xp = 0.5d0*sum(self%xp, 2)
+    end subroutine
 
     function step(self, F, x, dt)
         implicit none

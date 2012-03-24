@@ -4,13 +4,15 @@ module lsode_mod
 
     type, public, extends(integrator) ::  lsode
         integer :: LIW, MF
-        integer :: ITASK,IOPT,ISTATE,LRW,ITOL,IERR
+        integer :: IOPT,ISTATE,LRW,ITOL,IERR
         integer, allocatable :: IWORK(:)
         double precision, allocatable :: RWORK(:)
     contains
         procedure :: init
         procedure :: advance
-        procedure :: converge
+        procedure :: get_xp
+        procedure :: forget_history
+        procedure :: set_dt
         procedure :: set_dtmin
         procedure :: set_dtmax
         !procedure :: step => lsode_step
@@ -29,7 +31,6 @@ contains
         self % LIW = 30
         self % MF = 10
         self % ITOL=2
-        self % ITASK=1
         self % IOPT=1
         self % ISTATE=1
 
@@ -70,6 +71,12 @@ contains
     end subroutine set_dtmax
 
 
+    subroutine forget_history(self)
+        class(lsode) :: self
+
+        self % ISTATE = 1
+    end subroutine
+
 
     subroutine advance(self, F, x, tstop)
         implicit none
@@ -80,7 +87,7 @@ contains
 
         CALL DLSODE(f77_rhs, size(x), x, self % t, tstop, self % ITOL, &
                 self % RTOL, &
-                self % ATOL, self % ITASK, self % ISTATE, self % IOPT, &
+                self % ATOL, self % TASK, self % ISTATE, self % IOPT, &
                 self % RWORK, self % LRW, self % IWORK, self % LIW, JAC, &
                 self % MF)
 
@@ -99,66 +106,16 @@ contains
         end subroutine f77_rhs
     end subroutine advance
 
-    subroutine converge(self, F, x, dFtol)
+
+    subroutine get_xp(self, xp)
         implicit none
         class(lsode) :: self
-        DOUBLE PRECISION, intent(inout) :: x(:)
-        double precision, intent(in) :: dFtol
-        procedure(RHS_X) :: F
+        DOUBLE PRECISION, intent(out) :: xp(:)
+        integer :: iflag
 
+        call DINTDY(self%t, 1, self%RWORK(21), self%neq, xp, iflag)
+    end subroutine
 
-        double precision, allocatable :: df(:)
-        integer :: iflag, itask
-        double precision :: dfnorm, hcur, hu
-
-        self % ISTATE=1
-
-        itask = 3
-        self%t = 0
-        !self%RWORK(5) = 0d0 ! set H0 = 0, let dlsode determine it by itself.
-
-        CALL DLSODE(f77_rhs, size(x), x, self % t, self%t+.1d0, self % ITOL, &
-                self % RTOL, &
-                self % ATOL, itask, self % ISTATE, self % IOPT, &
-                self % RWORK, self % LRW, self % IWORK, self % LIW, JAC, &
-                self % MF)
-
-        allocate(df(size(x)))
-        itask = 3
-        do
-            hu = self % RWORK(11)
-            hcur = self % RWORK(12)
-            print *, 'HU =', hu, 'HCUR =', hcur
-            CALL DLSODE(f77_rhs, size(x), x, self % t, self%t + 2.0d0*hcur , &
-                    self % ITOL, self % RTOL, &
-                    self % ATOL, itask, self % ISTATE, self % IOPT, &
-                    self % RWORK, self % LRW, self % IWORK, self % LIW, JAC, &
-                    self % MF)
-
-            call DINTDY(self%t, 1, self%RWORK(21), size(df), df, iflag)
-
-            dfnorm = sqrt(sum(df**2)/size(df))
-            !print *, self%t, 'dfnorm =', dfnorm
-            if (dfnorm < dFtol) then
-                exit
-            end if
-        end do
-
-        self % dt = self % RWORK(12)
-        self % nsteps = self % IWORK(11)
-        self % ncalls = self % IWORK(12)
-
-        deallocate(df)
-    contains
-        subroutine f77_rhs(neq, t, y, yp)
-            integer, intent(in) :: NEQ
-            double precision, intent(in) :: T
-            double precision, intent(in), target :: Y(NEQ)
-            double precision, intent(out), target :: YP(NEQ)
-
-            call F(neq, t, y, yp)
-        end subroutine f77_rhs
-    end subroutine converge
 
     subroutine cleanup(self)
         class(lsode) :: self

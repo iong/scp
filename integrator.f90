@@ -5,13 +5,15 @@ module integrator_mod
         double precision :: t, dt, dtmin, dtmax, rtol
         double precision, allocatable :: atol(:)
 
-        integer :: nsteps, ncalls
+        integer :: nsteps, ncalls, task, neq
     contains
         procedure :: init
+        procedure :: set_dt
         procedure :: set_dtmin
         procedure :: set_dtmax
         procedure :: advance
-        procedure :: converge
+        procedure :: get_xp
+        procedure :: forget_history
         procedure :: cleanup
     end type integrator
     
@@ -39,6 +41,9 @@ contains
 
         self % nsteps = 0
         self % ncalls = 0
+        self % task = 1
+
+        self % neq = neq
 
         allocate(self % atol(NEQ))
     end subroutine init
@@ -66,6 +71,10 @@ contains
         self % dtmax = dtmax
     end subroutine set_dtmax
 
+    subroutine forget_history(self)
+        class(integrator) :: self
+    end subroutine
+
 
     subroutine advance(self, F, x, tstop)
         class(integrator) :: self
@@ -76,16 +85,14 @@ contains
         stop
     end subroutine advance
 
-    subroutine converge(self, F, x, dFtol)
+
+    subroutine get_xp(self, xp)
         implicit none
         class(integrator) :: self
-        DOUBLE PRECISION, intent(inout) :: x(:)
-        double precision, intent(in) :: dFtol
-        procedure(RHS_X) :: F
-        print *, 'please override converge() !'
+        DOUBLE PRECISION, intent(out) :: xp(:)
+        print *, 'please override get_xp() !'
         stop
-    end subroutine converge
-
+    end subroutine
 
     subroutine cleanup(self)
         implicit none
