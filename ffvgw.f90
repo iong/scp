@@ -11,7 +11,7 @@ module ffvgw_mod
         type(csr) :: Omega, UXY, OmegaU
     contains
         procedure :: cleanup
-        procedure :: converge
+        procedure :: rhs
         procedure :: set_range
         procedure :: analyze
         procedure :: logdet
@@ -202,72 +202,62 @@ contains
         deallocate(P)
     end  subroutine test_ia_ja
 
-    subroutine converge(self, tol)
+    function rhs(self, Y, T)
         IMPLICIT NONE
         class(ffvgw) :: self
-        double precision, intent(in) :: tol
-        integer :: N3
-        type(csr) :: G
+        double precision, intent(in) :: T
+        double precision, intent(in), target :: Y(:)
+        double precision, target :: rhs(size(y))
+
+        type(csr) :: OmegaUOmega, G
+
+        integer :: i, N3
 
         N3 = 3 * self%Natom
 
+        OmegaUOmega = self % Omega
+        OmegaUOmega%x => rhs(N3+1 : N3 + self%Omega%nnz)
+
+        if (y(N3+1)==0d0) then
+            rhs = 0d0
+            OmegaUOmega%x(OmegaUOmega %iia) = 1d0
+            !call regtransrot(y(1:N3), OmegaUOmega, 0d0)
+            return
+        end if
+
+        self%Omega%x => y(N3+1 : N3 + self%Omega%nnz)
+
         G = self % Omega
         allocate(G%x(G%nnz))
+!$omp parallel
+        call self%Omega%multiply_restricted(self%Omega, G)
+!$omp do schedule(static)
+        do i=1,G%nnz
+            G%x(i) = G%x(i) * 2d0 * self % kT
+        end do
+!$omp end do
+        call GaussianAverage(self, y, G, self%U, self%UX, self%UXY)
 
-        call self % prop % converge(rhs, self%y, tol)
+
+        !call self% Omega % gemv(self%UX, rhs, 2d0 * self % kT)
+        call self% Omega % gemv(self%UX, rhs, -1d0)
+        call self%Omega % multiply_restricted(self%UXY, self%OmegaU)
+        call self%OmegaU % multiply_restricted(self%Omega, OmegaUOmega)
+!$omp end parallel
+        OmegaUOmega%x = -OmegaUOmega%x
+        OmegaUOmega%x (OmegaUOmega%iia) = OmegaUOmega%x (OmegaUOmega%iia) + 1d0
+
+        call OmegaUOmega % force_symmetry()
+        !call regtransrot(y(1:N3), OmegaUOmega, 0d0)
+        nullify(self%Omega%x)
+
+        self % qconv = sqrt(sum(rhs(1:N3)**2)/ self % Natom)
+        self % gconv = sqrt(sum(rhs(N3:)**2)/ OmegaUOmega % nnz)
 
         deallocate(G%x)
-    contains
-        subroutine rhs(NEQ, T, Y, YP)
-            IMPLICIT NONE
-            integer, intent(in) :: NEQ
-            double precision, intent(in) :: T
-            double precision, intent(in), target :: Y(:)
-            double precision, intent(out), target :: YP(:)
-            type(csr) :: OmegaUOmega
+    end function rhs
 
-            integer :: i
-
-            OmegaUOmega = self % Omega
-            OmegaUOmega%x => yp(N3+1 : N3 + self%Omega%nnz)
-
-            if (y(N3+1)==0d0) then
-                yp = 0
-                OmegaUOmega%x(OmegaUOmega %iia) = 1d0
-                !call regtransrot(y(1:N3), OmegaUOmega, 0d0)
-                return
-            end if
-
-            self%Omega%x => y(N3+1 : N3 + self%Omega%nnz)
-
-!$omp parallel
-            call self%Omega%multiply_restricted(self%Omega, G)
-!$omp do schedule(static)
-            do i=1,G%nnz
-                G%x(i) = G%x(i) * 2d0 * self % kT
-            end do
-!$omp end do
-            call GaussianAverage(self, y, G, self%U, self%UX, self%UXY)
-
-
-            !call self% Omega % gemv(self%UX, yp, 2d0 * self % kT)
-            call self% Omega % gemv(self%UX, yp, -1d0)
-            call self%Omega % multiply_restricted(self%UXY, self%OmegaU)
-            call self%OmegaU % multiply_restricted(self%Omega, OmegaUOmega)
-!$omp end parallel
-            OmegaUOmega%x = -OmegaUOmega%x
-            OmegaUOmega%x (OmegaUOmega%iia) = OmegaUOmega%x (OmegaUOmega%iia) + 1d0
-
-            call OmegaUOmega % force_symmetry()
-            !call regtransrot(y(1:N3), OmegaUOmega, 0d0)
-            nullify(self%Omega%x)
-
-            self % qconv = sqrt(sum(yp(1:N3)**2)/ self % Natom)
-            self % gconv = sqrt(sum(yp(N3:)**2)/ OmegaUOmega % nnz)
-        end subroutine rhs
-    end subroutine converge
-
-     subroutine work_range(UXY, r0, r1)
+    subroutine work_range(UXY, r0, r1)
         use omp_lib
         implicit none
         type(csr) :: UXY

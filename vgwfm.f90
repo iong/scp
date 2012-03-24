@@ -6,9 +6,12 @@ module vgwfm_mod
     private
 
     type, public, extends(vgw) :: vgwfm
+        double precision, allocatable :: Omega(:,:), Hnew(:,:), G(:,:)
     contains
-	procedure :: converge
+	procedure :: rhs
+	procedure :: init_prop
 	procedure :: analyze
+	procedure :: cleanup
 	procedure :: logdet
     end type vgwfm
     
@@ -30,70 +33,71 @@ contains
         self % NG =  (9 * self%Natom**2 + 3*self%Natom)/2
         self % NEQ = 3 * self % Natom + self % NG
     end subroutine analyze
-
-    subroutine converge(self, tol)
+ 
+    subroutine init_prop(self, q0)
         IMPLICIT NONE
-        class(vgwfm) :: self
-        double precision, intent(in) :: tol
-        double precision, allocatable :: Omega(:,:), Hnew(:,:), G(:,:)
+        class(vgwfm), target :: self
+        double precision, intent(in) :: q0(:)
 
         integer :: N3
 
+        call self%vgw%init_prop(q0)
+
+        N3 = 3 * self % Natom
+   
+        allocate(self%Omega(N3,N3), self%Hnew(N3,N3), self%G(N3, N3))
+    end subroutine
+
+    subroutine cleanup(self)
+        class(vgwfm) :: self
+        deallocate(self%Omega, self%Hnew, self%G)
+    end subroutine
+
+    function rhs(self, Y, T)
+        IMPLICIT NONE
+        class(vgwfm) :: self
+        double precision, intent(in) :: T
+        double precision, intent(in), target :: Y(:)
+        double precision, target :: rhs(size(Y))
+
+        integer :: i, j, N3
+
+        double precision :: OU(3*self%Natom)
+
         N3 = 3 * self % Natom
 
-        allocate(Omega(N3,N3), Hnew(N3,N3), G(N3, N3))
-        
-        call self % prop % converge(RHS, self%y, tol)
-
-        deallocate(Omega, Hnew, G)
-    contains
-
-        SUBROUTINE rhs(NEQ, T, Y, YP)
-            !    use omp_lib
-            IMPLICIT NONE
-            integer, intent(in) :: NEQ
-            double precision, intent(in) :: T
-            double precision, intent(in), target :: Y(:)
-            double precision, intent(out), target :: YP(:)
-
-            integer :: i, j
-
-            if (y(N3+1) == 0d0) then
-                yp = 0d0
-                j = 1
-                Hnew = 0d0
-                do i=1,N3
-                    Hnew(i,i) = 1d0
-                end do
-                !all regtransrot(y(1:N3), Hnew, 0d0)
-                call fm_set_g(Hnew, yp)
-                return
-            end if
-
-            call fm_get_g(y, Omega)
-            
-            !call printev(Omega, 'Omega')
-            call dsyrk('L', 'N', N3, N3, 2d0 * self % kT, Omega, N3, 0d0, G, N3)
-            call GaussianAverage(self, y(1:N3), G, self%U, self % UX, Hnew)   
-
-            call dsymv('L', 'N', -1d0, Omega, N3, self % UX, 1, 0d0, yp, 1)
-
-            call dsymm('L', 'L', N3, N3, 1d0, Omega, N3, Hnew, N3, 0d0, G, N3)
-            Hnew = 0d0
+        if (y(N3+1) == 0d0) then
+            rhs = 0d0
+            self%Hnew = 0d0
             do i=1,N3
-                Hnew(i,i) = 1d0
+                self%Hnew(i,i) = 1d0
             end do
-            call dsymm('R', 'L', N3, N3, -1d0, Omega, N3, G, N3, 1d0, Hnew, N3)
+            call fm_set_g(self%Hnew, rhs)
+            return
+        end if
 
-            call regtransrot(y(1:N3), Hnew, 0d0)
-            call fm_set_g(Hnew, yp)
+        call fm_get_g(y, self%Omega)
+        
+        !call printev(Omega, 'Omega')
+            
+        call dsyrk('L', 'N', N3, N3, 2d0 * self%kT, self%Omega, N3, 0d0, self%G, N3)
+        call GaussianAverage(self, y(1:N3), self%G, self%U, self%UX, self%Hnew)   
 
-            self % qconv  = sqrt(sum(yp(1:N3)**2)/N3)
-            self % gconv = sqrt(sum(yp(N3+1:)**2)/(NEQ-N3))
+        call dsymv('L', N3, -1d0, self%Omega, N3, self%UX, 1, 0d0, rhs, 1)
 
-            !print *, T, self % qconv, self %gconv 
-        END SUBROUTINE RHS
-    end subroutine CONVERGE
+        call dsymm('L', 'L', N3, N3, 1d0, self%Omega, N3, self%Hnew, N3, 0d0, self%G, N3)
+        self%Hnew = 0d0
+        do i=1,N3
+            self%Hnew(i,i) = 1d0
+        end do
+        call dsymm('R', 'L', N3, N3, -1d0, self%Omega, N3, self%G, N3, 1d0, self%Hnew, N3)
+
+        call regtransrot(y(1:N3), self%Hnew, 0d0)
+        call fm_set_g(self%Hnew, rhs)
+
+        self % qconv  = sqrt(sum(rhs(1:N3)**2)/N3)
+        self % gconv = sqrt(sum(rhs(N3+1:)**2)/(size(rhs)-N3))
+    END function RHS
 
 
     SUBROUTINE GaussianAverage(self, q, G, U, UX, UXY)

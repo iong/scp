@@ -30,6 +30,7 @@ module vgw_mod
         procedure :: init_prop
         procedure :: logdet
         procedure :: converge
+        procedure :: rhs
         procedure :: set_bl
         procedure :: get_q
         procedure :: Utot0
@@ -141,16 +142,6 @@ module vgw_mod
             end if
         end if
 
-        allocate (lsode :: self%prop)
-
-        call self % prop % init(self%NEQ, 0d0, 0d0)
-        call self % prop % set_dtmin(0d0*self%dt_min)
-        call self % prop % set_dtmax(1d-1)
-
-        self % prop % rtol = 1d-5
-        self % prop % atol (1 : 3 * self % Natom) = self % q_atol
-        self % prop % atol (3 * self % Natom + 1 : ) = self % g_atol
-
         self % y(1 : N3) = q0
         self % y(N3+1:) = 0d0
     end subroutine init_prop
@@ -163,18 +154,68 @@ module vgw_mod
         logdet = 0d0
     end function logdet
 
-    !> Once compilers mature, this function can be eliminated. Theoretically,
-    !! one can store a pointer to the right-hand-side function in the
-    !! propagator and call prop%converge directly. This a Fortran 2008 feature.
-    !! However, both ifort and gfortran segfault when compiling such code.
-    !! \tag F2008
-    subroutine converge(self, tol)
+    function step(y, yp, dt, rtol, atol) 
+        implicit none
+        double precision, intent(inout) :: y(:)
+        double precision, intent(in) :: yp(:), dt, rtol, atol
+        double precision :: step
+
+        double precision :: dy, y0, err
+        integer :: i
+
+        err = 0d0
+        do i=1,size(y)
+            y0 = y(i)
+            dy = yp(i) * dt
+            y(i) = y(i) + dy
+            err = max(err, abs(2d0*dy) / (rtol*(abs(y0) + abs(y(i))) + atol) )
+        end do
+
+        step = err
+    end function
+
+
+    subroutine converge(self, rtol, atol)
         IMPLICIT NONE
         class(vgw) :: self
-        double precision, intent(in) :: tol
-        
+        double precision, intent(in) :: rtol, atol
+
+        double precision, allocatable :: yp(:)
+
+        integer :: n, nmax
+        double precision :: err, dt, t
+
+        allocate(yp(self%NEQ))
+
+        dt = 0.025d0
+        t = 0d0
+        do
+            yp = self % rhs(self%y, t)
+            err = step(self%y, yp, dt, rtol, atol)
+            t = t + dt
+
+            ! reduce the time step after the two orders of magnitude of the
+            ! error have been eliminated.
+            if (err < 0.01d0/rtol) dt = dt / 2d0
+
+            if (err < 1d0) exit
+        end do
+
+        deallocate(yp)
     end subroutine CONVERGE
 
+
+    function rhs(self, Y, T)
+        IMPLICIT NONE
+        class(vgw) :: self
+        double precision, intent(in) :: T
+        double precision, intent(in), target :: Y(:)
+        double precision, target :: rhs(size(Y))
+    end function
+
+
+
+    
     function vgw_F(self, Q0, kT, noinit)
         IMPLICIT NONE
         class(vgw) :: self
@@ -196,7 +237,7 @@ module vgw_mod
 
         ! solve the VGW equations, measure CPU time
         call cpu_time(start_time)
-        call self % converge(1d-4)
+        call self % converge(1d-4, 1d-6)
 
         vgw_F =  (self%U - self%kT * self%logdet() )/self%Natom &
                     - 3  * self%kT * log(self % kT * c0)
@@ -205,9 +246,9 @@ module vgw_mod
         call cpu_time(stop_time)
 
         self % rt = 0
-        if ( self % prop%ncalls > 0) then
-            self % rt = (stop_time - start_time) / real(self % prop%ncalls)
-        end if  
+        !if ( self % prop%ncalls > 0) then
+        !    self % rt = (stop_time - start_time) / real(self % prop%ncalls)
+        !end if  
     end function vgw_F
 
 
