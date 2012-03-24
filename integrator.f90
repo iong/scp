@@ -27,14 +27,13 @@ module integrator_mod
     public :: RHS_X
 contains
 
-    subroutine init(self, NEQ, tstart, dt0)
+    subroutine init(self, NEQ)
         implicit none
         class(integrator) :: self
         integer, intent(IN) :: NEQ
-        double precision, intent(in) :: tstart, dt0
                 
-        self % t = tstart
-        self % dt = dt0
+        self % t = 0d0
+        self % dt = 0d0
         self % dtmin = 0d0
         self % dtmax = 0d0
 
@@ -44,6 +43,13 @@ contains
         allocate(self % atol(NEQ))
     end subroutine init
 
+
+    subroutine set_dt(self, dt)
+        class(integrator) :: self
+        double precision, intent(in) :: dt
+
+        self % dt = dt
+    end subroutine set_dt
 
     subroutine set_dtmin(self, dtmin)
         class(integrator) :: self

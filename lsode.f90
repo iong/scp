@@ -17,13 +17,12 @@ module lsode_mod
         procedure :: cleanup
     end type lsode
 contains
-    subroutine  init(self, NEQ, tstart, dt0)
+    subroutine  init(self, NEQ)
         implicit none
         class(lsode) :: self
         integer, intent(IN) :: NEQ
-        double precision, intent(in) :: tstart, dt0
 
-        call self % integrator % init(NEQ, tstart, dt0)
+        call self % integrator % init(NEQ)
 
         self % LRW = 20 + 16*NEQ
 
@@ -39,11 +38,17 @@ contains
         self % IWORK=0
         self % IWORK(6) = 50000 ! MXSTEP
 
-        !self % RWORK(7) = HMIN
-        self%RWORK(5) = self % dt
-        self % RWORK(6:10)=0.0D0
+        self % RWORK(5:10)=0.0D0
     end subroutine init
 
+
+    subroutine set_dt(self, dt)
+        class(lsode) :: self
+        double precision, intent(in) :: dt
+
+        self % dt = dt
+        self%RWORK(5) = self % dt
+    end subroutine set_dt
 
 
     subroutine set_dtmin(self, dtmin)

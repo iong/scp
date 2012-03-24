@@ -12,13 +12,12 @@ module ek_mod
     end type ek
 
 contains
-    subroutine  init(self, NEQ, tstart, dt0)
+    subroutine  init(self, NEQ)
         implicit none
         class(ek) :: self
         integer, intent(IN) :: NEQ
-        double precision, intent(in) :: tstart, dt0
 
-        call self % integrator % init(NEQ, tstart, dt0)
+        call self % integrator % init(NEQ)
 
         allocate(self%xe(NEQ), self%x0(NEQ), self%x1(NEQ), self%xp(NEQ, 2))
     end subroutine init
