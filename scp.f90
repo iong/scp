@@ -58,9 +58,8 @@ program scp
     E0 = p%Utot0(r0)/Natom
     print '(F6.3,2F12.7,2E12.5)', kT, E0, 0d0, 0d0
 
-    do
-        kT = kT + dkT
-        if (kT >  kTstop) exit
+    do i=1,nint(kTstop/dkT)
+        kT = dkT*i
         E0 = p%F(reshape(r0, (/3*Natom/)) , kT, kT>dkT)
         print '(F6.3,2F12.7,2E12.5)', kT, E0, p % qconv, p % gconv
     end do
