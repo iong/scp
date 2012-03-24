@@ -225,6 +225,38 @@ contains
         deallocate(G)
     end function logdet
 
+    subroutine regtrans(q, G, l)
+        implicit none
+        double precision :: q(:), G(:,:), l
+
+        double precision, allocatable :: U(:,:), GU(:,:), UGU(:,:)
+        integer :: i, j, N
+
+        N = size(G, 1)
+
+        allocate(U(N,3), GU(N,3), UGU(3,3))
+
+        U = 0d0
+        U(1::3,1) = 1d0/sqrt(real(N))
+        U(2::3,2) = 1d0/sqrt(real(N))
+        U(3::3,3) = 1d0/sqrt(real(N))
+
+
+        call dgemm('N', 'N', N, 3, N, 1d0, G, N, U, N, 0d0, GU, N)
+        call dgemm('T', 'N', 3, 3, N, -1d0, U, N, GU, N, 0d0, UGU, 3)
+
+        do i=1,3
+            UGU(i,i) = UGU(i,i) + l
+        end do
+
+        !print '(3F12.7)', UGU
+
+        call dgemm('N', 'N', N, 3, 3, 1d0, U, N, UGU, 3, 0d0, GU, N)
+        call dgemm('N', 'T', N, N, 3, 1d0, GU, N, U, N, 1d0, G, N)
+        deallocate(U, GU, UGU)
+    end subroutine regtrans
+
+
 
     subroutine regtransrot(q, G, l)
         implicit none
