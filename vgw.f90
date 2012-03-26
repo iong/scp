@@ -115,8 +115,8 @@ module vgw_mod
     subroutine cleanup(self)
         class(vgw) :: self
 
-        call self % prop % cleanup()
-        deallocate(self % y, self % UX, self % prop)
+        !call self % prop % cleanup()
+        deallocate(self % y, self % UX)!, self % prop)
     end subroutine cleanup
 
 
