@@ -187,7 +187,7 @@ module vgw_mod
 
         allocate(yp(self%NEQ))
 
-        dt = 0.025d0
+        dt = 0.0125d0
         t = 0d0
         do
             yp = self % rhs(self%y, t)
