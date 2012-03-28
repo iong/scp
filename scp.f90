@@ -64,5 +64,6 @@ program scp
         print '(F6.3,2F12.7,2E12.5)', kT, E0, p % qconv, p % gconv
     end do
     call p%cleanup()
+    deallocate(p)
 
 end program scp
