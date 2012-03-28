@@ -204,25 +204,23 @@ contains
     end subroutine fm_set_g
 
     function logdet(self)
+        implicit none
         class(vgwfm), target :: self
         double precision :: logdet
 
-        double precision, allocatable :: G(:,:)
 
         integer :: info, j
 
-        allocate(G(3 * self%Natom, 3 * self%Natom))
-        call fm_get_g(self % y, G)
-        call regtransrot(self%y(1:3*self%Natom), G, 1d0)
+        call fm_get_g(self % y, self % Omega)
+        call regtransrot(self%y(1:3*self%Natom), self % Omega, 1d0)
 
-        call dpotrf('U', 3 * self%Natom, G, 3 * self%Natom, info)
+        call dpotrf('U', 3 * self%Natom, self%Omega, 3 * self%Natom, info)
 
         logdet=0.0
         DO j=1, 3 * self%Natom
-            logdet = logdet + LOG(ABS( G(j,j) ))
+            logdet = logdet + LOG(ABS( self%Omega(j,j) ))
         ENDDO
         logdet = 2d0* logdet
-        deallocate(G)
     end function logdet
 
     subroutine regtrans(q, G, l)
