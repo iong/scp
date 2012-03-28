@@ -1,5 +1,4 @@
 module ffvgw_mod
-    use integration
     use utils
     use sparse
     use vgw_mod

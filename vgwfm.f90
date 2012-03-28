@@ -1,5 +1,4 @@
 module vgwfm_mod
-    use integration
     use utils
     use vgw_mod
     implicit none

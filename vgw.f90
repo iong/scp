@@ -1,6 +1,6 @@
 module vgw_mod
     use utils
-    use integration
+!    use integration
     implicit none
     private
 
@@ -21,7 +21,7 @@ module vgw_mod
         double precision :: q_atol, g_atol, dt_min, dt0, dt_max, qconv, gconv
         double precision, allocatable :: Y(:), UX(:)
 
-        class(integrator), pointer :: prop
+        !class(integrator), pointer :: prop
     contains
         procedure :: init
         procedure :: cleanup

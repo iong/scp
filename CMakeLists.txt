@@ -47,9 +47,9 @@ include(FindCHOLMOD.cmake)
 #set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 #SET(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE) 
 #SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
-ADD_EXECUTABLE(scp  utils.f90 dlsode.f integrator.f90 lsode.f90 ek.f90
+ADD_EXECUTABLE(scp  utils.f90
 	vgw.f90 vgwfm.f90 cholmod_logdet.c csr_sort_ja.c reallocate.f90
-	sparse.f90 ffvgw.f90 integration.f90 xyz.f90 scp.f90)
+	sparse.f90 ffvgw.f90 xyz.f90 scp.f90)
 
     
 include_directories(scp ${CHOLMOD_INC})
