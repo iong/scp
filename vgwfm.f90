@@ -50,6 +50,7 @@ contains
     subroutine cleanup(self)
         class(vgwfm) :: self
         deallocate(self%Omega, self%Hnew, self%G)
+        call self%vgw%cleanup()
     end subroutine
 
     function rhs(self, Y, T)
