@@ -239,7 +239,7 @@ module vgw_mod
 
         ! solve the VGW equations, measure CPU time
         call cpu_time(start_time)
-        call self % converge(1d-4, 1d-6)
+        call self % converge(1d-3, 1d-5)
 
         vgw_F =  (self%U - self%kT * self%logdet() )/self%Natom &
                     - 3  * self%kT * log(self % kT * c0)
