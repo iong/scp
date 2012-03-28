@@ -182,21 +182,25 @@ module vgw_mod
 
         double precision, allocatable :: yp(:)
 
-        integer :: n, nmax
+        integer :: n, nmax, N3
         double precision :: err, dt, t
 
+        N3 = 3 * self%Natom
         allocate(yp(self%NEQ))
 
         dt = 0.0125d0
         t = 0d0
         do
             yp = self % rhs(self%y, t)
-            err = step(self%y, yp, dt, rtol, atol)
+            err = step(self%y(1:N3), yp(1:N3), dt, 0d0, 1d-2)
+            err = max(err, step(self%y(N3:), yp(N3:), dt, rtol, atol))
+            err = err / dt
+            print *, t, err
             t = t + dt
 
             ! reduce the time step after the two orders of magnitude of the
             ! error have been eliminated.
-            if (err < 0.01d0/rtol) dt = dt / 2d0
+            !if (err < 0.01d0/rtol) dt = dt / 2d0
 
             if (err < 1d0) exit
         end do
