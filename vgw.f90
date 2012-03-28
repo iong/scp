@@ -133,14 +133,12 @@ module vgw_mod
         integer :: N3
 
         N3 = 3 * self % Natom
-        if (.NOT. allocated(self % y)) then
-            allocate(self % y ( self % NEQ ))
-        else
-            if (size(self%y) /= self %NEQ) then
+
+        if (allocated(self % y)) then
                 deallocate(self%y)
-                allocate(self % y ( self % NEQ ))
-            end if
         end if
+
+        allocate(self % y ( self % NEQ ))
 
         self % y(1 : N3) = q0
         self % y(N3+1:) = 0d0
