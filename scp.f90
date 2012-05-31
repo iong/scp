@@ -16,6 +16,7 @@ program scp
 
     double precision, allocatable :: r0(:,:)
     double precision :: Uref, E0
+    double precision :: cpustart, cpustop
 
     class(vgw), pointer :: p
 
@@ -51,18 +52,23 @@ program scp
     ! set the cutoffs if the sparse approach is used
     select type (p)
     type is(ffvgw)
-        call p%set_range(1.8d0, 2.75d0)
+        call p%set_range(3.1d0, 3.1d0)
     end select
 
     kT = 0d0
     E0 = p%Utot0(r0)/Natom
     print '(F6.3,2F12.7,2E12.5)', kT, E0, 0d0, 0d0
 
+    call cpu_time(cpustart)
     do i=1,nint(kTstop/dkT)
         kT = dkT*i
         E0 = p%F(reshape(r0, (/3*Natom/)) , kT, kT>dkT)
         print '(F6.3,2F12.7,2E12.5)', kT, E0, p % qconv, p % gconv
     end do
+    call cpu_time(cpustop)
+    write(waste, '("rt",I,".dat")') Natom
+    open(38,file=trim(waste))
+    write(38, '(I10,F16.7)') Natom, (cpustop - cpustart) / p%niterations
     call p%cleanup()
     deallocate(p)
 

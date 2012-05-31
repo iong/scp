@@ -11,7 +11,7 @@ module vgw_mod
 
 
         integer :: Natom, N3, NGAUSS
-        integer :: NEQ, NG, NQNK
+        integer :: NEQ, NG, NQNK, niterations
 
         character(8) :: species
 
@@ -48,6 +48,7 @@ module vgw_mod
         self%species = species
         self%Natom = Natom
         self%N3 = 3 * Natom
+        self%niterations = 0
 
         allocate (self % UX (3*self % Natom))
 
@@ -195,6 +196,7 @@ module vgw_mod
             err = err / dt
             print *, t, err
             t = t + dt
+            self % niterations = self % niterations + 1
 
             ! reduce the time step after the two orders of magnitude of the
             ! error have been eliminated.
