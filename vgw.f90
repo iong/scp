@@ -194,7 +194,7 @@ module vgw_mod
             err = step(self%y(1:N3), yp(1:N3), dt, 0d0, 1d-2)
             err = max(err, step(self%y(N3:), yp(N3:), dt, rtol, atol))
             err = err / dt
-            print *, t, err
+
             t = t + dt
             self % niterations = self % niterations + 1
 
