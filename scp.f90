@@ -12,7 +12,7 @@ program scp
 
     integer :: i, Natom, status, narg, nargs
 
-    double precision :: dkT=0.03d0, kTstop=0.3, kT
+    double precision :: dkT=0.03d0, kTstop=0.3, kT, Gcutoff=2.75, Vcutoff=2.75
 
     double precision, allocatable :: r0(:,:)
     double precision :: Uref, E0
@@ -21,38 +21,47 @@ program scp
     class(vgw), pointer :: p
 
     nargs = command_argument_count()
-    narg = 1
+    narg = 0
 
-    call get_command_argument(narg, arg)
-    if (trim(arg) == '-sparse') then
-        allocate(ffvgw::p)
+    do
         narg = narg + 1
-    else
-        allocate(vgwfm::p)
-    end if
-        
-    call get_command_argument(narg, arg)
-    call load_xyz(arg, r0)
-    narg = narg + 1
+        if (narg > nargs) exit
+        call get_command_argument(narg, arg)
+        if (trim(arg) == '-sparse') then
+            allocate(ffvgw::p)
+            cycle
+        end if
+
+        if (trim(arg) == '-rc') then
+            call get_command_argument(narg+1, arg)
+            read(arg, *) Gcutoff
+            call get_command_argument(narg+2, arg)
+            read(arg, *) Vcutoff
+
+            narg = narg + 2
+            cycle
+        end if
+
+        call load_xyz(arg, r0)
+       
+        call get_command_argument(narg+1, arg)
+        read(arg, *) dkT
+
+        call get_command_argument(narg+2, arg)
+        read(arg, *) kTstop
+        narg = narg + 2
+    end do
+
     Natom = size(r0, 2)
 
-    if (narg <= nargs) then
-        call get_command_argument(narg, arg)
-        read(arg, *) dkT
-        narg = narg + 1
-    end if
-
-    if (narg <= nargs) then
-        call get_command_argument(narg, arg)
-        read(arg, *) kTstop
-        narg = narg + 1
-    end if
+    if (.NOT. associated(p)) allocate(vgwfm::p)
 
     call p%init(Natom, 'LJ')
     ! set the cutoffs if the sparse approach is used
+
     select type (p)
     type is(ffvgw)
-        call p%set_range(3.1d0, 3.1d0)
+        call p%set_range(Gcutoff, Vcutoff)
     end select
 
     kT = 0d0
