@@ -19,6 +19,7 @@ module vgw_mod
 
         double precision :: U, kT, BL, LJA(10), LJC(10), rt,  sigma0, epsilon0
         double precision :: q_atol, g_atol, dt_min, dt0, dt_max, qconv, gconv
+        double precision :: iter_time, logdet_time
         double precision, allocatable :: Y(:), UX(:)
 
         !class(integrator), pointer :: prop
@@ -49,6 +50,8 @@ module vgw_mod
         self%Natom = Natom
         self%N3 = 3 * Natom
         self%niterations = 0
+        self % iter_time = 0d0
+        self % logdet_time = 0d0
 
         allocate (self % UX (3*self % Natom))
 
@@ -226,7 +229,7 @@ module vgw_mod
         double precision, intent(in) :: Q0(:), kT
         logical, intent(in), optional :: noinit
         double precision :: vgw_F
-        real*8 ::  start_time, stop_time, c0
+        real*8 ::  t1, t2, t3, c0
         integer :: i
         logical :: lnoinit = .FALSE.
 
@@ -240,19 +243,16 @@ module vgw_mod
         end if
 
         ! solve the VGW equations, measure CPU time
-        call cpu_time(start_time)
+        call cpu_time(t1)
         call self % converge(1d-3, 1d-5)
-
+        call cpu_time(t2)
         vgw_F =  (self%U - self%kT * self%logdet() )/self%Natom &
                     - 3  * self%kT * log(self % kT * c0)
         vgw_F = self%epsilon0 * vgw_F
+        call cpu_time(t3)
 
-        call cpu_time(stop_time)
-
-        self % rt = 0
-        !if ( self % prop%ncalls > 0) then
-        !    self % rt = (stop_time - start_time) / real(self % prop%ncalls)
-        !end if  
+        self % iter_time = self % iter_time + t2 - t1
+        self % logdet_time = self % logdet_time + t3 - t2
     end function vgw_F
 
 
