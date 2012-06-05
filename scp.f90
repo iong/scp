@@ -76,7 +76,7 @@ program scp
     write(waste, '("rt",I,".dat")') Natom
     open(38,file=trim(waste))
     write(38, '(I10,2F16.7,I10)') Natom, p % iter_time / p % niterations, &
-          p % logdet_time * kT / dkT,  p % niterations
+          p % logdet_time * dkT / kT,  p % niterations
     call p%cleanup()
     deallocate(p)
 
