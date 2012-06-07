@@ -51,11 +51,16 @@ ADD_EXECUTABLE(scp  utils.f90
 	vgw.f90 vgwfm.f90 cholmod_logdet.c csr_sort_ja.c reallocate.f90
 	sparse.f90 ffvgw.f90 xyz.f90 scp.f90)
 
+add_executable(hsm hsm.f90 utils.f90 xyz.f90)
+
     
 include_directories(scp ${CHOLMOD_INC})
 
 target_link_libraries(scp ${CHOLMOD_LIBRARIES} ${BLAS_LIBRARIES})
+target_link_libraries(hsm ${BLAS_LIBRARIES})
 
 if (APPLE)
   set_target_properties(scp PROPERTIES LINK_FLAGS -Wl,-no_pie)
+  set_target_properties(hsm PROPERTIES LINK_FLAGS -Wl,-no_pie)
 endif()
+
