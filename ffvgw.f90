@@ -130,6 +130,30 @@ contains
         end do
     end subroutine init_sparse_patterns
 
+    function Utot0(self, Q0) result(U)
+        implicit none
+        class(ffvgw) :: self
+        double precision, intent(in) :: Q0(:,:)
+        double precision :: U
+        INTEGER  I,J,N
+        real*8 :: rsq, QIJ(3)
+
+        N = size(Q0, 2)
+        
+        U=0d0
+        DO I=1,N-1
+            DO J=I+1,N
+                qij = Q0(:,I) - Q0(:,J)
+                rsq = sum(min_image(qij, self % BL)**2)
+
+                if (rsq > self%Vcutoff**2) cycle
+
+                U = U + sum( self % LJC (1 : self % NGAUSS) * &
+                        EXP(-self % LJA ( 1 : self % NGAUSS ) * rsq) )
+            ENDDO
+        ENDDO
+    end function Utot0
+
 
     SUBROUTINE analyze(self, Q0)
         IMPLICIT NONE
