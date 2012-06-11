@@ -9,7 +9,7 @@ set(CMAKE_C_COMPILER_INIT "icc")
 set(CMAKE_Fortran_COMPILER_INIT "ifort")
 
 
-PROJECT(SCP C Fortran)
+PROJECT(SCP C CXX Fortran)
 
 if (CMAKE_Fortran_COMPILER_ID STREQUAL Intel)
     set(CMAKE_C_FLAGS "-openmp")
@@ -64,3 +64,4 @@ if (APPLE)
   set_target_properties(hsm PROPERTIES LINK_FLAGS -Wl,-no_pie)
 endif()
 
+add_subdirectory(hsm-lj)
