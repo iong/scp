@@ -19,7 +19,7 @@ program scp
 
     allocate(H(3*Natom, 3*Natom), W(3*Natom))
 
-    call hessian(r0, U0, H)
+    call ghessian(r0, U0, H)
     W = getev(H)
     deallocate(r0, H)
 
@@ -27,7 +27,8 @@ program scp
     open(35, file=trim(fname))
     write(35,'(F18.10)') W
     close(35)
-    print *, Natom, U0/Natom, sum(W(7:))/(3*Natom - 6)
+    print *, Natom, U0/Natom, sum(sqrt(W(7:)))/(3*Natom - 6), &
+        exp(0.5d0*sum(log(W(7:)))/(3*Natom - 6))
 contains
     function getev(A) result(W)
         double precision, intent(in) :: A(:,:)
@@ -55,19 +56,23 @@ contains
         deallocate(work,iwork,isuppz, U)
     end function getev
 
-    function ghessian(q) result(UXY)
-        !    use omp_lib
+    subroutine ghessian(q, Utot, UXY)
         IMPLICIT NONE
         double precision, intent(in) :: q(:,:)
-        double precision :: UXY(size(q), size(q))
+        double precision, intent(out) :: Utot, UXY(size(q), size(q))
 
         double precision  :: U12, Q12(3), UXY0(3,3)
-        double precision :: LJA(3) = (/ 6.65, 0.79, 2.6 /), &
-                LJC(3) = (/ 1840d0, -1.48d0, -23.2d0 /)
+!        double precision :: LJA(3) = (/ 6.65, 0.79, 2.6 /), &
+!                LJC(3) = (/ 1840d0, -1.48d0, -23.2d0 /)
+        double precision :: LJA(4) = (/13.75241581543,  7.64136762716565, &
+                1.66106514430194,  0.46671857809601/)
+        double precision :: LJC(4) = (/128891.569912461, 3513.506510626, &
+                -8.47940219671101, -0.343373800123181/)
         
         integer :: J,I1,I2,IG
 
         print *, size(q)
+        Utot = 0d0
         UXY = 0d0
         do I1=1,3*size(q,2),3
             DO I2=I1+3,3*size(q,2),3
@@ -76,6 +81,8 @@ contains
                 UXY0 = 0d0
                 DO IG=1,size(LJA)
                     U12 = EXP(-LJA(IG) * sum(Q12**2) ) * LJC(IG)
+
+                    Utot = Utot + U12
 
                     do J=1,3
                         UXY0(:,J) = UXY0(:,J) + 4d0*U12*LJA(IG)**2 * Q12(j) * Q12
@@ -95,7 +102,7 @@ contains
                 UXY(I2 : I2+2, I1 : I1+2) = -UXY0
             end do ! I2
         end do ! I1
-    END function ghessian
+    END subroutine ghessian
 
     subroutine hessian(q, Utot, UXY)
         !    use omp_lib
