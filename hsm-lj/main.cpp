@@ -100,12 +100,7 @@ static void hessian(double *x, double *y, double *z, double &U0, double *H)
 int main(int argc, const char * argv[])
 {
     int i;
-    
-        // insert code here...
-    cout << "Hello, World!\n";
-    
     stringstream ss;
-    
     string fname;
     
     if (argc==2) {
@@ -127,8 +122,6 @@ int main(int argc, const char * argv[])
         fin.close();
         
         fname=argv[1];
-        
-        cout << fname;
     }
     else {
         ss << argv[1];
@@ -139,8 +132,6 @@ int main(int argc, const char * argv[])
         z = new double[Natom];
         H = new double[9*Natom*Natom];
         
-            //fin.getline(linebuf, sizeof(linebuf));
-            //cout << linebuf << endl;
         ifstream fin(argv[2]);
         for (i=0; i<Natom; i++) {
             fin >> x[i] >> y[i] >> z[i];
