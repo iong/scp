@@ -1,0 +1,6 @@
+Implementation of the self-consistent phonons according to
+J. Chem. Phys. 137, 144106 (2012)
+
+vgw.f90 : dense matrix implementation
+ffvgw.f90 : sparse matrix implementation
+sparse.f90 : basic operations for CSR sparse format
