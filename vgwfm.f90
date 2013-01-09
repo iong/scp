@@ -11,6 +11,7 @@ module vgwfm_mod
 	procedure :: init_prop
 	procedure :: analyze
 	procedure :: cleanup
+        procedure :: regtransrot
 	procedure :: logdet
     end type vgwfm
     
@@ -72,27 +73,34 @@ contains
             do i=1,N3
                 self%Hnew(i,i) = 1d0
             end do
+            call regtransrot3(y(1:N3), self%Hnew)
             call fm_set_g(self%Hnew, rhs)
             return
         end if
 
         call fm_get_g(y, self%Omega)
-        
-        !call printev(Omega, 'Omega')
+ 
+        call printev(self%Omega, 'Omega before')
+!!$        call regtransrot3(y(1:N3), self%Omega)
+!!$        call printev(self%Omega, 'Omega after')
             
-        call dsyrk('L', 'N', N3, N3, 2d0 * self%kT, self%Omega, N3, 0d0, self%G, N3)
-        call GaussianAverage(self, y(1:N3), self%G, self%U, self%UX, self%Hnew)   
+        call dsyrk('U', 'N', N3, N3, 2d0 * self%kT, self%Omega, N3, 0d0, self%G, N3)
+        !call regtransrot2(y(1:N3), self%G)
+        call GaussianAverage(self, y(1:N3), self%G, self%U, self%UX, self%Hnew)
 
-        call dsymv('L', N3, -1d0, self%Omega, N3, self%UX, 1, 0d0, rhs, 1)
 
-        call dsymm('L', 'L', N3, N3, 1d0, self%Omega, N3, self%Hnew, N3, 0d0, self%G, N3)
+        call dsymv('U', N3, -1d0, self%Omega, N3, self%UX, 1, 0d0, rhs, 1)
+
+        call dsymm('L', 'U', N3, N3, 1d0, self%Omega, N3, self%Hnew, N3, 0d0, self%G, N3)
         self%Hnew = 0d0
         do i=1,N3
             self%Hnew(i,i) = 1d0
         end do
-        call dsymm('R', 'L', N3, N3, -1d0, self%Omega, N3, self%G, N3, 1d0, self%Hnew, N3)
-
-        call regtransrot(y(1:N3), self%Hnew, 0d0)
+        call regtransrot3(y(1:N3), self%Hnew)
+        call dsymm('R', 'U', N3, N3, -1d0, self%Omega, N3, self%G, N3, 1d0, self%Hnew, N3)
+        
+        
+        !call regtransrot1(y(1:N3), self%Hnew, 0d0)
         call fm_set_g(self%Hnew, rhs)
 
         self % qconv  = sqrt(sum(rhs(1:N3)**2)/N3)
@@ -143,7 +151,9 @@ contains
                     qZq = dot_product(Q12, Zq)  
 
                     if (DETA/DETAG <0) then
-                        print *, 'ltzero'
+                        print *, 'ltzero', deta, detag, self%LJA(IG)
+                        print '(3F12.6)', G12
+                        print '(3F12.6)', AG
                     endif
                     U12 = SQRT(DETA/DETAG) * EXP(-qZq) * self%LJC(IG)
                     U = U + U12
@@ -181,9 +191,9 @@ contains
 
         ypos = N + 1
         do i = 1, N
-            G( i:, i) = y (ypos : ypos + N - i)
-            G( i, i : N) = y (ypos : ypos + N - i)
-            ypos = ypos + N - i + 1
+            G( :i, i) = y (ypos : ypos + i-1)
+            G( i, :i) = y (ypos : ypos + i-1)
+            ypos = ypos + i
         end do
     end subroutine fm_get_g
 
@@ -198,8 +208,8 @@ contains
 
         ypos = N + 1
         do i = 1,N
-            y (ypos : ypos + N - i) = G(i : N, i)
-            ypos = ypos + N - i + 1
+            y (ypos : ypos + i - 1) = G(1:i, i)
+            ypos = ypos + i
         end do
     end subroutine fm_set_g
 
@@ -212,7 +222,7 @@ contains
         integer :: info, j
 
         call fm_get_g(self % y, self % Omega)
-        call regtransrot(self%y(1:3*self%Natom), self % Omega, 1d0)
+        call regtransrot1(self%y(1:3*self%Natom), self % Omega, 1d0)
 
         call dpotrf('U', 3 * self%Natom, self%Omega, 3 * self%Natom, info)
 
@@ -254,9 +264,16 @@ contains
         deallocate(U, GU, UGU)
     end subroutine regtrans
 
+    subroutine regtransrot(self, y)
+        class(vgwfm) :: self
+        double precision, intent(inout) :: y(:)
 
+       call fm_get_g( y, self % Hnew)
+       call regtransrot3(y(1:3*self%Natom), self%Hnew)
+       call fm_set_g(self % Hnew, y)
+    end subroutine regtransrot
 
-    subroutine regtransrot(q, G, l)
+    subroutine regtransrot1(q, G, l)
         implicit none
         double precision :: q(:), G(:,:), l
 
@@ -269,7 +286,7 @@ contains
 
         U = transrot_subspace(q)
 
-        call dgemm('N', 'N', N, 6, N, 1d0, G, N, U, N, 0d0, GU, N)
+        call dsymm('L', 'U', N, 6, 1d0, G, N, U, N, 0d0, GU, N)
         call dgemm('T', 'N', 6, 6, N, -1d0, U, N, GU, N, 0d0, UGU, 6)
 
         do i=1,6
@@ -278,20 +295,72 @@ contains
 
         !print '(6F12.7)', UGU
 
-        call dgemm('N', 'N', N, 6, 6, 1d0, U, N, UGU, 6, 0d0, GU, N)
+        call dsymm('R', 'U', N, 6, 1d0, UGU, 6, U, N, 0d0, GU, N)
         call dgemm('N', 'T', N, N, 6, 1d0, GU, N, U, N, 1d0, G, N)
         deallocate(U, GU, UGU)
-    end subroutine regtransrot
+    end subroutine regtransrot1
+
+    subroutine regtransrot2(q, G)
+        implicit none
+        double precision :: q(:), G(:,:)
+
+        double precision, allocatable :: U(:,:), GU(:,:), UGU(:,:), UG(:,:)
+        integer :: i, j, N, info
+
+        N = size(G, 1)
+
+        allocate(U(N,6), GU(N,6), UGU(6,6), UG(6,N))
+
+        U = transrot_subspace(q)
+
+        call dsymm('L', 'U', N, 6, 1d0, G, N, U, N, 0d0, GU, N)
+        call dgemm('T', 'N', 6, 6, N, 1d0, U, N, GU, N, 0d0, UGU, 6)
+
+        print '(6F14.8)', UGU
+
+        UG = transpose(GU)
+      
+        call dposv('U', 6, N, UGU, 6, UG, 6, info)
+
+        call dgemm('N', 'N', N, N, 6, -1d0, GU, N, UG, 6, 1d0, G, N)
+        deallocate(U, GU, UGU, UG)
+    end subroutine regtransrot2
+
+    subroutine regtransrot3(q, G)
+        implicit none
+        double precision :: q(:), G(:,:)
+
+        double precision, allocatable :: U(:,:), GU(:,:), UGU(:,:)
+        integer :: i, j, N
+
+        N = size(G, 1)
+
+        allocate(U(N,6), GU(N,6), UGU(6,6))
+
+        U = transrot_subspace(q)
+
+        call dsymm('L', 'U', N, 6, 1d0, G, N, U, N, 0d0, GU, N)
+        call dgemm('T', 'N', 6, 6, N, 1d0, U, N, GU, N, 0d0, UGU, 6)
+
+        !print '(6F12.7)', UGU
+
+        call dsyr2k('U', 'N', N, 6, -1d0, U, N, GU, N, 1d0, G, N)
+
+        ! U * (U^T G U)
+        call dsymm('R', 'U', N, 6, 1d0, UGU, 6, U, N, 0d0, GU, N)
+        call dgemm('N', 'T', N, N, 6, 1d0, GU, N, U, N, 1d0, G, N)
+        deallocate(U, GU, UGU)
+    end subroutine regtransrot3
 
     pure function g_cross_block(G, I, J) result(x)
         double precision, intent(in) :: G(:,:)
         integer, intent(in) :: I, J
         double precision ::x(3,3)
         x = G(I : I+2, I : I+2) + G(J : J+2, J : J+2)
-        x(1,2) = x(2,1)
-        x(1,3) = x(3,1)
-        x(2,3) = x(3,2)
-        if (I>J) then
+        x(2,1) = x(1,2)
+        x(3,1) = x(1,3)
+        x(3,2) = x(2,3)
+        if (I<J) then
             x = x - G(I : I+2, J : J+2) - transpose(G(I : I+2, J : J+2)) 
         else
             x = x - G(J : J+2, I : I+2) - transpose(G(J : J+2, I : I+2))
@@ -316,10 +385,10 @@ contains
         allocate(AA,source=A)
         allocate(U(N,N))
         allocate(work(N * 26), W(N), iwork(N * 10), isuppz(2*N))
-        call dsyevr('V', 'A', 'L', N, AA, N, 0d0, 0d0, 1, 6, &
+        call dsyevr('N', 'A', 'U', N, AA, N, 0d0, 0d0, 1, 6, &
                 DLAMCH('Safe minimum'), NEV, W, U, N, isuppz, &
                 work, size(work), iwork, size(iwork), info)
-        print '(A, 15F14.6)',name, W(1:9),W(N-5:N)
+        print '(A, 18F12.6)',name, W(1:9),W(N-8:N)
 
         deallocate(AA,W,work,iwork,isuppz, U)
     end subroutine printev

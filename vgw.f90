@@ -31,6 +31,7 @@ module vgw_mod
         procedure :: init_prop
         procedure :: logdet
         procedure :: converge
+        procedure :: regtransrot
         procedure :: rhs
         procedure :: set_bl
         procedure :: get_q
@@ -156,24 +157,17 @@ module vgw_mod
         logdet = 0d0
     end function logdet
 
-    function step(y, yp, dt, rtol, atol) 
-        implicit none
+    subroutine regtransrot(self, y)
+        class(vgw) :: self
         double precision, intent(inout) :: y(:)
-        double precision, intent(in) :: yp(:), dt, rtol, atol
-        double precision :: step
+    end subroutine regtransrot
 
-        double precision :: dy, y0, err
-        integer :: i
+    function test_convergence(y0, y1, rtol, atol) 
+        implicit none
+        double precision, intent(in) :: y0(:), y1(:), rtol, atol
+        logical :: test_convergence
 
-        err = 0d0
-        do i=1,size(y)
-            y0 = y(i)
-            dy = yp(i) * dt
-            y(i) = y(i) + dy
-            err = max(err, abs(2d0*dy) / (rtol*(abs(y0) + abs(y(i))) + atol) )
-        end do
-
-        step = err
+        test_convergence = all(abs(y0-y1) < (0.5*rtol*( abs(y0) + abs(y1) ) + atol))
     end function
 
 
@@ -182,21 +176,27 @@ module vgw_mod
         class(vgw) :: self
         double precision, intent(in) :: rtol, atol
 
-        double precision, allocatable :: yp(:)
+        double precision, allocatable :: yproj(:), yprojold(:)
 
         integer :: n, nmax, N3
-        double precision :: err, dt, t
+        double precision ::  dt, t
+
+        logical :: converged
 
         N3 = 3 * self%Natom
-        allocate(yp(self%NEQ))
+        allocate(yproj(self%NEQ), yprojold(self%NEQ))
 
         dt = 0.0125d0
         t = 0d0
+        yproj = 0d0
         do
-            yp = self % rhs(self%y, t)
-            err = step(self%y(1:N3), yp(1:N3), dt, 0d0, 1d-2)
-            err = max(err, step(self%y(N3:), yp(N3:), dt, rtol, atol))
-            err = err / dt
+            yprojold = yproj
+            self%y = self%y + dt * self % rhs(self%y, t)
+            
+           ! call self%regtransrot(self % y)
+            yproj = self % y
+            converged = test_convergence(yproj(:N3), yprojold(:N3), 0d0, dt*1d-2) &
+                    .AND. test_convergence(yproj(N3+1:), yprojold(N3+1:), rtol, dt*atol)
 
             t = t + dt
             self % niterations = self % niterations + 1
@@ -205,10 +205,10 @@ module vgw_mod
             ! error have been eliminated.
             !if (err < 0.01d0/rtol) dt = dt / 2d0
 
-            if (err < 1d0) exit
+            if (converged) exit
         end do
 
-        deallocate(yp)
+        deallocate(yproj, yprojold)
     end subroutine CONVERGE
 
 
@@ -244,7 +244,7 @@ module vgw_mod
 
         ! solve the VGW equations, measure CPU time
         call cpu_time(t1)
-        call self % converge(1d-3, 1d-5)
+        call self % converge(1d-4, 1d-5)
         call cpu_time(t2)
         vgw_F =  (self%U - self%kT * self%logdet() )/self%Natom &
                     - 3  * self%kT * log(self % kT * c0)
